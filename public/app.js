@@ -637,7 +637,7 @@ function getVisitorId() {
 
 function initClientVisit() {
   const vid = getVisitorId();
-  fetch("/api/visit", {
+  fetch("./api/visit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ visitor_id: vid })
@@ -647,13 +647,35 @@ function initClientVisit() {
 // --- Data Fetching ---
 async function loadLayers() {
   try {
-    const res = await fetch("/api/layers");
-    const json = await res.json();
-    if (json.code === 0) {
-      state.layers = json.data.map(l => {
-        l.likes = (typeof l.likes === 'number' && !isNaN(l.likes)) ? l.likes : 0;
+    let rawData = null;
+    try {
+      const res = await fetch("./api/layers");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.code === 0) rawData = json.data;
+      }
+    } catch (e) {}
+
+    // 静态降级：若后端 API 不可用（如 GitHub Pages 托管环境），无缝读取本地静态 layers.json
+    if (!rawData) {
+      const sRes = await fetch("./data/layers.json?v=7.9");
+      const sData = await sRes.json();
+      rawData = Array.isArray(sData) ? sData : (sData.data || []);
+    }
+
+    if (rawData) {
+      const localOffsets = JSON.parse(localStorage.getItem("qgis_likes_offsets") || "{}");
+      state.layers = rawData.map(l => {
+        const rawLikes = (typeof l.likes === 'number' && !isNaN(l.likes)) ? l.likes : 0;
+        l._baseLikes = rawLikes;
+        const offset = state.liked.has(l.id) ? (localOffsets[l.id] !== undefined ? localOffsets[l.id] : 1) : 0;
+        l.likes = rawLikes + offset;
         l.downloads = (typeof l.downloads === 'number' && !isNaN(l.downloads)) ? l.downloads : 0;
         l.heat = (typeof l.heat === 'number' && !isNaN(l.heat)) ? l.heat : (l.likes * 2 + l.downloads * 3);
+        // 修正缩略图相对路径
+        if (l.thumbnail && l.thumbnail.startsWith("/")) {
+          l.thumbnail = "." + l.thumbnail;
+        }
         return l;
       });
       renderCategories();
@@ -661,24 +683,32 @@ async function loadLayers() {
     }
   } catch (err) {
     console.error("加载底图数据失败:", err);
-    showToast("无法加载底图列表，请检查服务是否运行");
+    showToast("无法加载底图列表，请检查网络");
   }
 }
 
 async function loadStats() {
   try {
-    const res = await fetch("/api/stats");
-    const json = await res.json();
-    if (json.code === 0) {
-      state.stats = json.data;
-      document.getElementById("stat-pv").textContent = json.data.pv.toLocaleString();
-      if (json.data.check_time) {
-        const ctEl = document.getElementById("stat-check-time");
-        if (ctEl) ctEl.textContent = json.data.check_time;
-        const bctEl = document.getElementById("banner-check-time");
-        if (bctEl) bctEl.textContent = json.data.check_time;
+    let res = null;
+    try {
+      res = await fetch("./api/stats");
+    } catch (e) {}
+    if (res && res.ok) {
+      const json = await res.json();
+      if (json.code === 0) {
+        state.stats = json.data;
+        document.getElementById("stat-pv").textContent = json.data.pv.toLocaleString();
+        document.getElementById("stat-uv").textContent = json.data.uv.toLocaleString();
+        document.getElementById("stat-downloads").textContent = json.data.total_downloads.toLocaleString();
+        document.getElementById("stat-layers-count").textContent = state.layers.length || "55";
+        if (json.data.check_time) {
+          const ctEl = document.getElementById("stat-check-time");
+          if (ctEl) ctEl.textContent = json.data.check_time;
+          const bctEl = document.getElementById("banner-check-time");
+          if (bctEl) bctEl.textContent = json.data.check_time;
+        }
+        return;
       }
-      return;
     }
   } catch (err) {}
 
@@ -698,11 +728,22 @@ async function loadStats() {
 
 async function loadWmsCapabilities() {
   try {
-    const res = await fetch("/api/wms-capabilities");
-    const json = await res.json();
-    if (json.code === 0 && json.data) {
-      state.wmsCapabilities = json.data;
-      // 若当前已有底图预览弹窗处于打开状态，立即渲染子图层清单
+    let data = null;
+    try {
+      const res = await fetch("./api/wms-capabilities");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.code === 0 && json.data) data = json.data;
+      }
+    } catch (e) {}
+
+    if (!data) {
+      const sRes = await fetch("./data/wms_capabilities.json").catch(() => null);
+      if (sRes && sRes.ok) data = await sRes.json();
+    }
+
+    if (data) {
+      state.wmsCapabilities = data;
       if (state.activePreviewLayer) {
         setupPreviewSublayers(state.activePreviewLayer);
       }
@@ -1238,13 +1279,19 @@ function triggerUnlikeLottie(iconEl) {
   }
 }
 
-// --- Likes ---
+// --- Likes (支持全栈后端 API 与纯静态离线持久化双模自适应) ---
 async function handleLike(layerId) {
   const vid = getVisitorId();
-  // 按当前显示状态声明意图：已赞 → 取消，未赞 → 点赞
-  const action = state.liked.has(layerId) ? "unlike" : "like";
+  const willLike = !state.liked.has(layerId);
+  const action = willLike ? "like" : "unlike";
+
+  let serverSuccess = false;
+  let finalLiked = willLike;
+  let finalLikes = null;
+
+  // 1. 尝试向后端提交（若运行在含 server.py 的全栈环境中）
   try {
-    const res = await fetch("/api/like", {
+    const res = await fetch("./api/like", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ layer_id: layerId, visitor_id: vid, action })
@@ -1255,65 +1302,239 @@ async function handleLike(layerId) {
       return;
     }
 
-    const json = await res.json();
-    if (json.code === 0) {
-      // 以服务端返回的最终状态为准同步本地（localStorage 清空等错位场景自动纠正）
-      const liked = !!json.data.liked;
-      if (liked) state.liked.add(layerId);
-      else state.liked.delete(layerId);
-      localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
-
-      const layer = state.layers.find(l => l.id === layerId);
-      if (layer) {
-        layer.likes = json.data.likes;
-        layer.heat = layer.likes * 2 + layer.downloads * 3;
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.code === 0 && json.data) {
+        serverSuccess = true;
+        finalLiked = !!json.data.liked;
+        finalLikes = json.data.likes;
       }
-
-      // 1. 同步卡片视图 DOM
-      const likeCountEl = document.getElementById(`like-${layerId}`);
-      if (likeCountEl) likeCountEl.textContent = json.data.likes;
-
-      const heatEl = document.getElementById(`heat-${layerId}`);
-      if (heatEl && layer) heatEl.textContent = layer.heat;
-
-      const card = document.querySelector(`.layer-card[data-id="${layerId}"] .like-btn`);
-      if (card) {
-        card.classList.toggle("liked", liked);
-        card.title = liked ? "点赞中 · 点击取消点赞" : "点赞推荐此底图";
-        const icon = card.querySelector(".like-icon");
-        if (icon) {
-          icon.innerHTML = liked ? ICONS.heartFilled : ICONS.heartOutline;
-          if (liked) triggerLikeLottie(icon);
-          else triggerUnlikeLottie(icon);
-        }
-      }
-
-      // 2. 同步表格列表视图 DOM
-      const tableLikeEl = document.getElementById(`table-like-${layerId}`);
-      if (tableLikeEl) tableLikeEl.textContent = json.data.likes;
-
-      const tableHeatEl = document.getElementById(`table-heat-${layerId}`);
-      if (tableHeatEl && layer) tableHeatEl.textContent = layer.heat;
-
-      const tableRowBtn = document.querySelector(`tr[data-id="${layerId}"] .like-btn`);
-      if (tableRowBtn) {
-        tableRowBtn.classList.toggle("liked", liked);
-        tableRowBtn.title = liked ? "点赞中 · 点击取消点赞" : "点赞推荐此底图";
-        const icon = tableRowBtn.querySelector(".like-icon");
-        if (icon) {
-          icon.innerHTML = liked ? ICONS.heartFilled : ICONS.heartOutline;
-          if (liked) triggerLikeLottie(icon);
-          else triggerUnlikeLottie(icon);
-        }
-      }
-
-      showToast(liked ? "感谢点赞推荐！" : "已取消点赞");
-    } else {
-      showToast(json.message || "操作未成功");
     }
-  } catch (err) {
-    console.error("点赞操作失败:", err);
+  } catch (e) {
+    // 捕获无后端 404 或网络错误，无缝降级到本地离线存储
   }
+
+  const layer = state.layers.find(l => l.id === layerId);
+
+  // 2. 离线/静态模式（GitHub Pages 纯前端持久化）：
+  if (!serverSuccess) {
+    if (finalLiked) {
+      state.liked.add(layerId);
+    } else {
+      state.liked.delete(layerId);
+    }
+    localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
+
+    const localOffsets = JSON.parse(localStorage.getItem("qgis_likes_offsets") || "{}");
+    const offset = finalLiked ? 1 : 0;
+    localOffsets[layerId] = offset;
+    localStorage.setItem("qgis_likes_offsets", JSON.stringify(localOffsets));
+
+    if (layer) {
+      const baseLikes = typeof layer._baseLikes === 'number' ? layer._baseLikes : (layer.likes || 0);
+      layer._baseLikes = baseLikes;
+      layer.likes = Math.max(0, baseLikes + offset);
+      layer.heat = layer.likes * 2 + (layer.downloads || 0) * 3;
+      finalLikes = layer.likes;
+    }
+  } else {
+    // 服务端模式同步
+    if (finalLiked) state.liked.add(layerId);
+    else state.liked.delete(layerId);
+    localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
+
+    if (layer) {
+      layer.likes = finalLikes;
+      layer.heat = layer.likes * 2 + (layer.downloads || 0) * 3;
+    }
+  }
+
+  // 3. 同步卡片视图 DOM
+  const likeCountEl = document.getElementById(`like-${layerId}`);
+  if (likeCountEl && finalLikes !== null) likeCountEl.textContent = finalLikes;
+
+  const heatEl = document.getElementById(`heat-${layerId}`);
+  if (heatEl && layer) heatEl.textContent = layer.heat;
+
+  const card = document.querySelector(`.layer-card[data-id="${layerId}"] .like-btn`);
+  if (card) {
+    card.classList.toggle("liked", finalLiked);
+    card.title = finalLiked ? "点赞中 · 点击取消点赞" : "点赞推荐此底图";
+    const icon = card.querySelector(".like-icon");
+    if (icon) {
+      icon.innerHTML = finalLiked ? ICONS.heartFilled : ICONS.heartOutline;
+      if (finalLiked) triggerLikeLottie(icon);
+      else triggerUnlikeLottie(icon);
+    }
+  }
+
+  // 4. 同步表格列表视图 DOM
+  const tableLikeEl = document.getElementById(`table-like-${layerId}`);
+  if (tableLikeEl && finalLikes !== null) tableLikeEl.textContent = finalLikes;
+
+  const tableHeatEl = document.getElementById(`table-heat-${layerId}`);
+  if (tableHeatEl && layer) tableHeatEl.textContent = layer.heat;
+
+  const tableRowBtn = document.querySelector(`tr[data-id="${layerId}"] .like-btn`);
+  if (tableRowBtn) {
+    tableRowBtn.classList.toggle("liked", finalLiked);
+    tableRowBtn.title = finalLiked ? "点赞中 · 点击取消点赞" : "点赞推荐此底图";
+    const icon = tableRowBtn.querySelector(".like-icon");
+    if (icon) {
+      icon.innerHTML = finalLiked ? ICONS.heartFilled : ICONS.heartOutline;
+      if (finalLiked) triggerLikeLottie(icon);
+      else triggerUnlikeLottie(icon);
+    }
+  }
+
+  showToast(finalLiked ? "感谢点赞推荐！" : "已取消点赞");
+}
+
+
+// --- Client-side Standalone PyQGIS Script Generator for GitHub Pages ---
+function generateClientQgisScript(selectedLayers, addToCanvas) {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const timestamp = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  const checkTime = "2026年5月26日";
+  const pySq = (s) => (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+  const lines = [
+    "# -*- coding: utf-8 -*-",
+    "# ====================================================================",
+    "# 【OpenQGIS】在线底图多协议自动化注册脚本",
+    "# 项目维护: OpenQGIS 团队 (https://github.com/OpenQGIS/maps)",
+    `# 图源核验基准日期: ${checkTime}`,
+    `# 脚本导出时间: ${timestamp}`,
+    `# 本次选定底图: 共 ${selectedLayers.length} 款`,
+    "# 协议覆盖: XYZ Tiles 标准切片、WMS/WMTS 空间数据服务、VEC 矢量切片 (Vector Tiles)",
+    "# 兼容特性: 深度兼容 QGIS 4.x (现代数据连接架构) 与 QGIS 3.x 全版本",
+    "# 使用方法:",
+    "# 1. 在 QGIS 菜单栏快捷键 Ctrl+Alt+P 打开 Python 控制台",
+    "# 2. 将本脚本全部代码粘贴到控制台命令行并回车执行",
+    "# 3. 底图将自动注册到左侧【浏览器】对应层级下，永久可用！",
+    "# ====================================================================",
+    "",
+    "import urllib.parse",
+    "from qgis.core import QgsSettings, QgsRasterLayer, QgsProject",
+    "try:",
+    "    from qgis.core import QgsVectorTileLayer",
+    "except ImportError:",
+    "    QgsVectorTileLayer = None",
+    "from qgis.utils import iface",
+    "",
+    "settings = QgsSettings()",
+    "xyz_count = 0",
+    "wms_count = 0",
+    "vec_count = 0",
+    "loaded_layers = 0",
+    "print('=== 【OpenQGIS】开始批量导入底图配置 ===')",
+    `print('  [i] 图源核验基准: ${checkTime}')`,
+    ""
+  ];
+
+
+
+  for (const layer of selectedLayers) {
+    const name = pySq(layer.name || "未命名图层");
+    const fmt = (layer.format || "XYZ Tiles").trim();
+    const rawUrl = (layer.url || "").trim();
+    const desc = (layer.description || "").trim();
+    const cats = layer.categories ? layer.categories.join(" / ") : "";
+    if (!rawUrl) continue;
+
+    if (fmt === "VEC") {
+      const urlLines = rawUrl.split("\n").map(u => u.trim()).filter(Boolean);
+      const tileUrl = pySq(urlLines[0]);
+      const styleUrl = urlLines.length > 1 ? pySq(urlLines[1]) : "";
+      lines.push(`# >>> [VEC 矢量切片] ${name}`);
+      if (cats) lines.push(`#     分类: ${cats}`);
+      if (desc) lines.push(`#     说明: ${desc}`);
+      if (layer.has_boundary_issue) lines.push("#     ⚠️ 标注: 存在国界线/边界争议，仅供内部科研参考");
+      if (layer.has_coordinate_drift) lines.push("#     ⚠️ 标注: 采用 GCJ-02 火星坐标系，需纠偏配准");
+      if (layer.needs_vpn) lines.push("#     🌐 标注: 境外服务器源，加载需网络代理");
+      lines.push("try:");
+      lines.push(`    layer_name = '${name}'`);
+      lines.push(`    tile_url = '${tileUrl}'`);
+      lines.push(`    style_url = '${styleUrl}'`);
+      lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)");
+      if (styleUrl) lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)");
+      lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)");
+      lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 14)");
+      lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'xyz')");
+      lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', tile_url)");
+      if (styleUrl) lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/styleUrl', style_url)");
+      lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmin', 0)");
+      lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmax', 14)");
+      lines.push("    vec_count += 1");
+      lines.push("    print(f'  [√] 成功注册 Vector Tiles 连接: {layer_name}')");
+      lines.push("except Exception as err:");
+      lines.push("    print(f'  [×] 注册矢量切片失败: {layer_name}, 错误: {err}')");
+      lines.push("");
+    } else if (fmt === "WMS/WMTS") {
+      const cleanUrl = pySq(rawUrl.split("\n")[0].trim());
+      lines.push(`# >>> [WMS/WMTS 空间服务] ${name}`);
+      if (cats) lines.push(`#     分类: ${cats}`);
+      if (desc) lines.push(`#     说明: ${desc}`);
+      if (layer.has_boundary_issue) lines.push("#     ⚠️ 标注: 存在国界线/边界争议，仅供内部科研参考");
+      if (layer.has_coordinate_drift) lines.push("#     ⚠️ 标注: 采用 GCJ-02 火星坐标系，需纠偏配准");
+      if (layer.needs_vpn) lines.push("#     🌐 标注: 境外服务器源，加载需网络代理");
+      lines.push("try:");
+      lines.push(`    layer_name = '${name}'`);
+      lines.push(`    wms_url = '${cleanUrl}'`);
+      lines.push("    settings.setValue(f'connections/ows/items/wms/connections/items/{layer_name}/url', wms_url)");
+      lines.push("    settings.setValue(f'connections/ows/items/wms/connections/items/{layer_name}/dpi-mode', 7)");
+      lines.push("    settings.setValue(f'connections/ows/items/wms/connections/items/{layer_name}/feature-count', 10)");
+      lines.push("    settings.setValue(f'qgis/connections-wms/{layer_name}/url', wms_url)");
+      lines.push("    wms_count += 1");
+      lines.push("    print(f'  [√] 成功注册 WMS/WMTS 连接: {layer_name}')");
+      lines.push("except Exception as err:");
+      lines.push("    print(f'  [×] 注册 WMS/WMTS 失败: {layer_name}, 错误: {err}')");
+      lines.push("");
+    } else {
+      const cleanUrl = pySq(rawUrl.split("\n")[0].trim());
+      lines.push(`# >>> [XYZ Tiles 标准瓦片] ${name}`);
+      if (cats) lines.push(`#     分类: ${cats}`);
+      if (desc) lines.push(`#     说明: ${desc}`);
+      if (layer.has_boundary_issue) lines.push("#     ⚠️ 标注: 存在国界线/边界争议，仅供内部科研参考");
+      if (layer.has_coordinate_drift) lines.push("#     ⚠️ 标注: 采用 GCJ-02 火星坐标系，需纠偏配准");
+      if (layer.needs_vpn) lines.push("#     🌐 标注: 境外服务器源，加载需网络代理");
+      lines.push("try:");
+      lines.push(`    layer_name = '${name}'`);
+      lines.push(`    layer_url = '${cleanUrl}'`);
+      lines.push("    settings.setValue(f'connections/xyz/items/{layer_name}/url', layer_url)");
+      lines.push("    settings.setValue(f'connections/xyz/items/{layer_name}/zmin', 0)");
+      lines.push("    settings.setValue(f'connections/xyz/items/{layer_name}/zmax', 19)");
+      lines.push("    settings.setValue(f'qgis/connections-xyz/{layer_name}/url', layer_url)");
+      lines.push("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmin', 0)");
+      lines.push("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmax', 19)");
+      lines.push("    xyz_count += 1");
+      lines.push("    print(f'  [√] 成功注册 XYZ 连接: {layer_name}')");
+      lines.push("except Exception as err:");
+      lines.push("    print(f'  [×] 注册 XYZ 失败: {layer_name}, 错误: {err}')");
+      lines.push("");
+    }
+  }
+
+  lines.push("settings.sync()");
+  lines.push("try:");
+  lines.push("    if hasattr(iface, 'browserModel') and iface.browserModel():");
+  lines.push("        iface.browserModel().reload()");
+  lines.push("        iface.browserModel().refresh()");
+  lines.push("except Exception:");
+  lines.push("    pass");
+  lines.push("");
+  lines.push("print('=' * 60)");
+  lines.push("print('【OpenQGIS】底图自动化导入完成！')");
+  lines.push(`print('  - 图源核验基准: ${checkTime}')`);
+  lines.push("print(f'  - XYZ Tiles 注册: {xyz_count} 项')");
+  lines.push("print(f'  - WMS/WMTS 注册: {wms_count} 项')");
+  lines.push("print(f'  - Vector Tiles 矢量切片注册: {vec_count} 项')");
+  lines.push("print(f'  - 直接加载到画布: {loaded_layers} 项')");
+  lines.push("print('请在 QGIS 左侧【浏览器】面板对应分类中直接查看与调用！')");
+  lines.push("print('=' * 60)");
+
+  return lines.join("\n");
 }
 
 // --- Checkout & Script Generation ---
@@ -1323,20 +1544,34 @@ async function handleCheckout() {
   const vid = getVisitorId();
 
   try {
-    const res = await fetch("/api/export", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ layer_ids: layerIds, add_to_canvas: false, visitor_id: vid })
-    });
+    let data = null;
+    try {
+      const res = await fetch("./api/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ layer_ids: layerIds, add_to_canvas: false, visitor_id: vid })
+      });
+      if (res.status === 429) {
+        showToast("操作过于频繁，请稍后再试");
+        return;
+      }
+      if (res.ok) {
+        const json = await res.json();
+        if (json.code === 0) data = json.data;
+      }
+    } catch (e) {}
 
-    if (res.status === 429) {
-      showToast("操作过于频繁，请稍后再试");
-      return;
+    // 静态降级：若后端 API 不可用，在纯浏览器端直接生成脚本
+    if (!data) {
+      const selectedLayers = layerIds.map(id => state.layers.find(l => l.id === id)).filter(Boolean);
+      const clientScript = generateClientQgisScript(selectedLayers, false);
+      data = {
+        count: selectedLayers.length,
+        script: clientScript
+      };
     }
 
-    const json = await res.json();
-    if (json.code === 0) {
-      const data = json.data;
+    if (data) {
       document.getElementById("export-count-text").textContent = `已成功为 ${data.count} 款选定底图生成专属 PyQGIS 自动化导入脚本`;
       document.getElementById("script-code-box").textContent = data.script;
 
