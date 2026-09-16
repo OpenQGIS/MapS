@@ -665,6 +665,9 @@ async function loadLayers() {
 
     if (rawData) {
       state.layers = rawData.map(l => {
+        l.likes = (typeof l.likes === 'number' && !isNaN(l.likes)) ? l.likes : 0;
+        l.downloads = (typeof l.downloads === 'number' && !isNaN(l.downloads)) ? l.downloads : 0;
+        l.heat = (typeof l.heat === 'number' && !isNaN(l.heat)) ? l.heat : (l.likes * 2 + l.downloads * 3);
         // 修正缩略图相对路径
         if (l.thumbnail && l.thumbnail.startsWith("/")) {
           l.thumbnail = "." + l.thumbnail;
@@ -770,8 +773,8 @@ function getFilteredLayers() {
 
     return true;
   }).sort((a, b) => {
-    if (state.currentSort === "heat") return b.heat - a.heat;
-    if (state.currentSort === "likes") return b.likes - a.likes;
+    if (state.currentSort === "heat") return (b.heat || 0) - (a.heat || 0);
+    if (state.currentSort === "likes") return (b.likes || 0) - (a.likes || 0);
     if (state.currentSort === "downloads") return b.downloads - a.downloads;
     if (state.currentSort === "name") return a.name.localeCompare(b.name, "zh");
     return 0;
@@ -963,9 +966,9 @@ function renderLayers() {
               <div class="card-actions-left">
                 <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="handleLike('${escapeAttrJs(layer.id)}')" title="${isLiked ? '点赞中 · 点击取消点赞' : '点赞推荐此底图'}">
                   <span class="like-icon">${isLiked ? ICONS.heartFilled : ICONS.heartOutline}</span>
-                  <span class="like-count" id="like-${escapeHtml(layer.id)}">${layer.likes}</span>
+                  <span class="like-count" id="like-${escapeHtml(layer.id)}">${layer.likes || 0}</span>
                 </button>
-                <span class="heat-badge" title="综合热度指数">${ICONS.flame} <span id="heat-${escapeHtml(layer.id)}">${layer.heat}</span></span>
+                <span class="heat-badge" title="综合热度指数">${ICONS.flame} <span id="heat-${escapeHtml(layer.id)}">${layer.heat || 0}</span></span>
               </div>
               <button class="add-cart-btn ${inCart ? 'added' : ''}" onclick="toggleCart('${escapeAttrJs(layer.id)}')">
                 ${inCart ? '已在配置单' : '+ 加入配置'}
@@ -1035,10 +1038,10 @@ function renderLayers() {
                 </td>
                 <td>
                   <div style="display: inline-flex; align-items: center; gap: 8px;">
-                    <span class="heat-badge" title="综合热度指数">${ICONS.flame} <span id="table-heat-${escapeHtml(l.id)}">${l.heat}</span></span>
+                    <span class="heat-badge" title="综合热度指数">${ICONS.flame} <span id="table-heat-${escapeHtml(l.id)}">${l.heat || 0}</span></span>
                     <button class="like-btn table-like-btn ${isLiked ? 'liked' : ''}" onclick="handleLike('${escapeAttrJs(l.id)}')" title="${isLiked ? '点赞中 · 点击取消点赞' : '点赞推荐此底图'}">
                       <span class="like-icon">${isLiked ? ICONS.heartFilled : ICONS.heartOutline}</span>
-                      <span class="like-count" id="table-like-${escapeHtml(l.id)}">${l.likes}</span>
+                      <span class="like-count" id="table-like-${escapeHtml(l.id)}">${l.likes || 0}</span>
                     </button>
                   </div>
                 </td>
