@@ -740,9 +740,9 @@ async function loadStats() {
     localStorage.setItem("qgis_site_uv", localUv);
   }
 
-  const basePv = 1280 + localPv;
-  const baseUv = 460 + localUv;
-  const baseDownloads = 350 + localDl;
+  const basePv = localPv;
+  const baseUv = localUv;
+  const baseDownloads = localDl;
 
   updateStatsUi({
     pv: basePv,
@@ -1684,6 +1684,7 @@ async function handleCheckout() {
 
       document.getElementById("copy-script-btn").onclick = () => {
         copyText(data.script, "已成功复制 Python 脚本到剪贴板！");
+        incrementLocalDownloads();
       };
 
       openModal("checkout-modal");
@@ -3501,7 +3502,6 @@ function incrementLocalDownloads() {
   localStorage.setItem("qgis_site_downloads", localDl);
   const dlEl = document.getElementById("stat-downloads");
   if (dlEl) {
-    const cur = parseInt(dlEl.textContent.replace(/,/g, ""), 10) || 350;
-    dlEl.textContent = (cur + 1).toLocaleString();
+    dlEl.textContent = localDl.toLocaleString();
   }
 }
