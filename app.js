@@ -2461,6 +2461,9 @@ function schedulePreviewMapResize() {
 }
 
 function openCart() {
+  document.body.classList.add("cart-open");
+  const fc = document.getElementById("floating-cart-container");
+  if (fc) fc.classList.add("drawer-open");
   document.getElementById("cart-drawer").classList.add("open");
   document.getElementById("cart-backdrop").classList.add("open");
   document.body.style.overflow = "hidden";
@@ -2468,6 +2471,9 @@ function openCart() {
 }
 
 function closeCart() {
+  document.body.classList.remove("cart-open");
+  const fc = document.getElementById("floating-cart-container");
+  if (fc) fc.classList.remove("drawer-open");
   const drawer = document.getElementById("cart-drawer");
   if (drawer) drawer.style.transform = "";
   document.getElementById("cart-drawer").classList.remove("open");

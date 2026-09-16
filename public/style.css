@@ -317,10 +317,18 @@ body {
   position: fixed;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   right: 24px;
-  z-index: 1000;
+  z-index: 95;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.cart-open .floating-cart-container,
+.floating-cart-container.drawer-open {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(20px) scale(0.9) !important;
 }
 
 #floating-cart-btn {
