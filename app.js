@@ -707,15 +707,19 @@ async function loadStats() {
       }
     }
   } catch (err) {}
-  // 静态默认降级展示
+
+  // 静态 Pages 环境（无后端数据库）：绝不伪造虚假数据，直接隐藏需要数据库记录的动态指标
+  const pvEl = document.getElementById("stat-pv");
+  const dlEl = document.getElementById("stat-downloads");
+  if (pvEl && pvEl.closest(".stat-item")) pvEl.closest(".stat-item").style.display = "none";
+  if (dlEl && dlEl.closest(".stat-item")) dlEl.closest(".stat-item").style.display = "none";
+
   const count = state.layers.length || 55;
   document.getElementById("stat-layers-count").textContent = count;
   const ctEl = document.getElementById("stat-check-time");
   if (ctEl) ctEl.textContent = "2026年5月26日";
   const bctEl = document.getElementById("banner-check-time");
   if (bctEl) bctEl.textContent = "2026年5月26日";
-  document.getElementById("stat-pv").textContent = "9,820+";
-  document.getElementById("stat-downloads").textContent = "1,650+";
 }
 
 async function loadWmsCapabilities() {
