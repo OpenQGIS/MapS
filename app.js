@@ -47,6 +47,20 @@ const state = {
 };
 
 // --- 预设区域包围盒（与底图卡片缩略图取景范围精准 1:1 对应） ---
+const BOUNDARY_ISSUES_GEOJSON = {
+  "type": "FeatureCollection",
+  "name": "China_Boundary_Issue_Zones_Sample",
+  "features": [
+    {"type":"Feature","properties":{"name":"阿克赛钦关注区 (Aksai Chin)","risk":"境外底图（如OSM、Google）常以此处边界未定或错划界线","type":"boundary_dispute"},"geometry":{"type":"Polygon","coordinates":[[[77.177479301423062,35.587983505821477],[79.8,35.8],[80.5,35.2],[78.868318887451522,34.172487063389404],[77.177479301423062,35.587983505821477]]]}},
+    {"type":"Feature","properties":{"name":"藏南关注区 (South Tibet)","risk":"境外底图多采用所谓非法的麦克马洪线，缺失我方实际控制与主权边界","type":"boundary_dispute"},"geometry":{"type":"Polygon","coordinates":[[[91.243248059508417,27.990839586028468],[94.264266494178514,29.383067593790429],[96.125741267787831,29.383067593790429],[97.642067593790429,28.20801164294955],[97.186394081500666,27.655386319534291],[95.896934993531687,27.680593790426919],[93.977289133247098,26.866198576972842],[91.980081824062097,26.594733505821484],[91.243248059508417,27.990839586028468]]]}},
+    {"type":"Feature","properties":{"name":"钓鱼岛及其附属岛屿关注区","risk":"境外底图常漏标或错误归属命名","type":"boundary_dispute"},"geometry":{"type":"Polygon","coordinates":[[[123.0,25.5],[124.0,26.2],[124.5,25.8],[123.5,25.4],[123.0,25.5]]]}},
+    {"type":"Feature","properties":{"name":"南海诸岛关注区 (South China Sea)","risk":"境外底图多漏绘断续线（九段线/十段线）及岛礁归属标注","type":"boundary_dispute"},"geometry":{"type":"Polygon","coordinates":[[[108.0,18.0],[118.0,18.0],[118.0,4.0],[108.0,4.0],[108.0,18.0]]]}},
+    {"type":"Feature","properties":{"name":"黑瞎子岛关注区 (Bolshoy Ussuriysky Island)","risk":"境外底图常漏标归属中方半岛或未按中俄勘界条约规范绘制","type":"boundary_dispute"},"geometry":{"type":"Polygon","coordinates":[[[134.6,48.2],[135.1,48.2],[135.1,48.6],[134.6,48.6],[134.6,48.2]]]}},
+    {"type":"Feature","properties":{"name":"黄岩岛关注区 (Huangyan Island / Scarborough Shoal)","risk":"境外底图常错误标注归属或缺失标准中文命名","type":"boundary_dispute"},"geometry":{"type":"Polygon","coordinates":[[[117.6,15.0],[117.9,15.0],[117.9,15.3],[117.6,15.3],[117.6,15.0]]]}},
+    {"type":"Feature","properties":{"name":"台湾及附属岛屿关注区","risk":"境外底图常错误使用不同颜色或列为独立实体标注","type":"boundary_dispute"},"geometry":{"type":"Polygon","coordinates":[[[119.747080530401021,21.378726067270392],[119.747080530401021,25.993632276843485],[122.384169793014237,25.993632276843485],[122.384169793014237,21.378726067270392],[119.747080530401021,21.378726067270392]]]}}
+  ]
+};
+
 const PRESET_VIEWPORTS = {
   // 1. 成都绕城四环及主城区 (OSM标准及衍生系列、谷歌路网/卫星GCJ02等)
   CHENGDU_RING: {
@@ -177,9 +191,9 @@ function getLayerPresetViewport(layer) {
     return PRESET_VIEWPORTS.GLOBAL_WORLD;
   }
 
-  // 默认：若标记边界问题则居中成都绕城，否则中国全图
+  // 若标记边界问题：默认宏观展示中国全图，以便完整审视国界争议/风险高亮区域
   if (layer.has_boundary_issue) {
-    return PRESET_VIEWPORTS.CHENGDU_RING;
+    return PRESET_VIEWPORTS.CHINA_MACRO;
   }
   return PRESET_VIEWPORTS.CHINA_MACRO;
 }
@@ -2374,31 +2388,56 @@ function toggleBoundaryGeoJson(show) {
     return;
   }
 
-  if (!state.boundaryGeoJsonLayer) {
-    fetch("/geojson/boundary_issues_sample.geojson")
-      .then(res => res.json())
-      .then(data => {
-        state.boundaryGeoJsonLayer = L.geoJSON(data, {
-          style: {
-            color: "#ef4444",
-            weight: 2,
-            opacity: 0.95,
-            dashArray: "6, 6",
-            fillColor: "#f87171",
-            fillOpacity: 0.28
-          },
-          onEachFeature: (feature, layer) => {
-            const p = feature.properties;
-            layer.bindPopup(`<div style="font-size:0.82rem;"><strong style="display:inline-flex; align-items:center; gap:4px;"><span class="svg-icon">${ICONS.warning}</span> ${escapeHtml(p.name)}</strong><br><span style="color:#dc2626; font-size:0.75rem;">${escapeHtml(p.risk)}</span></div>`);
-          }
-        }).addTo(state.previewMap);
-      })
-      .catch(err => {
-        console.warn("加载 GeoJSON 失败:", err);
-      });
-  } else {
-    state.boundaryGeoJsonLayer.addTo(state.previewMap);
+  if (state.boundaryGeoJsonLayer) {
+    if (!state.previewMap.hasLayer(state.boundaryGeoJsonLayer)) {
+      state.boundaryGeoJsonLayer.addTo(state.previewMap);
+    }
+    state.boundaryGeoJsonLayer.bringToFront();
+    return;
   }
+
+  function renderBoundaryGeoJson(data) {
+    state.boundaryGeoJsonLayer = L.geoJSON(data, {
+      style: {
+        color: "#dc2626",
+        weight: 2.5,
+        opacity: 0.95,
+        dashArray: "6, 6",
+        fillColor: "#ef4444",
+        fillOpacity: 0.25
+      },
+      onEachFeature: (feature, layer) => {
+        const p = feature.properties;
+        layer.bindTooltip(`⚠️ ${escapeHtml(p.name)}`, {
+          sticky: true,
+          direction: "top",
+          className: "boundary-risk-tooltip"
+        });
+        layer.bindPopup(`
+          <div style="font-size:0.82rem; min-width:210px; padding:2px;">
+            <strong style="display:inline-flex; align-items:center; gap:4px; color:#b91c1c;">
+              <span class="svg-icon">${ICONS.warning}</span> ${escapeHtml(p.name)}
+            </strong>
+            <div style="margin-top:4px; color:#475569; font-size:0.75rem; line-height:1.45;">
+              ${escapeHtml(p.risk || '存在国界线/岛礁归属标注画法问题')}
+            </div>
+          </div>
+        `);
+      }
+    }).addTo(state.previewMap);
+    state.boundaryGeoJsonLayer.bringToFront();
+  }
+
+  // 优先异步拉取，失败或脱机秒级降级使用内联常量数据
+  fetch("./geojson/boundary_issues_sample.geojson")
+    .then(res => {
+      if (!res.ok) throw new Error("HTTP error " + res.status);
+      return res.json();
+    })
+    .then(data => renderBoundaryGeoJson(data))
+    .catch(() => {
+      renderBoundaryGeoJson(BOUNDARY_ISSUES_GEOJSON);
+    });
 }
 
 // --- Modal & Drawer UI Utilities ---
