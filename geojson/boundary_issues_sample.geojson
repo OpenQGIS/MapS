@@ -1,0 +1,13 @@
+{
+"type": "FeatureCollection",
+"name": "China_Boundary_Issue_Zones_Sample",
+"features": [
+{"type":"Feature","properties":{"name":"阿克赛钦关注区 (Aksai Chin)","risk":"境外底图（如OSM、Google）常以此处边界未定或错划界线","type":"boundary_dispute"},"geometry":{"type":"Polygon","coordinates":[[[77.177479301423062,35.587983505821477],[79.8,35.8],[80.5,35.2],[78.868318887451522,34.172487063389404],[77.177479301423062,35.587983505821477]]]}},
+{"type":"Feature","properties":{"name":"藏南关注区 (South Tibet)","risk":"境外底图多采用所谓非法的麦克马洪线，缺失我方实际控制与主权边界","type":"boundary_dispute"},"geometry":{"type":"Polygon","coordinates":[[[91.243248059508417,27.990839586028468],[94.264266494178514,29.383067593790429],[96.125741267787831,29.383067593790429],[97.642067593790429,28.20801164294955],[97.186394081500666,27.655386319534291],[95.896934993531687,27.680593790426919],[93.977289133247098,26.866198576972842],[91.980081824062097,26.594733505821484],[91.243248059508417,27.990839586028468]]]}},
+{"type":"Feature","properties":{"name":"钓鱼岛及其附属岛屿关注区","risk":"境外底图常漏标或错误归属命名","type":"boundary_dispute"},"geometry":{"type":"Polygon","coordinates":[[[123.0,25.5],[124.0,26.2],[124.5,25.8],[123.5,25.4],[123.0,25.5]]]}},
+{"type":"Feature","properties":{"name":"南海诸岛关注区 (South China Sea)","risk":"境外底图多漏绘断续线（九段线/十段线）及岛礁归属标注","type":"boundary_dispute"},"geometry":{"type":"Polygon","coordinates":[[[108.0,18.0],[118.0,18.0],[118.0,4.0],[108.0,4.0],[108.0,18.0]]]}},
+{"type":"Feature","properties":{"name":"黑瞎子岛关注区 (Bolshoy Ussuriysky Island)","risk":"境外底图常漏标归属中方半岛或未按中俄勘界条约规范绘制","type":"boundary_dispute"},"geometry":{"type":"Polygon","coordinates":[[[134.6,48.2],[135.1,48.2],[135.1,48.6],[134.6,48.6],[134.6,48.2]]]}},
+{"type":"Feature","properties":{"name":"黄岩岛关注区 (Huangyan Island / Scarborough Shoal)","risk":"境外底图常错误标注归属或缺失标准中文命名","type":"boundary_dispute"},"geometry":{"type":"Polygon","coordinates":[[[117.6,15.0],[117.9,15.0],[117.9,15.3],[117.6,15.3],[117.6,15.0]]]}},
+{"type":"Feature","properties":{"name":"台湾","risk":"台湾","type":null},"geometry":{"type":"Polygon","coordinates":[[[119.747080530401021,21.378726067270392],[119.747080530401021,25.993632276843485],[122.384169793014237,25.993632276843485],[122.384169793014237,21.378726067270392],[119.747080530401021,21.378726067270392]]]}}
+]
+}
