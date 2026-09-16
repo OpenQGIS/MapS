@@ -2374,11 +2374,15 @@ html[data-theme="light"] .close-btn:active {
   z-index: 1;
 }
 
-/* Ultra-compact Modal Header & Body to Maximize Map Area */
+/* Ultra-compact Modal Header & Body to Maximize Map Area (with comfortable bottom clearance) */
+#preview-modal.modal-backdrop {
+  padding: 1.25rem 1rem 3rem 1rem !important;
+}
+
 #preview-modal .modal-window {
   width: min(940px, 95vw);
-  max-height: 96vh !important;
-  max-height: 96dvh !important;
+  max-height: 88vh !important;
+  max-height: 88dvh !important;
 }
 
 #preview-modal .modal-header {
@@ -2403,8 +2407,8 @@ html[data-theme="light"] .close-btn:active {
 }
 
 #preview-modal .leaflet-container-wrap {
-  height: clamp(540px, 78vh, 860px) !important;
-  height: clamp(540px, 78dvh, 860px) !important;
+  height: clamp(450px, 68vh, 720px) !important;
+  height: clamp(450px, 68dvh, 720px) !important;
   width: 100%;
 }
 
