@@ -338,14 +338,20 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
     """
     生成在 QGIS Python Console 中一键运行的专业导入脚本。
     严格精准区分 XYZ Tiles、WMS/WMTS 与 VEC (Vector Tiles) 矢量切片三大协议。
+    包含 OpenQGIS 团队维护信息、图源核验基准日期及图层元数据说明。
     """
+    check_time = get_check_time()
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     script_lines = [
         "# -*- coding: utf-8 -*-",
         "# ====================================================================",
-        f"# QGIS 在线底图多协议自动化注册脚本 - 生成时间: {timestamp}",
-        f"# 共选定 {len(selected_layers)} 款底图图层",
+        "# 【OpenQGIS】在线底图多协议自动化注册脚本",
+        f"# 项目维护: OpenQGIS 团队 (https://github.com/OpenQGIS/maps)",
+        f"# 图源核验基准日期: {check_time}",
+        f"# 脚本导出时间: {timestamp}",
+        f"# 本次选定底图: 共 {len(selected_layers)} 款",
         "# 协议覆盖: XYZ Tiles 标准切片、WMS/WMTS 空间数据服务、VEC 矢量切片 (Vector Tiles)",
+        "# 兼容特性: 深度兼容 QGIS 4.x (现代数据连接架构) 与 QGIS 3.x 全版本",
         "# 使用方法:",
         "# 1. 在 QGIS 菜单栏快捷键 Ctrl+Alt+P 打开 Python 控制台",
         "# 2. 将本脚本全部代码粘贴到控制台命令行并回车执行",
@@ -365,7 +371,8 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
         "wms_count = 0",
         "vec_count = 0",
         "loaded_layers = 0",
-        "print('=== 开始批量导入 QGIS 底图配置 ===')",
+        "print('=== 【OpenQGIS】开始批量导入底图配置 ===')",
+        f"print('  [i] 图源核验基准: {check_time}')",
         ""
     ]
 
@@ -382,6 +389,11 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
         name = _py_sq(layer.get("name", "未命名图层"))
         fmt = layer.get("format", "XYZ Tiles").strip()
         raw_url = layer.get("url", "").strip()
+        desc = layer.get("description", "").strip()
+        cats = " / ".join(layer.get("categories", [])) if layer.get("categories") else ""
+        has_boundary = layer.get("has_boundary_issue", False)
+        has_drift = layer.get("has_coordinate_drift", False)
+        needs_vpn = layer.get("needs_vpn", False)
 
         if not raw_url:
             continue
@@ -395,11 +407,29 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
             style_url = _py_sq(lines[1]) if len(lines) > 1 else ""
 
             script_lines.append(f"# >>> [VEC 矢量切片] {name}")
+            if cats:
+                script_lines.append(f"#     分类: {cats}")
+            if desc:
+                script_lines.append(f"#     说明: {desc}")
+            if has_boundary:
+                script_lines.append("#     ⚠️ 标注: 存在国界线/边界争议，仅供内部科研参考")
+            if has_drift:
+                script_lines.append("#     ⚠️ 标注: 采用 GCJ-02 火星坐标系，需纠偏配准")
+            if needs_vpn:
+                script_lines.append("#     🌐 标注: 境外服务器源，加载需网络代理")
+
             script_lines.append("try:")
             script_lines.append(f"    layer_name = '{name}'")
             script_lines.append(f"    tile_url = '{tile_url}'")
             script_lines.append(f"    style_url = '{style_url}'")
-            script_lines.append("    # 写入 QGIS 浏览器 Vector Tiles 专属连接分支")
+            script_lines.append("    # 写入 QGIS 浏览器 Vector Tiles 连接 (QGIS 4 & QGIS 3 双写兼容)")
+            script_lines.append("    # 1) QGIS 4 现代统一连接路径")
+            script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)")
+            if style_url:
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)")
+            script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)")
+            script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 14)")
+            script_lines.append("    # 2) QGIS 3 兼容路径")
             script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'xyz')")
             script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', tile_url)")
             if style_url:
@@ -434,10 +464,26 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
         elif fmt == "WMS/WMTS":
             clean_url = _py_sq(raw_url.split("\n")[0].strip())
             script_lines.append(f"# >>> [WMS/WMTS 空间服务] {name}")
+            if cats:
+                script_lines.append(f"#     分类: {cats}")
+            if desc:
+                script_lines.append(f"#     说明: {desc}")
+            if has_boundary:
+                script_lines.append("#     ⚠️ 标注: 存在国界线/边界争议，仅供内部科研参考")
+            if has_drift:
+                script_lines.append("#     ⚠️ 标注: 采用 GCJ-02 火星坐标系，需纠偏配准")
+            if needs_vpn:
+                script_lines.append("#     🌐 标注: 境外服务器源，加载需网络代理")
+
             script_lines.append("try:")
             script_lines.append(f"    layer_name = '{name}'")
             script_lines.append(f"    wms_url = '{clean_url}'")
-            script_lines.append("    # 写入 QGIS 浏览器 WMS/WMTS 专属连接分支")
+            script_lines.append("    # 写入 QGIS 浏览器 WMS/WMTS 专属连接分支 (QGIS 4 & QGIS 3 双写兼容)")
+            script_lines.append("    # 1) QGIS 4 现代统一 OWS 架构路径")
+            script_lines.append("    settings.setValue(f'connections/ows/items/wms/connections/items/{layer_name}/url', wms_url)")
+            script_lines.append("    settings.setValue(f'connections/ows/items/wms/connections/items/{layer_name}/dpi-mode', 7)")
+            script_lines.append("    settings.setValue(f'connections/ows/items/wms/connections/items/{layer_name}/feature-count', 10)")
+            script_lines.append("    # 2) QGIS 3 兼容路径")
             script_lines.append("    settings.setValue(f'qgis/connections-wms/{layer_name}/url', wms_url)")
             script_lines.append("    wms_count += 1")
             if add_to_canvas:
@@ -466,10 +512,26 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
         else:
             clean_url = _py_sq(raw_url.split("\n")[0].strip())
             script_lines.append(f"# >>> [XYZ Tiles 标准瓦片] {name}")
+            if cats:
+                script_lines.append(f"#     分类: {cats}")
+            if desc:
+                script_lines.append(f"#     说明: {desc}")
+            if has_boundary:
+                script_lines.append("#     ⚠️ 标注: 存在国界线/边界争议，仅供内部科研参考")
+            if has_drift:
+                script_lines.append("#     ⚠️ 标注: 采用 GCJ-02 火星坐标系，需纠偏配准")
+            if needs_vpn:
+                script_lines.append("#     🌐 标注: 境外服务器源，加载需网络代理")
+
             script_lines.append("try:")
             script_lines.append(f"    layer_name = '{name}'")
             script_lines.append(f"    layer_url = '{clean_url}'")
-            script_lines.append("    # 写入 QGIS 浏览器 XYZ Tiles 连接分支")
+            script_lines.append("    # 写入 QGIS 浏览器 XYZ Tiles 连接分支 (QGIS 4 & QGIS 3 双写兼容)")
+            script_lines.append("    # 1) QGIS 4 现代统一连接路径")
+            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/url', layer_url)")
+            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/zmin', 0)")
+            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/zmax', 19)")
+            script_lines.append("    # 2) QGIS 3 兼容路径")
             script_lines.append("    settings.setValue(f'qgis/connections-xyz/{layer_name}/url', layer_url)")
             script_lines.append("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmin', 0)")
             script_lines.append("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmax', 19)")
@@ -491,21 +553,24 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
             script_lines.append("    print(f'  [×] 注册 XYZ 失败: {layer_name}, 错误: {err}')")
             script_lines.append("")
 
-    # 刷新 QGIS 浏览器面板目录树
-    script_lines.append("# 刷新 QGIS 浏览器面板目录树")
+    # 持久化与刷新 QGIS 浏览器面板目录树
+    script_lines.append("# 同步持久化设置并刷新 QGIS 浏览器面板目录树")
+    script_lines.append("settings.sync()")
     script_lines.append("try:")
     script_lines.append("    if hasattr(iface, 'browserModel') and iface.browserModel():")
     script_lines.append("        iface.browserModel().reload()")
+    script_lines.append("        iface.browserModel().refresh()")
     script_lines.append("except Exception:")
     script_lines.append("    pass")
     script_lines.append("")
     script_lines.append("print('=' * 60)")
-    script_lines.append("print('导入完成！')")
+    script_lines.append("print('【OpenQGIS】底图自动化导入完成！')")
+    script_lines.append(f"print('  - 图源核验基准: {check_time}')")
     script_lines.append("print(f'  - XYZ Tiles 注册: {xyz_count} 项')")
     script_lines.append("print(f'  - WMS/WMTS 注册: {wms_count} 项')")
     script_lines.append("print(f'  - Vector Tiles 矢量切片注册: {vec_count} 项')")
     script_lines.append("print(f'  - 直接加载到画布: {loaded_layers} 项')")
-    script_lines.append("print('请在 QGIS 左侧【浏览器】中查看对应分类！')")
+    script_lines.append("print('请在 QGIS 左侧【浏览器】面板对应分类中直接查看与调用！')")
     script_lines.append("print('=' * 60)")
 
     return "\n".join(script_lines)
