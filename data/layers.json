@@ -110,7 +110,7 @@
       "土地利用图"
     ],
     "description": "osm中土地利用的区域，图例不能更改。（图源多半来自osm画手勾的图斑，图一乐）",
-    "needs_vpn": false,
+    "needs_vpn": true,
     "vpn_raw": "否",
     "notes": "",
     "has_boundary_issue": false,
@@ -144,7 +144,7 @@
       "电子地图"
     ],
     "description": "OSM标准系列地图",
-    "needs_vpn": false,
+    "needs_vpn": true,
     "vpn_raw": "否",
     "notes": "边界问题",
     "has_boundary_issue": true,
