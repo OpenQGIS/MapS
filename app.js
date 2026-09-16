@@ -664,8 +664,12 @@ async function loadLayers() {
     }
 
     if (rawData) {
+      const localOffsets = JSON.parse(localStorage.getItem("qgis_likes_offsets") || "{}");
       state.layers = rawData.map(l => {
-        l.likes = (typeof l.likes === 'number' && !isNaN(l.likes)) ? l.likes : 0;
+        const rawLikes = (typeof l.likes === 'number' && !isNaN(l.likes)) ? l.likes : 0;
+        l._baseLikes = rawLikes;
+        const offset = state.liked.has(l.id) ? (localOffsets[l.id] !== undefined ? localOffsets[l.id] : 1) : 0;
+        l.likes = rawLikes + offset;
         l.downloads = (typeof l.downloads === 'number' && !isNaN(l.downloads)) ? l.downloads : 0;
         l.heat = (typeof l.heat === 'number' && !isNaN(l.heat)) ? l.heat : (l.likes * 2 + l.downloads * 3);
         // 修正缩略图相对路径
@@ -1275,13 +1279,19 @@ function triggerUnlikeLottie(iconEl) {
   }
 }
 
-// --- Likes ---
+// --- Likes (支持全栈后端 API 与纯静态离线持久化双模自适应) ---
 async function handleLike(layerId) {
   const vid = getVisitorId();
-  // 按当前显示状态声明意图：已赞 → 取消，未赞 → 点赞
-  const action = state.liked.has(layerId) ? "unlike" : "like";
+  const willLike = !state.liked.has(layerId);
+  const action = willLike ? "like" : "unlike";
+
+  let serverSuccess = false;
+  let finalLiked = willLike;
+  let finalLikes = null;
+
+  // 1. 尝试向后端提交（若运行在含 server.py 的全栈环境中）
   try {
-    const res = await fetch("/api/like", {
+    const res = await fetch("./api/like", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ layer_id: layerId, visitor_id: vid, action })
@@ -1292,65 +1302,92 @@ async function handleLike(layerId) {
       return;
     }
 
-    const json = await res.json();
-    if (json.code === 0) {
-      // 以服务端返回的最终状态为准同步本地（localStorage 清空等错位场景自动纠正）
-      const liked = !!json.data.liked;
-      if (liked) state.liked.add(layerId);
-      else state.liked.delete(layerId);
-      localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
-
-      const layer = state.layers.find(l => l.id === layerId);
-      if (layer) {
-        layer.likes = json.data.likes;
-        layer.heat = layer.likes * 2 + layer.downloads * 3;
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.code === 0 && json.data) {
+        serverSuccess = true;
+        finalLiked = !!json.data.liked;
+        finalLikes = json.data.likes;
       }
-
-      // 1. 同步卡片视图 DOM
-      const likeCountEl = document.getElementById(`like-${layerId}`);
-      if (likeCountEl) likeCountEl.textContent = json.data.likes;
-
-      const heatEl = document.getElementById(`heat-${layerId}`);
-      if (heatEl && layer) heatEl.textContent = layer.heat;
-
-      const card = document.querySelector(`.layer-card[data-id="${layerId}"] .like-btn`);
-      if (card) {
-        card.classList.toggle("liked", liked);
-        card.title = liked ? "点赞中 · 点击取消点赞" : "点赞推荐此底图";
-        const icon = card.querySelector(".like-icon");
-        if (icon) {
-          icon.innerHTML = liked ? ICONS.heartFilled : ICONS.heartOutline;
-          if (liked) triggerLikeLottie(icon);
-          else triggerUnlikeLottie(icon);
-        }
-      }
-
-      // 2. 同步表格列表视图 DOM
-      const tableLikeEl = document.getElementById(`table-like-${layerId}`);
-      if (tableLikeEl) tableLikeEl.textContent = json.data.likes;
-
-      const tableHeatEl = document.getElementById(`table-heat-${layerId}`);
-      if (tableHeatEl && layer) tableHeatEl.textContent = layer.heat;
-
-      const tableRowBtn = document.querySelector(`tr[data-id="${layerId}"] .like-btn`);
-      if (tableRowBtn) {
-        tableRowBtn.classList.toggle("liked", liked);
-        tableRowBtn.title = liked ? "点赞中 · 点击取消点赞" : "点赞推荐此底图";
-        const icon = tableRowBtn.querySelector(".like-icon");
-        if (icon) {
-          icon.innerHTML = liked ? ICONS.heartFilled : ICONS.heartOutline;
-          if (liked) triggerLikeLottie(icon);
-          else triggerUnlikeLottie(icon);
-        }
-      }
-
-      showToast(liked ? "感谢点赞推荐！" : "已取消点赞");
-    } else {
-      showToast(json.message || "操作未成功");
     }
-  } catch (err) {
-    console.error("点赞操作失败:", err);
+  } catch (e) {
+    // 捕获无后端 404 或网络错误，无缝降级到本地离线存储
   }
+
+  const layer = state.layers.find(l => l.id === layerId);
+
+  // 2. 离线/静态模式（GitHub Pages 纯前端持久化）：
+  if (!serverSuccess) {
+    if (finalLiked) {
+      state.liked.add(layerId);
+    } else {
+      state.liked.delete(layerId);
+    }
+    localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
+
+    const localOffsets = JSON.parse(localStorage.getItem("qgis_likes_offsets") || "{}");
+    const offset = finalLiked ? 1 : 0;
+    localOffsets[layerId] = offset;
+    localStorage.setItem("qgis_likes_offsets", JSON.stringify(localOffsets));
+
+    if (layer) {
+      const baseLikes = typeof layer._baseLikes === 'number' ? layer._baseLikes : (layer.likes || 0);
+      layer._baseLikes = baseLikes;
+      layer.likes = Math.max(0, baseLikes + offset);
+      layer.heat = layer.likes * 2 + (layer.downloads || 0) * 3;
+      finalLikes = layer.likes;
+    }
+  } else {
+    // 服务端模式同步
+    if (finalLiked) state.liked.add(layerId);
+    else state.liked.delete(layerId);
+    localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
+
+    if (layer) {
+      layer.likes = finalLikes;
+      layer.heat = layer.likes * 2 + (layer.downloads || 0) * 3;
+    }
+  }
+
+  // 3. 同步卡片视图 DOM
+  const likeCountEl = document.getElementById(`like-${layerId}`);
+  if (likeCountEl && finalLikes !== null) likeCountEl.textContent = finalLikes;
+
+  const heatEl = document.getElementById(`heat-${layerId}`);
+  if (heatEl && layer) heatEl.textContent = layer.heat;
+
+  const card = document.querySelector(`.layer-card[data-id="${layerId}"] .like-btn`);
+  if (card) {
+    card.classList.toggle("liked", finalLiked);
+    card.title = finalLiked ? "点赞中 · 点击取消点赞" : "点赞推荐此底图";
+    const icon = card.querySelector(".like-icon");
+    if (icon) {
+      icon.innerHTML = finalLiked ? ICONS.heartFilled : ICONS.heartOutline;
+      if (finalLiked) triggerLikeLottie(icon);
+      else triggerUnlikeLottie(icon);
+    }
+  }
+
+  // 4. 同步表格列表视图 DOM
+  const tableLikeEl = document.getElementById(`table-like-${layerId}`);
+  if (tableLikeEl && finalLikes !== null) tableLikeEl.textContent = finalLikes;
+
+  const tableHeatEl = document.getElementById(`table-heat-${layerId}`);
+  if (tableHeatEl && layer) tableHeatEl.textContent = layer.heat;
+
+  const tableRowBtn = document.querySelector(`tr[data-id="${layerId}"] .like-btn`);
+  if (tableRowBtn) {
+    tableRowBtn.classList.toggle("liked", finalLiked);
+    tableRowBtn.title = finalLiked ? "点赞中 · 点击取消点赞" : "点赞推荐此底图";
+    const icon = tableRowBtn.querySelector(".like-icon");
+    if (icon) {
+      icon.innerHTML = finalLiked ? ICONS.heartFilled : ICONS.heartOutline;
+      if (finalLiked) triggerLikeLottie(icon);
+      else triggerUnlikeLottie(icon);
+    }
+  }
+
+  showToast(finalLiked ? "感谢点赞推荐！" : "已取消点赞");
 }
 
 
