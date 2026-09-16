@@ -891,12 +891,11 @@ function renderLayers() {
           <div class="card-thumb-wrap" onclick="openPreviewModal('${escapeAttrJs(layer.id)}')" title="点击直接调用在线底图预览">
             ${thumb}
             <span class="card-format-badge">${escapeHtml(layer.format)}</span>
+            <div class="card-thumb-overlay">
+              <span class="card-thumb-title">${escapeHtml(layer.name)}</span>
+            </div>
           </div>
           <div class="card-body">
-            <div class="card-header">
-              <span class="card-title">${escapeHtml(layer.name)}</span>
-            </div>
-
             <p class="card-desc" title="${escapeHtml(layer.description || '无详细简介')}">
               ${formatDescWithLinks(layer.description || '官方切片服务，支持在 QGIS 中高速流畅加载。')}
             </p>
