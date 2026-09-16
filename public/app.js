@@ -1883,7 +1883,7 @@ function attachTileNetworkListeners(tileLayer, resolved) {
       if (statusPill) {
         statusPill.className = "map-status-pill ok";
         const successText = isVpnLayer
-          ? "🟢 境外底图已成功加载（代理生效中）"
+          ? "🟢 境外底图已成功加载 (连接正常)"
           : (resolved.statusText || "🟢 在线底图已成功加载 (Live)");
         statusPill.innerHTML = `<span class="status-dot ok"></span>${escapeHtml(successText)}`;
       }
@@ -1917,7 +1917,7 @@ function showVpnFallbackOverlay(layer) {
   const statusPill = document.getElementById("preview-map-status");
   if (statusPill) {
     statusPill.className = "map-status-pill warn";
-    statusPill.innerHTML = `<span class="status-dot warn"></span>境外源网络受限，未检测到可用代理`;
+    statusPill.innerHTML = `<span class="status-dot warn"></span>境外源网络受限，切片响应超时`;
   }
 
   // 铺垫一层低透明度基础参考底图，避免大面积灰黑网格与空白感
