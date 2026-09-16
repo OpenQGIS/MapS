@@ -317,10 +317,18 @@ body {
   position: fixed;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   right: 24px;
-  z-index: 1000;
+  z-index: 95;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.cart-open .floating-cart-container,
+.floating-cart-container.drawer-open {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(20px) scale(0.9) !important;
 }
 
 #floating-cart-btn {
@@ -1118,7 +1126,7 @@ body {
   position: absolute;
   top: 7px;
   right: 7px;
-  z-index: 2;
+  z-index: 3;
   font-size: 0.66rem;
   font-family: var(--font-mono);
   font-weight: 500;
@@ -1132,6 +1140,31 @@ body {
   white-space: nowrap;
   letter-spacing: 0.02em;
   pointer-events: none;
+}
+
+/* Card Thumb Overlay: Gradient from bottom to top with map title */
+.card-thumb-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 1.8rem 0.75rem 0.45rem 0.75rem;
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.65) 55%, transparent 100%);
+  display: flex;
+  align-items: flex-end;
+  pointer-events: none;
+  z-index: 2;
+  box-sizing: border-box;
+}
+
+.card-thumb-title {
+  color: #ffffff;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 [data-theme="light"] .card-format-badge {
@@ -1152,7 +1185,7 @@ body {
 
 /* Compact Card Body */
 .card-body {
-  padding: 0.65rem 0.85rem;
+  padding: 0.55rem 0.85rem 0.45rem 0.85rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -1278,7 +1311,8 @@ body {
 
 .card-footer {
   margin-top: auto;
-  padding-top: 0.75rem;
+  padding-top: 0.4rem;
+  padding-bottom: 0.1rem;
   border-top: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -1297,7 +1331,7 @@ body {
   background: transparent;
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
-  padding: 0.25rem 0.6rem;
+  padding: 0.22rem 0.55rem;
   border-radius: 0px;
   font-size: 0.78rem;
   cursor: pointer;
@@ -1375,7 +1409,7 @@ body {
   background: var(--accent-lime);
   color: var(--accent-lime-fg);
   border: 1px solid var(--accent-lime-hover);
-  padding: 0.35rem 0.75rem;
+  padding: 0.26rem 0.7rem;
   border-radius: 0px;
   font-size: 0.8rem;
   font-weight: 600;
@@ -2342,6 +2376,7 @@ html[data-theme="light"] .close-btn:active {
 
 /* Ultra-compact Modal Header & Body to Maximize Map Area */
 #preview-modal .modal-window {
+  width: min(940px, 95vw);
   max-height: 96vh !important;
   max-height: 96dvh !important;
 }
@@ -2368,8 +2403,8 @@ html[data-theme="light"] .close-btn:active {
 }
 
 #preview-modal .leaflet-container-wrap {
-  height: clamp(440px, 64vh, 650px) !important;
-  height: clamp(440px, 64dvh, 650px) !important;
+  height: clamp(540px, 78vh, 860px) !important;
+  height: clamp(540px, 78dvh, 860px) !important;
   width: 100%;
 }
 

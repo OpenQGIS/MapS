@@ -650,7 +650,12 @@ async function loadLayers() {
     const res = await fetch("/api/layers");
     const json = await res.json();
     if (json.code === 0) {
-      state.layers = json.data;
+      state.layers = json.data.map(l => {
+        l.likes = (typeof l.likes === 'number' && !isNaN(l.likes)) ? l.likes : 0;
+        l.downloads = (typeof l.downloads === 'number' && !isNaN(l.downloads)) ? l.downloads : 0;
+        l.heat = (typeof l.heat === 'number' && !isNaN(l.heat)) ? l.heat : (l.likes * 2 + l.downloads * 3);
+        return l;
+      });
       renderCategories();
       renderLayers();
     }
@@ -667,19 +672,28 @@ async function loadStats() {
     if (json.code === 0) {
       state.stats = json.data;
       document.getElementById("stat-pv").textContent = json.data.pv.toLocaleString();
-      document.getElementById("stat-uv").textContent = json.data.uv.toLocaleString();
-      document.getElementById("stat-downloads").textContent = json.data.total_downloads.toLocaleString();
-      document.getElementById("stat-layers-count").textContent = state.layers.length || "55";
       if (json.data.check_time) {
         const ctEl = document.getElementById("stat-check-time");
         if (ctEl) ctEl.textContent = json.data.check_time;
         const bctEl = document.getElementById("banner-check-time");
         if (bctEl) bctEl.textContent = json.data.check_time;
       }
+      return;
     }
-  } catch (err) {
-    console.warn("获取统计失败:", err);
-  }
+  } catch (err) {}
+
+  // 静态 Pages 环境（无后端数据库）：绝不伪造虚假数据，直接隐藏需要数据库记录的动态指标
+  const pvEl = document.getElementById("stat-pv");
+  const dlEl = document.getElementById("stat-downloads");
+  if (pvEl && pvEl.closest(".stat-item")) pvEl.closest(".stat-item").style.display = "none";
+  if (dlEl && dlEl.closest(".stat-item")) dlEl.closest(".stat-item").style.display = "none";
+
+  const count = state.layers.length || 55;
+  document.getElementById("stat-layers-count").textContent = count;
+  const ctEl = document.getElementById("stat-check-time");
+  if (ctEl) ctEl.textContent = "2026年5月26日";
+  const bctEl = document.getElementById("banner-check-time");
+  if (bctEl) bctEl.textContent = "2026年5月26日";
 }
 
 async function loadWmsCapabilities() {
@@ -726,8 +740,8 @@ function getFilteredLayers() {
 
     return true;
   }).sort((a, b) => {
-    if (state.currentSort === "heat") return b.heat - a.heat;
-    if (state.currentSort === "likes") return b.likes - a.likes;
+    if (state.currentSort === "heat") return (b.heat || 0) - (a.heat || 0);
+    if (state.currentSort === "likes") return (b.likes || 0) - (a.likes || 0);
     if (state.currentSort === "downloads") return b.downloads - a.downloads;
     if (state.currentSort === "name") return a.name.localeCompare(b.name, "zh");
     return 0;
@@ -877,12 +891,11 @@ function renderLayers() {
           <div class="card-thumb-wrap" onclick="openPreviewModal('${escapeAttrJs(layer.id)}')" title="点击直接调用在线底图预览">
             ${thumb}
             <span class="card-format-badge">${escapeHtml(layer.format)}</span>
+            <div class="card-thumb-overlay">
+              <span class="card-thumb-title">${escapeHtml(layer.name)}</span>
+            </div>
           </div>
           <div class="card-body">
-            <div class="card-header">
-              <span class="card-title">${escapeHtml(layer.name)}</span>
-            </div>
-
             <p class="card-desc" title="${escapeHtml(layer.description || '无详细简介')}">
               ${formatDescWithLinks(layer.description || '官方切片服务，支持在 QGIS 中高速流畅加载。')}
             </p>
@@ -919,9 +932,9 @@ function renderLayers() {
               <div class="card-actions-left">
                 <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="handleLike('${escapeAttrJs(layer.id)}')" title="${isLiked ? '点赞中 · 点击取消点赞' : '点赞推荐此底图'}">
                   <span class="like-icon">${isLiked ? ICONS.heartFilled : ICONS.heartOutline}</span>
-                  <span class="like-count" id="like-${escapeHtml(layer.id)}">${layer.likes}</span>
+                  <span class="like-count" id="like-${escapeHtml(layer.id)}">${layer.likes || 0}</span>
                 </button>
-                <span class="heat-badge" title="综合热度指数">${ICONS.flame} <span id="heat-${escapeHtml(layer.id)}">${layer.heat}</span></span>
+                <span class="heat-badge" title="综合热度指数">${ICONS.flame} <span id="heat-${escapeHtml(layer.id)}">${layer.heat || 0}</span></span>
               </div>
               <button class="add-cart-btn ${inCart ? 'added' : ''}" onclick="toggleCart('${escapeAttrJs(layer.id)}')">
                 ${inCart ? '已在配置单' : '+ 加入配置'}
@@ -991,10 +1004,10 @@ function renderLayers() {
                 </td>
                 <td>
                   <div style="display: inline-flex; align-items: center; gap: 8px;">
-                    <span class="heat-badge" title="综合热度指数">${ICONS.flame} <span id="table-heat-${escapeHtml(l.id)}">${l.heat}</span></span>
+                    <span class="heat-badge" title="综合热度指数">${ICONS.flame} <span id="table-heat-${escapeHtml(l.id)}">${l.heat || 0}</span></span>
                     <button class="like-btn table-like-btn ${isLiked ? 'liked' : ''}" onclick="handleLike('${escapeAttrJs(l.id)}')" title="${isLiked ? '点赞中 · 点击取消点赞' : '点赞推荐此底图'}">
                       <span class="like-icon">${isLiked ? ICONS.heartFilled : ICONS.heartOutline}</span>
-                      <span class="like-count" id="table-like-${escapeHtml(l.id)}">${l.likes}</span>
+                      <span class="like-count" id="table-like-${escapeHtml(l.id)}">${l.likes || 0}</span>
                     </button>
                   </div>
                 </td>
@@ -2248,6 +2261,9 @@ function schedulePreviewMapResize() {
 }
 
 function openCart() {
+  document.body.classList.add("cart-open");
+  const fc = document.getElementById("floating-cart-container");
+  if (fc) fc.classList.add("drawer-open");
   document.getElementById("cart-drawer").classList.add("open");
   document.getElementById("cart-backdrop").classList.add("open");
   document.body.style.overflow = "hidden";
@@ -2255,6 +2271,9 @@ function openCart() {
 }
 
 function closeCart() {
+  document.body.classList.remove("cart-open");
+  const fc = document.getElementById("floating-cart-container");
+  if (fc) fc.classList.remove("drawer-open");
   const drawer = document.getElementById("cart-drawer");
   if (drawer) drawer.style.transform = "";
   document.getElementById("cart-drawer").classList.remove("open");
