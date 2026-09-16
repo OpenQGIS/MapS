@@ -658,7 +658,7 @@ async function loadLayers() {
 
     // 静态降级：若后端 API 不可用（如 GitHub Pages 托管环境），无缝读取本地静态 layers.json
     if (!rawData) {
-      const sRes = await fetch("./data/layers.json");
+      const sRes = await fetch("./data/layers.json?v=7.9");
       const sData = await sRes.json();
       rawData = Array.isArray(sData) ? sData : (sData.data || []);
     }
