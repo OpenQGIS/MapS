@@ -10,6 +10,8 @@ venv/
 # SQLite Databases & Local Runtime Stats
 data/*.db
 data/*.db*
+data/backups/
+backups/
 *.sqlite3
 
 # Large Source / Process Spreadsheets

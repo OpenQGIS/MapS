@@ -70,11 +70,14 @@ DB_PATH = os.path.join(DATA_DIR, "stats.db")
 LAYERS_JSON_PATH = os.path.join(DATA_DIR, "layers.json")
 RESOURCES_DIR = os.path.join(BASE_DIR, "resources")
 LAYERS_MD_PATH = os.path.join(RESOURCES_DIR, "layers.md")
+BACKUP_DIR = os.path.join(DATA_DIR, "backups")
+BACKUP_RETENTION_DAYS = 15
 
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(PUBLIC_DIR, exist_ok=True)
 os.makedirs(GEOJSON_DIR, exist_ok=True)
 os.makedirs(RESOURCES_DIR, exist_ok=True)
+os.makedirs(BACKUP_DIR, exist_ok=True)
 
 
 def parse_layers_md(file_path):
@@ -252,6 +255,52 @@ def init_db():
     
     conn.commit()
     conn.close()
+
+
+def perform_db_backup():
+    """使用 sqlite3 原生在线热备接口备份数据库，并自动滚动清理保留最近 15 天"""
+    if not os.path.exists(DB_PATH):
+        return
+    try:
+        os.makedirs(BACKUP_DIR, exist_ok=True)
+        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        backup_filename = f"stats_{today_str}.db"
+        backup_path = os.path.join(BACKUP_DIR, backup_filename)
+
+        # 1. 当日若未备份，执行原子热备（即使有并发写入也不会损坏数据）
+        if not os.path.exists(backup_path):
+            src = sqlite3.connect(DB_PATH)
+            dst = sqlite3.connect(backup_path)
+            src.backup(dst)
+            dst.close()
+            src.close()
+            print(f"[DB Backup] 今日数据库自动备份完成: {backup_filename}")
+
+        # 2. 自动滚动清理超过 15 天的旧快照
+        cutoff = datetime.datetime.now() - datetime.timedelta(days=BACKUP_RETENTION_DAYS)
+        for fname in os.listdir(BACKUP_DIR):
+            if fname.startswith("stats_") and fname.endswith(".db"):
+                try:
+                    date_part = fname.replace("stats_", "").replace(".db", "")
+                    f_date = datetime.datetime.strptime(date_part, "%Y-%m-%d")
+                    if f_date < cutoff:
+                        os.remove(os.path.join(BACKUP_DIR, fname))
+                        print(f"[DB Backup] 自动清理超过 {BACKUP_RETENTION_DAYS} 天的旧备份: {fname}")
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f"[DB Backup Error] 备份或清理异常: {e}")
+
+
+def start_backup_scheduler():
+    """启动轻量后台守护线程：服务启动时检查并执行备份，随后每小时巡检一次跨天自动备份"""
+    def _worker():
+        while True:
+            perform_db_backup()
+            time.sleep(3600)  # 每小时检测一次日期是否跨天
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
 
 
 def get_all_layers_with_stats():
@@ -776,6 +825,7 @@ class RequestHandler(SimpleHTTPRequestHandler):
 
 def run_server(port=8080):
     init_db()
+    start_backup_scheduler()
     server_address = ("127.0.0.1", port)
     httpd = ThreadedHTTPServer(server_address, RequestHandler)
     print(f"=== QGIS Basemap Hub 服务已就绪 ===")
