@@ -3137,39 +3137,7 @@ html[data-theme="light"] .wms-dock-select {
   border-color: var(--border-hover);
 }
 
-/* --- QGIS 导出弹窗代理提醒条 --- */
-.checkout-vpn-notice {
-  background: rgba(217, 119, 6, 0.08);
-  border: 1px solid rgba(217, 119, 6, 0.25);
-  padding: 0.65rem 0.85rem;
-  border-radius: 0px;
-  font-size: 0.78rem;
-  color: var(--text-main);
-  line-height: 1.45;
-}
 
-[data-theme="light"] .checkout-vpn-notice {
-  background: #fffbeb;
-  border-color: rgba(245, 158, 11, 0.35);
-}
-
-.checkout-vpn-notice-inner {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.vpn-notice-tag {
-  background: var(--accent-amber);
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 600;
-  padding: 1px 5px;
-  border-radius: 0px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
 
 /* ==========================================================================
    Phase 1 & 2: Mobile Touch Feedback & Narrow Screen (<=480px) Enhancements
