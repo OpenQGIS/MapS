@@ -1340,21 +1340,7 @@ async function handleCheckout() {
       document.getElementById("export-count-text").textContent = `已成功为 ${data.count} 款选定底图生成专属 PyQGIS 自动化导入脚本`;
       document.getElementById("script-code-box").textContent = data.script;
 
-      // 检测配置单中是否包含需要代理的境外底图
-      const vpnLayers = layerIds.map(id => state.layers.find(l => l.id === id)).filter(l => l && l.needs_vpn);
-      const vpnNotice = document.getElementById("checkout-vpn-notice");
-      if (vpnNotice) {
-        if (vpnLayers.length > 0) {
-          vpnNotice.style.display = "block";
-          const names = vpnLayers.map(l => l.name).slice(0, 3).join("、") + (vpnLayers.length > 3 ? " 等" : "");
-          const textEl = document.getElementById("checkout-vpn-notice-text");
-          if (textEl) {
-            textEl.textContent = `当前配置单包含 ${vpnLayers.length} 款境外底图（如 ${names}）。在 QGIS 中加载前，请进入菜单栏【设置】→【选项】→【网络】勾选并配置本地代理（如 127.0.0.1:7890）。`;
-          }
-        } else {
-          vpnNotice.style.display = "none";
-        }
-      }
+
       
       const downloadBtn = document.getElementById("download-script-btn");
       downloadBtn.onclick = () => {

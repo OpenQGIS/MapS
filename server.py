@@ -376,14 +376,6 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
         ""
     ]
 
-    has_vpn = any(layer.get("needs_vpn") for layer in selected_layers)
-    if has_vpn:
-        script_lines.append("# -------------------------------------------------------------")
-        script_lines.append("# 💡 网络代理提醒：")
-        script_lines.append("# 本批次底图中包含境外源。若在 QGIS 画布中加载显示红叉或空白，")
-        script_lines.append("# 请在 QGIS 菜单栏【设置】->【选项】->【网络】中配置本地网络代理（如 127.0.0.1:7890）。")
-        script_lines.append("# -------------------------------------------------------------")
-        script_lines.append("")
 
     for layer in selected_layers:
         name = _py_sq(layer.get("name", "未命名图层"))
