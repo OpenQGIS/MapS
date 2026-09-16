@@ -1,0 +1,1001 @@
+[
+  {
+    "id": "layer_3",
+    "row_index": 3,
+    "name": "TianDitu tools",
+    "format": "插件类",
+    "url": "（使用插件【TianDiTu Tools】） \n具体方法点击【QGIS中天地图使用方法】",
+    "categories": [
+      "地形图",
+      "电子地图",
+      "影像图",
+      "标注图"
+    ],
+    "description": "官方出品",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_3.png"
+  },
+  {
+    "id": "layer_4",
+    "row_index": 4,
+    "name": "QuickMapServices",
+    "format": "插件类",
+    "url": "QGIS插件库搜索下载",
+    "categories": [],
+    "description": "QGIS插件",
+    "needs_vpn": false,
+    "vpn_raw": "",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_4.png"
+  },
+  {
+    "id": "layer_5",
+    "row_index": 5,
+    "name": "HCMGIS",
+    "format": "插件类",
+    "url": "QGIS插件库搜索下载",
+    "categories": [],
+    "description": "QGIS插件",
+    "needs_vpn": false,
+    "vpn_raw": "",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_5.png"
+  },
+  {
+    "id": "layer_6",
+    "row_index": 6,
+    "name": "Sentinel-2 哨兵2全球无云影像产品 WMTS",
+    "format": "WMS/WMTS",
+    "url": "https://tiles.maps.eox.at/wmts/1.0.0/WMTSCapabilities.xml",
+    "categories": [
+      "影像图"
+    ],
+    "description": "哨兵无云影像",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_6.png"
+  },
+  {
+    "id": "layer_7",
+    "row_index": 7,
+    "name": "ArcGIS标注",
+    "format": "WMS/WMTS",
+    "url": "https://map.geoq.cn/arcgis/rest/services/ChinaOnlineCommunity_Mobile/MapServer/WMTS/1.0.0/WMTSCapabilities.xml",
+    "categories": [
+      "标注图"
+    ],
+    "description": "Arcgis pro自带标注图层（数据非常老旧）",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_7.png"
+  },
+  {
+    "id": "layer_8",
+    "row_index": 8,
+    "name": "Wayback历史地图",
+    "format": "WMS/WMTS",
+    "url": "https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapSTrver/WMTS/1.0.0/WMTSCapabilities.xml",
+    "categories": [
+      "影像图"
+    ],
+    "description": "Wayback历史影像，分区更新，前往 https://livingatlas.arcgis.com/wayback/ 查看详细内容",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_8.png"
+  },
+  {
+    "id": "layer_9",
+    "row_index": 9,
+    "name": "osm土地利用",
+    "format": "WMS/WMTS",
+    "url": "https://maps.heigit.org/osmlanduse/service?VERSION=1.3.0&TRANSPARENT=true&QUERY_LAYERS=osmlanduse:osm_lulc&LAYERS=osmlanduse:osm_lulc_combined_osm4eo&BUFFER=0&INFO_FORMAT=application/json&FEATURE_COUNT=1&I=91&J=129&WIDTH=256&HEIGHT=256&CRS=EPSG:3857&STYLES=&BBOX=12836528.782099359,3600489.7803449426,12993071.8160274,3757032.8142729835",
+    "categories": [
+      "土地利用图"
+    ],
+    "description": "osm中土地利用的区域，图例不能更改。（图源多半来自osm画手勾的图斑，图一乐）",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_9.png"
+  },
+  {
+    "id": "layer_10",
+    "row_index": 10,
+    "name": "GeoQ水图",
+    "format": "WMS/WMTS",
+    "url": "http://thematic.geoq.cn/arcgis/rest/services/ThematicMaps/WorldHydroMap/MapServer/WMTS/1.0.0/WMTSCapabilities.xml",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "水系图，最高支持13级瓦片等级。",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_10.png"
+  },
+  {
+    "id": "layer_11",
+    "row_index": 11,
+    "name": "OSM地图",
+    "format": "WMS/WMTS",
+    "url": "https://ows.terrestris.de/osm/service",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "OSM标准系列地图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_11.png"
+  },
+  {
+    "id": "layer_12",
+    "row_index": 12,
+    "name": "星图地球-全图层",
+    "format": "WMS/WMTS",
+    "url": "https://tiles.geovisearth.com/base/v1/wmts/GetCapabilities?tmsIds=w&token=",
+    "categories": [
+      "电子地图",
+      "影像图",
+      "地形图"
+    ],
+    "description": "注意需要从网站申请个人key值，https://datacloud.geovisearth.com/console/application",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_12.png"
+  },
+  {
+    "id": "layer_13",
+    "row_index": 13,
+    "name": "Esri Topography Map地形底图",
+    "format": "XYZ Tiles",
+    "url": "http://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}",
+    "categories": [
+      "地形图"
+    ],
+    "description": "Arcgis Pro自带的地形地图（浅色风格）",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_13.png"
+  },
+  {
+    "id": "layer_14",
+    "row_index": 14,
+    "name": "Esri Topography Map(Dark)地形底图（暗）",
+    "format": "XYZ Tiles",
+    "url": "https://server.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade_Dark/MapServer/tile/{z}/{y}/{x}",
+    "categories": [
+      "地形图"
+    ],
+    "description": "Arcgis Pro自带的地形地图（深色风格）",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_14.png"
+  },
+  {
+    "id": "layer_15",
+    "row_index": 15,
+    "name": "Esri_World_Light_Gray_Base 纯色底图",
+    "format": "XYZ Tiles",
+    "url": "https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "Arcgis自带的单色地图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_15.png"
+  },
+  {
+    "id": "layer_16",
+    "row_index": 16,
+    "name": "Open Topo Map",
+    "format": "XYZ Tiles",
+    "url": "https://tile.opentopomap.org/{z}/{x}/{y}.png",
+    "categories": [
+      "电子地图",
+      "地形图"
+    ],
+    "description": "基于OSM制作的地形地图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_16.png"
+  },
+  {
+    "id": "layer_17",
+    "row_index": 17,
+    "name": "OpenStreetMap",
+    "format": "XYZ Tiles",
+    "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "OSM标准样式地图",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_17.png"
+  },
+  {
+    "id": "layer_18",
+    "row_index": 18,
+    "name": "OpenStreetMap.de",
+    "format": "XYZ Tiles",
+    "url": "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "德国风格渲染。",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_18.png"
+  },
+  {
+    "id": "layer_19",
+    "row_index": 19,
+    "name": "OpenStreetMap.fr",
+    "format": "XYZ Tiles",
+    "url": "https://c.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png\nhttps://b.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "法国风格渲染。",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_19.png"
+  },
+  {
+    "id": "layer_20",
+    "row_index": 20,
+    "name": "OpenStreetMap人道主义地图",
+    "format": "XYZ Tiles",
+    "url": "https://tile-a.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "人道主义地图",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_20.png"
+  },
+  {
+    "id": "layer_21",
+    "row_index": 21,
+    "name": "OpenStreetMap.jp",
+    "format": "XYZ Tiles",
+    "url": "https://tile.openstreetmap.jp/{z}/{x}/{y}.png",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "日本风格渲染。",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_21.png"
+  },
+  {
+    "id": "layer_22",
+    "row_index": 22,
+    "name": "OpenStreetMap(Piano)",
+    "format": "XYZ Tiles",
+    "url": "https://b.piano.tiles.quaidorsay.fr/fr/{$z}/{$x}/{$y}.png",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "黑白风格底图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_22.png"
+  },
+  {
+    "id": "layer_23",
+    "row_index": 23,
+    "name": "OSM路网",
+    "format": "XYZ Tiles",
+    "url": "https://tile.openstreetmap.bzh/br/{z}/{x}/{y}.png",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "精简标注，路网版",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_23.png"
+  },
+  {
+    "id": "layer_24",
+    "row_index": 24,
+    "name": "OSMWinter",
+    "format": "XYZ Tiles",
+    "url": "http://s0.outdooractive.com/osm/OSMWinter/{z}/{x}/{y}.png",
+    "categories": [
+      "电子地图",
+      "地形图"
+    ],
+    "description": "OSM冬季运动",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_24.png"
+  },
+  {
+    "id": "layer_25",
+    "row_index": 25,
+    "name": "Cyclosm",
+    "format": "XYZ Tiles",
+    "url": "https://a.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
+    "categories": [
+      "电子地图",
+      "地形图"
+    ],
+    "description": "自行车osm地图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_25.png"
+  },
+  {
+    "id": "layer_26",
+    "row_index": 26,
+    "name": "CycleOSM_Waymarked_Trails",
+    "format": "XYZ Tiles",
+    "url": "https://tile.waymarkedtrails.org/cycling/{z}/{x}/{y}.png",
+    "categories": [
+      "电子地图",
+      "地形图"
+    ],
+    "description": "有标记的自行车道路地图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_26.png"
+  },
+  {
+    "id": "layer_27",
+    "row_index": 27,
+    "name": "OpenRailwayMap",
+    "format": "XYZ Tiles",
+    "url": "https://a.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png",
+    "categories": [
+      "铁路地图"
+    ],
+    "description": "基于OSM铁路数据的在线PNG底图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_27.png"
+  },
+  {
+    "id": "layer_28",
+    "row_index": 28,
+    "name": "OpenRailwayMap Maxspeed",
+    "format": "XYZ Tiles",
+    "url": "https://a.tiles.openrailwaymap.org/maxspeed/{z}/{x}/{y}.png",
+    "categories": [
+      "铁路地图"
+    ],
+    "description": "ORM最大速度图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_28.png"
+  },
+  {
+    "id": "layer_29",
+    "row_index": 29,
+    "name": "OpenRailwayMap Signals",
+    "format": "XYZ Tiles",
+    "url": "https://a.tiles.openrailwaymap.org/signals/{z}/{x}/{y}.png",
+    "categories": [
+      "铁路地图"
+    ],
+    "description": "ORM信号图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_29.png"
+  },
+  {
+    "id": "layer_30",
+    "row_index": 30,
+    "name": "OpenRailwayMap Electrified",
+    "format": "XYZ Tiles",
+    "url": "https://a.tiles.openrailwaymap.org/electrified/{z}/{x}/{y}.png",
+    "categories": [
+      "铁路地图"
+    ],
+    "description": "ORM电气化图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_30.png"
+  },
+  {
+    "id": "layer_31",
+    "row_index": 31,
+    "name": "OpenRailwayMap Gauge",
+    "format": "XYZ Tiles",
+    "url": "https://a.tiles.openrailwaymap.org/gauge/{z}/{x}/{y}.png",
+    "categories": [
+      "铁路地图"
+    ],
+    "description": "Track gauge（铁路规矩）",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_31.png"
+  },
+  {
+    "id": "layer_32",
+    "row_index": 32,
+    "name": "China Railway Slippy Map",
+    "format": "XYZ Tiles",
+    "url": "https://tile.renchang.me/{z}/{x}/{y}.png",
+    "categories": [
+      "铁路地图"
+    ],
+    "description": "贵广十标段底图，数据采集自23年9月osm",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_32.png"
+  },
+  {
+    "id": "layer_33",
+    "row_index": 33,
+    "name": "Windy_outdoor",
+    "format": "XYZ Tiles",
+    "url": "https://tiles.windy.com/v1/maptiles/outdoor/256/{z}/{x}/{y}/?lang=en",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "windy底图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_33.png"
+  },
+  {
+    "id": "layer_34",
+    "row_index": 34,
+    "name": "Windy_winter",
+    "format": "XYZ Tiles",
+    "url": "https://tiles.windy.com/v1/maptiles/winter/256/{z}/{x}/{y}/?lang=en",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "windy底图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_34.png"
+  },
+  {
+    "id": "layer_35",
+    "row_index": 35,
+    "name": "地形 Eris Shaded Relief",
+    "format": "XYZ Tiles",
+    "url": "https://server.arcgisonline.com/arcgis/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}",
+    "categories": [
+      "地形图"
+    ],
+    "description": "Arcgis雷达反射地形图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_35.png"
+  },
+  {
+    "id": "layer_36",
+    "row_index": 36,
+    "name": "影像_Eris Imagery",
+    "format": "XYZ Tiles",
+    "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    "categories": [
+      "影像图"
+    ],
+    "description": "Esri标准影像",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_36.jpg"
+  },
+  {
+    "id": "layer_37",
+    "row_index": 37,
+    "name": "影像_Bing",
+    "format": "XYZ Tiles",
+    "url": "http://ecn.t3.tiles.virtualearth.net/tiles/a{q}.ipeg?g=0&dir=dir n'",
+    "categories": [
+      "影像图"
+    ],
+    "description": "Bing标准影像",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_37.jpg"
+  },
+  {
+    "id": "layer_38",
+    "row_index": 38,
+    "name": "影像_谷歌原版影像",
+    "format": "XYZ Tiles",
+    "url": "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+    "categories": [
+      "影像图"
+    ],
+    "description": "Google原版影像",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_38.jpg"
+  },
+  {
+    "id": "layer_39",
+    "row_index": 39,
+    "name": "谷歌原版影像2",
+    "format": "XYZ Tiles",
+    "url": "http://khms1.googleapis.com/kh/v=969&x={x}&y={y}&z={z}",
+    "categories": [
+      "影像图"
+    ],
+    "description": "Google原版影像",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_39.jpg"
+  },
+  {
+    "id": "layer_40",
+    "row_index": 40,
+    "name": "World_Physical_Map",
+    "format": "XYZ Tiles",
+    "url": "https://server.arcgisonline.com/arcgis/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}",
+    "categories": [
+      "地形图",
+      "海床图"
+    ],
+    "description": "海床山体阴影最多支持到7级。8",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_40.png"
+  },
+  {
+    "id": "layer_41",
+    "row_index": 41,
+    "name": "World_Terrain_Base",
+    "format": "XYZ Tiles",
+    "url": "https://server.arcgisonline.com/arcgis/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}",
+    "categories": [
+      "地形图",
+      "海床图"
+    ],
+    "description": "海洋有分层设色，陆地为山体阴影。8",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_41.png"
+  },
+  {
+    "id": "layer_42",
+    "row_index": 42,
+    "name": "NatGeo_World_Map",
+    "format": "XYZ Tiles",
+    "url": "https://server.arcgisonline.com/arcgis/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "可参考的地图风格样式。12",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_42.png"
+  },
+  {
+    "id": "layer_43",
+    "row_index": 43,
+    "name": "World_Ocean_Base",
+    "format": "XYZ Tiles",
+    "url": "https://server.arcgisonline.com/arcgis/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
+    "categories": [
+      "地形图",
+      "海床图"
+    ],
+    "description": "海洋图。10",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_43.png"
+  },
+  {
+    "id": "layer_44",
+    "row_index": 44,
+    "name": "World_Ocean_Reference",
+    "format": "XYZ Tiles",
+    "url": "https://server.arcgisonline.com/arcgis/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}",
+    "categories": [
+      "标注图"
+    ],
+    "description": "海洋图标注",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_44.png"
+  },
+  {
+    "id": "layer_45",
+    "row_index": 45,
+    "name": "WorldHydroMap(China)",
+    "format": "XYZ Tiles",
+    "url": "https://thematic.geoq.cn/arcgis/rest/services/ThematicMaps/WorldHydroMap/MapServer/tile/{z}/{y}/{x}",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "水图，最高支持13级",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_45.png"
+  },
+  {
+    "id": "layer_46",
+    "row_index": 46,
+    "name": "谷歌地形图-纯图-灰色",
+    "format": "XYZ Tiles",
+    "url": "http://www.google.com/maps/vt/pb=!1m4!1m3!1i{z}!2i{x}!3i{y}!2m1!1e5",
+    "categories": [
+      "地形图"
+    ],
+    "description": "Google山体阴影",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_46.png"
+  },
+  {
+    "id": "layer_47",
+    "row_index": 47,
+    "name": "谷歌地形图-纯图-土地利用",
+    "format": "XYZ Tiles",
+    "url": "http://mt0.google.com/vt/lyrs=p&hl=en&x={x}&y={y}&z={z}&s=Ga&apistyle=s.e:l|p.v:off,s.t:1|s.e:g|p.v:off,s.t:21|p.v:off,s.t:20|p.v:off,s.t:2|p.v:off,s.t:3|p.v:off,s.t:3|s.e:l.i|p.v:off,s.t:4|p.v:off",
+    "categories": [
+      "土地利用图",
+      "地形图"
+    ],
+    "description": "Google山体阴影加山体阴影（国内数据老旧，可做参考）",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_47.png"
+  },
+  {
+    "id": "layer_48",
+    "row_index": 48,
+    "name": "地形_欧洲海洋观测EMODnet",
+    "format": "XYZ Tiles",
+    "url": "https://tiles.emodnet-bathymetry.eu/2020/baselayer/web_mercator/{z}/{x}/{y}.png",
+    "categories": [
+      "地形图"
+    ],
+    "description": "欧洲海洋观测与数据网络网站的背景底图。高程着色，适合大范围制图。",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_48.png"
+  },
+  {
+    "id": "layer_49",
+    "row_index": 49,
+    "name": "高德卫星图(GJC02)",
+    "format": "XYZ Tiles",
+    "url": "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+    "categories": [
+      "影像图"
+    ],
+    "description": "高德卫星图GCJ02坐标",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "数据漂移",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": true,
+    "thumbnail": "/thumbnails/thumb_49.png"
+  },
+  {
+    "id": "layer_50",
+    "row_index": 50,
+    "name": "Bing电子地图",
+    "format": "XYZ Tiles",
+    "url": "https://t.ssl.ak.dynamic.tiles.virtualearth.net/comp/ch/a{q}.ipeg?g=0&mkt=zh-CN&it=GB,LC&shading=hill&n=t&og=2697&sv=9.38&cstl=s23&o=png&ur=hk",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_50.png"
+  },
+  {
+    "id": "layer_51",
+    "row_index": 51,
+    "name": "高德电子地图(GJC02)",
+    "format": "XYZ Tiles",
+    "url": "http://wprd04.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&x={x}&y={y}&z={z}",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "高德地图GCJ02坐标",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "数据漂移",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": true,
+    "thumbnail": "/thumbnails/thumb_51.png"
+  },
+  {
+    "id": "layer_52",
+    "row_index": 52,
+    "name": "高德路网标注图(GJC02)",
+    "format": "XYZ Tiles",
+    "url": "https://wprd01.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=2&style=8<ype=11",
+    "categories": [
+      "电子地图",
+      "标注图"
+    ],
+    "description": "高德地图GCJ02坐标（透明背景）",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "数据漂移",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": true,
+    "thumbnail": "/thumbnails/thumb_52.png"
+  },
+  {
+    "id": "layer_53",
+    "row_index": 53,
+    "name": "高德路网地点标注图(GJC02)",
+    "format": "XYZ Tiles",
+    "url": "https://wprd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+    "categories": [
+      "标注图",
+      "电子地图"
+    ],
+    "description": "高德地图GCJ02坐标加地点名（透明背景）",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "数据漂移",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": true,
+    "thumbnail": "/thumbnails/thumb_53.png"
+  },
+  {
+    "id": "layer_54",
+    "row_index": 54,
+    "name": "腾讯电子地图(GJC02)",
+    "format": "XYZ Tiles",
+    "url": "http://rt0.map.gtimg.com/realtimerender?z={z}&x={x}&y={-y}&type=vector&style=0",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "注意坐标为GCJ02（与浏览器同步的瓦片地图）",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "数据漂移",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": true,
+    "thumbnail": "/thumbnails/thumb_54.png"
+  },
+  {
+    "id": "layer_55",
+    "row_index": 55,
+    "name": "腾讯路网标注图(GJC02)",
+    "format": "XYZ Tiles",
+    "url": "https://rt0.map.gtimg.com/tile?z={z}&x={x}&y={-y}&type=vector&styleid=2",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "道路标注（GCJ02）",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "数据漂移",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": true,
+    "thumbnail": "/thumbnails/thumb_55.png"
+  },
+  {
+    "id": "layer_56",
+    "row_index": 56,
+    "name": "腾讯路网标注图（水系）",
+    "format": "XYZ Tiles",
+    "url": "https://rt0.map.gtimg.com/tile?z={z}&x={x}&y={-y}&type=vector&styleid=3",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "道路标注水系（GCJ02）",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "数据漂移",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": true,
+    "thumbnail": "/thumbnails/thumb_56.png"
+  },
+  {
+    "id": "layer_57",
+    "row_index": 57,
+    "name": "谷歌路网标记图层(GCJ02)",
+    "format": "XYZ Tiles",
+    "url": "http://mt.google.com/vt?lyrs=h&gl=CN&x={x}&y={y}&z={z}",
+    "categories": [
+      "电子地图",
+      "标注图"
+    ],
+    "description": "谷歌路网纯标记图层",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "边界问题, 数据漂移",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": true,
+    "thumbnail": "/thumbnails/thumb_57.png"
+  },
+  {
+    "id": "layer_58",
+    "row_index": 58,
+    "name": "谷歌卫星混合图层(GCJ02)",
+    "format": "XYZ Tiles",
+    "url": "http://mt.google.com/vt?lyrs=s,m&gl=CN&x={x}&y={y}&z={z}",
+    "categories": [
+      "电子地图",
+      "影像图"
+    ],
+    "description": "火星坐标的卫星图和标记图层（可完美重叠",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "数据漂移, 边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": true,
+    "thumbnail": "/thumbnails/thumb_58.png"
+  },
+  {
+    "id": "layer_59",
+    "row_index": 59,
+    "name": "World-Topo-Map_NoLabel",
+    "format": "WMS/WMTS",
+    "url": "https://www.arcgis.com/sharing/rest/content/items/5a0e14f7287b4aa5973f6a35638e4b9a/resources/styles/root.json?f=pjson",
+    "categories": [
+      "标注图"
+    ],
+    "description": "无标签的地形标注图层",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_59.png"
+  },
+  {
+    "id": "layer_60",
+    "row_index": 60,
+    "name": "OpenStreetMap_vec",
+    "format": "VEC",
+    "url": "https://vector.openstreetmap.org/shortbread_v1/{z}/{x}/{y}.mvt\nhttps://vector.openstreetmap.org/styles/shortbread/colorful.json",
+    "categories": [
+      "电子地图"
+    ],
+    "description": "",
+    "needs_vpn": true,
+    "vpn_raw": "需要",
+    "notes": "边界问题",
+    "has_boundary_issue": true,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_60.png"
+  }
+]

@@ -1,0 +1,36 @@
+# Python & Runtime
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+.venv/
+env/
+venv/
+
+# SQLite Databases & Local Runtime Stats
+data/*.db
+data/*.db*
+*.sqlite3
+
+# Large Source / Process Spreadsheets
+*.xlsx
+*.xls
+
+# Process & Scratch Dev Files
+CHECK_TIME.md
+*.tmp
+*.bak
+*backup*
+like_preview.html
+
+# Screenshots & Local Dumps
+screenshot*.png
+
+# IDE & System Files
+.zcode/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+

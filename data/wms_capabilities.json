@@ -1,0 +1,1385 @@
+{
+  "layer_11": {
+    "id": "layer_11",
+    "name": "OSM地图 (terrestris WMS)",
+    "service_type": "WMS",
+    "base_url": "https://ows.terrestris.de/osm/service",
+    "capabilities_url": "https://ows.terrestris.de/osm/service?service=WMS&request=GetCapabilities",
+    "layers": [
+      {
+        "id": "OSM-WMS",
+        "title": "OpenStreetMap WMS - by terrestris",
+        "abstract": ""
+      },
+      {
+        "id": "OSM-WMS-no-labels",
+        "title": "OSM WMS w/o labels - by terrestris",
+        "abstract": ""
+      },
+      {
+        "id": "OSM-Overlay-WMS",
+        "title": "OSM Overlay WMS - by terrestris",
+        "abstract": ""
+      },
+      {
+        "id": "TOPO-WMS",
+        "title": "Topographic WMS - by terrestris",
+        "abstract": ""
+      },
+      {
+        "id": "TOPO-OSM-WMS",
+        "title": "Topographic OSM WMS - by terrestris",
+        "abstract": ""
+      },
+      {
+        "id": "SRTM30-Hillshade",
+        "title": "SRTM30 Hillshade - by terrestris",
+        "abstract": ""
+      },
+      {
+        "id": "SRTM30-Colored",
+        "title": "SRTM30 Colored - by terrestris",
+        "abstract": ""
+      },
+      {
+        "id": "SRTM30-Colored-Hillshade",
+        "title": "SRTM30 Colored Hillshade - by terrestris",
+        "abstract": ""
+      },
+      {
+        "id": "SRTM30-Contour",
+        "title": "SRTM30 Contour Lines - by terrestris",
+        "abstract": ""
+      },
+      {
+        "id": "Dark",
+        "title": "Dark",
+        "abstract": ""
+      },
+      {
+        "id": "HikeMap",
+        "title": "HikeMap",
+        "abstract": ""
+      }
+    ]
+  },
+  "layer_6": {
+    "id": "layer_6",
+    "name": "Sentinel-2 哨兵2全球无云影像产品 WMTS",
+    "service_type": "WMTS",
+    "base_url": "https://tiles.maps.eox.at/wmts/1.0.0/",
+    "capabilities_url": "https://tiles.maps.eox.at/wmts/1.0.0/WMTSCapabilities.xml",
+    "layers": [
+      {
+        "id": "overlay_bright_3857",
+        "title": "Bright overlay layer by EOX - 3857",
+        "abstract": "<a href=\"https://maps.eox.at\">Overlay bright</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "overlay_3857",
+        "title": "Overlay layer by EOX - 3857",
+        "abstract": "<a href=\"https://maps.eox.at\">Overlay</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "s2cloudless-2020_3857",
+        "title": "Sentinel-2 cloudless layer for 2020 by EOX - 3857",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2020) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "magnetic_graticules",
+        "title": "Magnetic Graticules overlay layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Magnetic Graticules</a> { Rendering &copy; <a href=\"https://eox.at\">EOX</a> }"
+      },
+      {
+        "id": "terrain-light",
+        "title": "Terrain Light background layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Terrain Light</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors and <a href=\"https://maps.eox.at/#data\">others</a>, Rendering &copy; <a href=\"https://eox.at\">EOX</a> }"
+      },
+      {
+        "id": "overlay_base_bright",
+        "title": "Bright overlay layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Overlay bright</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "bluemarble",
+        "title": "Blue marble background layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Blue Marble</a> { &copy; <a href=\"http://nasa.gov\">NASA</a> }"
+      },
+      {
+        "id": "s2cloudless-2022_3857",
+        "title": "Sentinel-2 cloudless layer for 2022 by EOX - 3857",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2022) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "s2cloudless-2024_3857",
+        "title": "Sentinel-2 cloudless layer for 2024 by EOX - 3857",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2024) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "streets_3857",
+        "title": "Streets overlay layer by EOX - 3857",
+        "abstract": "<a href=\"https://maps.eox.at\">Streets overlay</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "s2cloudless-2018_3857",
+        "title": "Sentinel-2 cloudless layer for 2018 by EOX - 3857",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2017 & 2018) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "overlay_bright",
+        "title": "Bright overlay layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Overlay bright</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "coastline",
+        "title": "Coastline overlay layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Coastline overlay</a> { Rendering &copy; <a href=\"https://eox.at\">EOX</a> }"
+      },
+      {
+        "id": "blackmarble_3857",
+        "title": "Black marble background layer by EOX - 3857",
+        "abstract": "<a href=\"https://maps.eox.at\">Black Marble</a> { &copy; <a href=\"http://nasa.gov\">NASA</a> }"
+      },
+      {
+        "id": "hydrography_3857",
+        "title": "Hydrography overlay layer by EOX - 3857",
+        "abstract": "<a href=\"https://maps.eox.at\">Hydrography overlay</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "s2cloudless-2017",
+        "title": "Sentinel-2 cloudless layer for 2017 by EOX - 4326",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2017) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by/4.0/\">Creative Commons Attribution 4.0 International License</a>."
+      },
+      {
+        "id": "s2cloudless-2018",
+        "title": "Sentinel-2 cloudless layer for 2018 by EOX - 4326",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2017 & 2018) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "s2cloudless-2019",
+        "title": "Sentinel-2 cloudless layer for 2019 by EOX - 4326",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2019) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "terrain-light_3857",
+        "title": "Terrain Light background layer by EOX - 3857",
+        "abstract": "<a href=\"https://maps.eox.at\">Terrain Light</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors and <a href=\"https://maps.eox.at/#data\">others</a>, Rendering &copy; <a href=\"https://eox.at\">EOX</a> }"
+      },
+      {
+        "id": "hydrography",
+        "title": "Hydrography overlay layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Hydrography overlay</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "coastline_3857",
+        "title": "Coastline overlay layer by EOX - 3857",
+        "abstract": "<a href=\"https://maps.eox.at\">Coastline overlay</a> { Rendering &copy; <a href=\"https://eox.at\">EOX</a> }"
+      },
+      {
+        "id": "s2cloudless-2021_3857",
+        "title": "Sentinel-2 cloudless layer for 2021 by EOX - 3857",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2021) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "overlay_base",
+        "title": "Overlay layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Overlay</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "s2cloudless-2023_3857",
+        "title": "Sentinel-2 cloudless layer for 2023 by EOX - 3857",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2023) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "coastline_black",
+        "title": "Black coastline overlay layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Black coastline overlay</a> { Rendering &copy; <a href=\"https://eox.at\">EOX</a> }"
+      },
+      {
+        "id": "s2cloudless-2025_3857",
+        "title": "Sentinel-2 cloudless layer for 2025 by EOX - 3857",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2025) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "s2cloudless-2017_3857",
+        "title": "Sentinel-2 cloudless layer for 2017 by EOX - 3857",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2017) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by/4.0/\">Creative Commons Attribution 4.0 International License</a>."
+      },
+      {
+        "id": "s2cloudless-2019_3857",
+        "title": "Sentinel-2 cloudless layer for 2019 by EOX - 3857",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2019) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "overlay",
+        "title": "Overlay layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Overlay</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "s2cloudless-2020",
+        "title": "Sentinel-2 cloudless layer for 2020 by EOX - 4326",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2020) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "s2cloudless-2021",
+        "title": "Sentinel-2 cloudless layer for 2021 by EOX - 4326",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2021) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "osm_3857",
+        "title": "OpenStreetMap background layer by EOX - 3857",
+        "abstract": "<a href=\"https://maps.eox.at\">OpenStreetMap</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "s2cloudless-2022",
+        "title": "Sentinel-2 cloudless layer for 2022 by EOX - 4326",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2022) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "s2cloudless-2023",
+        "title": "Sentinel-2 cloudless layer for 2023 by EOX - 4326",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2023) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "s2cloudless-2024",
+        "title": "Sentinel-2 cloudless layer for 2024 by EOX - 4326",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2024) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "s2cloudless_3857",
+        "title": "Sentinel-2 cloudless layer for 2016 by EOX - 3857",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by/4.0/\">Creative Commons Attribution 4.0 International License</a>."
+      },
+      {
+        "id": "s2cloudless-2025",
+        "title": "Sentinel-2 cloudless layer for 2025 by EOX - 4326",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2025) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/\">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. For commercial usage please see <a href=\"https://cloudless.eox.at\">https://cloudless.eox.at</a>"
+      },
+      {
+        "id": "streets",
+        "title": "Streets overlay layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Streets overlay</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "terrain_3857",
+        "title": "Terrain background layer by EOX - 3857",
+        "abstract": "<a href=\"https://maps.eox.at\">Terrain</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors and <a href=\"https://maps.eox.at/#data\">others</a>, Rendering &copy; <a href=\"https://eox.at\">EOX</a> }"
+      },
+      {
+        "id": "osm",
+        "title": "OpenStreetMap background layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">OpenStreetMap</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "blackmarble",
+        "title": "Black marble background layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Black Marble</a> { &copy; <a href=\"http://nasa.gov\">NASA</a> }"
+      },
+      {
+        "id": "overlay_base_bright_3857",
+        "title": "Bright overlay layer by EOX - 3857",
+        "abstract": "<a href=\"https://maps.eox.at\">Overlay bright</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "bluemarble_3857",
+        "title": "Blue marble background layer by EOX - 3857",
+        "abstract": "<a href=\"https://maps.eox.at\">Blue Marble</a> { &copy; <a href=\"http://nasa.gov\">NASA</a> }"
+      },
+      {
+        "id": "overlay_base_3857",
+        "title": "Overlay layer by EOX - 3857",
+        "abstract": "<a href=\"https://maps.eox.at\">Overlay</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, Rendering &copy; <a href=\"https://eox.at\">EOX</a> and <a href=\"https://github.com/mapserver/basemaps\">MapServer</a> }"
+      },
+      {
+        "id": "s2cloudless",
+        "title": "Sentinel-2 cloudless layer for 2016 by EOX - 4326",
+        "abstract": "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016) released under <a rel=\"license\" href=\"https://creativecommons.org/licenses/by/4.0/\">Creative Commons Attribution 4.0 International License</a>."
+      },
+      {
+        "id": "graticules",
+        "title": "Graticules overlay layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Graticules</a> { Rendering &copy; <a href=\"https://eox.at\">EOX</a> }"
+      },
+      {
+        "id": "terrain",
+        "title": "Terrain background layer by EOX - 4326",
+        "abstract": "<a href=\"https://maps.eox.at\">Terrain</a> { Data &copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors and <a href=\"https://maps.eox.at/#data\">others</a>, Rendering &copy; <a href=\"https://eox.at\">EOX</a> }"
+      }
+    ]
+  },
+  "layer_10": {
+    "id": "layer_10",
+    "name": "GeoQ水图",
+    "service_type": "WMTS",
+    "base_url": "http://thematic.geoq.cn/arcgis/rest/services/ThematicMaps/WorldHydroMap/MapServer/WMTS",
+    "capabilities_url": "http://thematic.geoq.cn/arcgis/rest/services/ThematicMaps/WorldHydroMap/MapServer/WMTS/1.0.0/WMTSCapabilities.xml",
+    "layers": [
+      {
+        "id": "ThematicMaps_WorldHydroMap",
+        "title": "ThematicMaps_WorldHydroMap",
+        "abstract": ""
+      }
+    ]
+  },
+  "layer_7": {
+    "id": "layer_7",
+    "name": "ArcGIS标注",
+    "service_type": "WMTS",
+    "base_url": "https://map.geoq.cn/arcgis/rest/services/ChinaOnlineCommunity_Mobile/MapServer/WMTS",
+    "capabilities_url": "https://map.geoq.cn/arcgis/rest/services/ChinaOnlineCommunity_Mobile/MapServer/WMTS/1.0.0/WMTSCapabilities.xml",
+    "layers": [
+      {
+        "id": "ChinaOnlineCommunity_Mobile",
+        "title": "ChinaOnlineCommunity_Mobile (全国多语言精细标注图层)",
+        "abstract": "ArcGIS中国在线移动标注服务"
+      }
+    ]
+  },
+  "layer_8": {
+    "id": "layer_8",
+    "name": "Wayback历史影像",
+    "service_type": "WMTS",
+    "base_url": "https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/WMTS",
+    "capabilities_url": "https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/WMTS/1.0.0/WMTSCapabilities.xml",
+    "layers": [
+      {
+        "id": "WB_2026_R07",
+        "title": "World Imagery (Wayback 2026-08-05)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2026_R06",
+        "title": "World Imagery (Wayback 2026-06-30)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2026_R05",
+        "title": "World Imagery (Wayback 2026-05-28)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2026_R04",
+        "title": "World Imagery (Wayback 2026-04-30)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2026_R03",
+        "title": "World Imagery (Wayback 2026-03-25)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2026_R02",
+        "title": "World Imagery (Wayback 2026-02-26)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2026_R01",
+        "title": "World Imagery (Wayback 2026-01-29)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2025_R12",
+        "title": "World Imagery (Wayback 2025-12-18)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2025_R11",
+        "title": "World Imagery (Wayback 2025-11-20)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2025_R10",
+        "title": "World Imagery (Wayback 2025-10-23)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2025_R09",
+        "title": "World Imagery (Wayback 2025-09-25)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2025_R08",
+        "title": "World Imagery (Wayback 2025-09-04)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2025_R07",
+        "title": "World Imagery (Wayback 2025-07-31)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2025_R06",
+        "title": "World Imagery (Wayback 2025-06-26)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2025_R05",
+        "title": "World Imagery (Wayback 2025-05-29)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2025_R04",
+        "title": "World Imagery (Wayback 2025-04-24)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2025_R03",
+        "title": "World Imagery (Wayback 2025-03-27)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2025_R02",
+        "title": "World Imagery (Wayback 2025-02-27)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2025_R01",
+        "title": "World Imagery (Wayback 2025-01-30)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2024_R13",
+        "title": "World Imagery (Wayback 2024-12-12)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2024_R12",
+        "title": "World Imagery (Wayback 2024-11-18)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2024_R11",
+        "title": "World Imagery (Wayback 2024-10-10)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2024_R10",
+        "title": "World Imagery (Wayback 2024-09-19)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2024_R08",
+        "title": "World Imagery (Wayback 2024-08-15)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2024_R07",
+        "title": "World Imagery (Wayback 2024-06-27)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2024_R06",
+        "title": "World Imagery (Wayback 2024-06-06)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2024_R05",
+        "title": "World Imagery (Wayback 2024-05-09)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2024_R03",
+        "title": "World Imagery (Wayback 2024-03-28)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2024_R02",
+        "title": "World Imagery (Wayback 2024-03-07)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2024_R01",
+        "title": "World Imagery (Wayback 2024-02-08)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2024_R00",
+        "title": "World Imagery (Wayback 2024-01-18)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2023_R11",
+        "title": "World Imagery (Wayback 2023-12-07)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2023_R10",
+        "title": "World Imagery (Wayback 2023-11-01)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2023_R09",
+        "title": "World Imagery (Wayback 2023-10-11)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2023_R08",
+        "title": "World Imagery (Wayback 2023-08-31)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2023_R07",
+        "title": "World Imagery (Wayback 2023-08-10)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2023_R06",
+        "title": "World Imagery (Wayback 2023-06-29)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2023_R05",
+        "title": "World Imagery (Wayback 2023-06-13)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2023_R04",
+        "title": "World Imagery (Wayback 2023-05-03)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2023_R03",
+        "title": "World Imagery (Wayback 2023-04-05)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2023_R02",
+        "title": "World Imagery (Wayback 2023-03-15)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2023_R01",
+        "title": "World Imagery (Wayback 2023-02-23)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2023_R00",
+        "title": "World Imagery (Wayback 2023-01-11)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R15",
+        "title": "World Imagery (Wayback 2022-12-14)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R14",
+        "title": "World Imagery (Wayback 2022-11-02)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R13",
+        "title": "World Imagery (Wayback 2022-10-12)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R12",
+        "title": "World Imagery (Wayback 2022-09-21)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R11",
+        "title": "World Imagery (Wayback 2022-08-31)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R10",
+        "title": "World Imagery (Wayback 2022-08-10)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R09",
+        "title": "World Imagery (Wayback 2022-07-20)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R08",
+        "title": "World Imagery (Wayback 2022-06-29)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R07",
+        "title": "World Imagery (Wayback 2022-06-08)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R06",
+        "title": "World Imagery (Wayback 2022-05-18)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R05",
+        "title": "World Imagery (Wayback 2022-04-27)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R04",
+        "title": "World Imagery (Wayback 2022-04-06)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R03",
+        "title": "World Imagery (Wayback 2022-03-16)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R02",
+        "title": "World Imagery (Wayback 2022-02-24)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R01",
+        "title": "World Imagery (Wayback 2022-02-02)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2022_R00",
+        "title": "World Imagery (Wayback 2022-01-12)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R17",
+        "title": "World Imagery (Wayback 2021-12-21)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R16",
+        "title": "World Imagery (Wayback 2021-11-30)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R15",
+        "title": "World Imagery (Wayback 2021-11-03)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R14",
+        "title": "World Imagery (Wayback 2021-10-13)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R13",
+        "title": "World Imagery (Wayback 2021-09-22)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R12",
+        "title": "World Imagery (Wayback 2021-09-01)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R11",
+        "title": "World Imagery (Wayback 2021-08-11)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R10",
+        "title": "World Imagery (Wayback 2021-07-21)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R09",
+        "title": "World Imagery (Wayback 2021-06-30)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R08",
+        "title": "World Imagery (Wayback 2021-06-09)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R07",
+        "title": "World Imagery (Wayback 2021-05-19)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R06",
+        "title": "World Imagery (Wayback 2021-04-28)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R05",
+        "title": "World Imagery (Wayback 2021-04-08)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R04",
+        "title": "World Imagery (Wayback 2021-03-17)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R03",
+        "title": "World Imagery (Wayback 2021-02-24)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2021_R01",
+        "title": "World Imagery (Wayback 2021-01-13)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R16",
+        "title": "World Imagery (Wayback 2020-12-16)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R15",
+        "title": "World Imagery (Wayback 2020-11-18)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R14",
+        "title": "World Imagery (Wayback 2020-10-14)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R13",
+        "title": "World Imagery (Wayback 2020-09-23)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R12",
+        "title": "World Imagery (Wayback 2020-09-02)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R11",
+        "title": "World Imagery (Wayback 2020-08-12)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R10",
+        "title": "World Imagery (Wayback 2020-07-22)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R09",
+        "title": "World Imagery (Wayback 2020-07-01)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R08",
+        "title": "World Imagery (Wayback 2020-06-10)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R07",
+        "title": "World Imagery (Wayback 2020-05-20)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R06",
+        "title": "World Imagery (Wayback 2020-04-29)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R05",
+        "title": "World Imagery (Wayback 2020-04-08)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R04",
+        "title": "World Imagery (Wayback 2020-03-23)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R03",
+        "title": "World Imagery (Wayback 2020-02-20)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R02",
+        "title": "World Imagery (Wayback 2020-01-30)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2020_R01",
+        "title": "World Imagery (Wayback 2020-01-08)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R16",
+        "title": "World Imagery (Wayback 2019-12-12)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R14",
+        "title": "World Imagery (Wayback 2019-10-30)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R13",
+        "title": "World Imagery (Wayback 2019-10-09)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R12",
+        "title": "World Imagery (Wayback 2019-09-18)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R11",
+        "title": "World Imagery (Wayback 2019-08-28)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R10",
+        "title": "World Imagery (Wayback 2019-08-07)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R09",
+        "title": "World Imagery (Wayback 2019-07-17)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R08",
+        "title": "World Imagery (Wayback 2019-06-26)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R07",
+        "title": "World Imagery (Wayback 2019-06-05)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R06",
+        "title": "World Imagery (Wayback 2019-05-15)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R05",
+        "title": "World Imagery (Wayback 2019-04-24)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R04",
+        "title": "World Imagery (Wayback 2019-04-03)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R03",
+        "title": "World Imagery (Wayback 2019-03-13)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R02",
+        "title": "World Imagery (Wayback 2019-02-21)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R01",
+        "title": "World Imagery (Wayback 2019-01-31)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2019_R00",
+        "title": "World Imagery (Wayback 2019-01-09)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R17",
+        "title": "World Imagery (Wayback 2018-12-14)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R16",
+        "title": "World Imagery (Wayback 2018-11-29)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R15",
+        "title": "World Imagery (Wayback 2018-11-07)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R14",
+        "title": "World Imagery (Wayback 2018-10-17)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R13",
+        "title": "World Imagery (Wayback 2018-09-26)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R12",
+        "title": "World Imagery (Wayback 2018-09-06)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R11",
+        "title": "World Imagery (Wayback 2018-08-15)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R10",
+        "title": "World Imagery (Wayback 2018-07-25)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R09",
+        "title": "World Imagery (Wayback 2018-06-27)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R08",
+        "title": "World Imagery (Wayback 2018-06-06)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R07",
+        "title": "World Imagery (Wayback 2018-05-16)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R06",
+        "title": "World Imagery (Wayback 2018-04-25)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R05",
+        "title": "World Imagery (Wayback 2018-04-11)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R04",
+        "title": "World Imagery (Wayback 2018-03-28)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R03",
+        "title": "World Imagery (Wayback 2018-03-14)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R02",
+        "title": "World Imagery (Wayback 2018-02-23)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R01",
+        "title": "World Imagery (Wayback 2018-01-31)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2018_R00",
+        "title": "World Imagery (Wayback 2018-01-18)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R21",
+        "title": "World Imagery (Wayback 2018-01-08)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R19",
+        "title": "World Imagery (Wayback 2017-11-16)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R18",
+        "title": "World Imagery (Wayback 2017-10-25)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R17",
+        "title": "World Imagery (Wayback 2017-10-04)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R16",
+        "title": "World Imagery (Wayback 2017-09-13)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R15",
+        "title": "World Imagery (Wayback 2017-08-30)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R14",
+        "title": "World Imagery (Wayback 2017-08-10)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R13",
+        "title": "World Imagery (Wayback 2017-07-14)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R12",
+        "title": "World Imagery (Wayback 2017-06-27)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R11",
+        "title": "World Imagery (Wayback 2017-06-14)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R10",
+        "title": "World Imagery (Wayback 2017-05-31)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R09",
+        "title": "World Imagery (Wayback 2017-05-17)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R08",
+        "title": "World Imagery (Wayback 2017-05-03)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R07",
+        "title": "World Imagery (Wayback 2017-04-19)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R06",
+        "title": "World Imagery (Wayback 2017-03-29)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R05",
+        "title": "World Imagery (Wayback 2017-03-15)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R04",
+        "title": "World Imagery (Wayback 2017-02-27)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R03",
+        "title": "World Imagery (Wayback 2017-02-08)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R02",
+        "title": "World Imagery (Wayback 2017-01-25)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2017_R01",
+        "title": "World Imagery (Wayback 2017-01-11)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R22",
+        "title": "World Imagery (Wayback 2016-12-20)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R21",
+        "title": "World Imagery (Wayback 2016-12-07)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R20",
+        "title": "World Imagery (Wayback 2016-11-16)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R19",
+        "title": "World Imagery (Wayback 2016-10-25)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R18",
+        "title": "World Imagery (Wayback 2016-10-12)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R16",
+        "title": "World Imagery (Wayback 2016-09-14)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R15",
+        "title": "World Imagery (Wayback 2016-08-31)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R14",
+        "title": "World Imagery (Wayback 2016-08-11)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R13",
+        "title": "World Imagery (Wayback 2016-07-20)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R12",
+        "title": "World Imagery (Wayback 2016-07-06)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R11",
+        "title": "World Imagery (Wayback 2016-06-13)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R10",
+        "title": "World Imagery (Wayback 2016-05-11)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R09",
+        "title": "World Imagery (Wayback 2016-04-28)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R08",
+        "title": "World Imagery (Wayback 2016-04-20)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R06",
+        "title": "World Imagery (Wayback 2016-03-16)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R05",
+        "title": "World Imagery (Wayback 2016-03-02)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R04",
+        "title": "World Imagery (Wayback 2016-02-17)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R03",
+        "title": "World Imagery (Wayback 2016-02-04)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2016_R02",
+        "title": "World Imagery (Wayback 2016-01-13)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R23",
+        "title": "World Imagery (Wayback 2015-12-16)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R20",
+        "title": "World Imagery (Wayback 2015-11-18)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R18",
+        "title": "World Imagery (Wayback 2015-10-28)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R17",
+        "title": "World Imagery (Wayback 2015-10-14)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R16",
+        "title": "World Imagery (Wayback 2015-09-30)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R15",
+        "title": "World Imagery (Wayback 2015-09-16)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R14",
+        "title": "World Imagery (Wayback 2015-09-02)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R13",
+        "title": "World Imagery (Wayback 2015-08-19)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R11",
+        "title": "World Imagery (Wayback 2015-07-08)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R10",
+        "title": "World Imagery (Wayback 2015-06-24)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R08",
+        "title": "World Imagery (Wayback 2015-05-13)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R07",
+        "title": "World Imagery (Wayback 2015-04-30)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R06",
+        "title": "World Imagery (Wayback 2015-04-15)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R05",
+        "title": "World Imagery (Wayback 2015-03-25)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R04",
+        "title": "World Imagery (Wayback 2015-03-18)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R02",
+        "title": "World Imagery (Wayback 2015-02-18)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2015_R01",
+        "title": "World Imagery (Wayback 2015-01-21)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R21",
+        "title": "World Imagery (Wayback 2014-12-30)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R20",
+        "title": "World Imagery (Wayback 2014-12-18)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R19",
+        "title": "World Imagery (Wayback 2014-12-03)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R18",
+        "title": "World Imagery (Wayback 2014-11-12)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R17",
+        "title": "World Imagery (Wayback 2014-10-29)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R15",
+        "title": "World Imagery (Wayback 2014-10-01)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R14",
+        "title": "World Imagery (Wayback 2014-09-17)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R11",
+        "title": "World Imagery (Wayback 2014-07-30)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R10",
+        "title": "World Imagery (Wayback 2014-07-02)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R09",
+        "title": "World Imagery (Wayback 2014-06-25)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R08",
+        "title": "World Imagery (Wayback 2014-06-11)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R06",
+        "title": "World Imagery (Wayback 2014-05-14)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R05",
+        "title": "World Imagery (Wayback 2014-04-30)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R03",
+        "title": "World Imagery (Wayback 2014-03-26)",
+        "abstract": ""
+      },
+      {
+        "id": "WB_2014_R01",
+        "title": "World Imagery (Wayback 2014-02-20)",
+        "abstract": ""
+      }
+    ]
+  },
+  "layer_9": {
+    "id": "layer_9",
+    "name": "osm土地利用",
+    "service_type": "WMS",
+    "base_url": "https://maps.heigit.org/osmlanduse/service",
+    "capabilities_url": "https://maps.heigit.org/osmlanduse/service?service=WMS&request=GetCapabilities",
+    "layers": [
+      {
+        "id": "osmlanduse:osm_lulc",
+        "title": "OSM Landuse - Landcover",
+        "abstract": ""
+      },
+      {
+        "id": "osmlanduse:osm4eo",
+        "title": "OSM Landuse - Landcover OSM4EO",
+        "abstract": ""
+      },
+      {
+        "id": "osmlanduse:osm_lulc_combined_osm4eo",
+        "title": "OSM Landuse - Landcover combined with OSM4EO",
+        "abstract": ""
+      }
+    ]
+  },
+  "layer_12": {
+    "id": "layer_12",
+    "name": "星图地球-全图层 (GEOVIS Earth)",
+    "service_type": "WMTS",
+    "base_url": "https://tiles.geovisearth.com/base/v1/wmts",
+    "capabilities_url": "https://tiles.geovisearth.com/base/v1/wmts/GetCapabilities",
+    "layers": [
+      {
+        "id": "img_d",
+        "title": "img_d (高清全球卫星遥感影像底图)",
+        "abstract": "星图地球全球高分辨率卫星影像服务"
+      },
+      {
+        "id": "img_z",
+        "title": "img_z (卫星遥感影像中文地名路网注记)",
+        "abstract": "星图地球遥感影像注记层"
+      },
+      {
+        "id": "vec_d",
+        "title": "vec_d (精细标准矢量电子地图底图)",
+        "abstract": "星图地球矢量电子地图服务"
+      },
+      {
+        "id": "vec_z",
+        "title": "vec_z (矢量地图地名路网中文注记)",
+        "abstract": "星图地球矢量注记层"
+      },
+      {
+        "id": "ter_d",
+        "title": "ter_d (数字高程地形晕渲底图)",
+        "abstract": "星图地球数字高程地形图"
+      }
+    ]
+  }
+}
