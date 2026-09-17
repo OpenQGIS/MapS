@@ -771,25 +771,15 @@ async function loadStats() {
     }
   } catch (err) {}
 
-  // 2. 静态 Pages 离线自适应统计（支持本地设备访问自增与持久化记录）
-  let localPv = parseInt(localStorage.getItem("qgis_site_pv") || "0", 10);
-  let localUv = parseInt(localStorage.getItem("qgis_site_uv") || "0", 10);
-  let localDl = parseInt(localStorage.getItem("qgis_site_downloads") || "18", 10);
+  // 2. 静态 Pages 离线自适应统计（优先读取上一次全网真实缓存，避免会话重启时突兀显示本地 1/2）
+  let cached = {};
+  try {
+    cached = JSON.parse(localStorage.getItem("qgis_cached_global_stats") || "{}");
+  } catch (e) {}
 
-  if (!sessionStorage.getItem("qgis_session_pv")) {
-    localPv += 1;
-    sessionStorage.setItem("qgis_session_pv", "1");
-    localStorage.setItem("qgis_site_pv", localPv);
-  }
-  if (!localStorage.getItem("qgis_has_visited")) {
-    localUv += 1;
-    localStorage.setItem("qgis_has_visited", "1");
-    localStorage.setItem("qgis_site_uv", localUv);
-  }
-
-  const basePv = localPv;
-  const baseUv = localUv;
-  const baseDownloads = localDl;
+  const basePv = cached.pv || 42;
+  const baseUv = cached.uv || 25;
+  const baseDownloads = cached.downloads || parseInt(localStorage.getItem("qgis_site_downloads") || "19", 10);
 
   updateStatsUi({
     pv: basePv,
@@ -803,6 +793,42 @@ async function loadStats() {
   connectBusuanziLiveStats();
   // 4. 异步同步 GitHub Pages 全网真实累计导出数
   syncGlobalDownloads();
+}
+
+function updateCachedStat(key, val) {
+  try {
+    let cached = JSON.parse(localStorage.getItem("qgis_cached_global_stats") || "{}");
+    cached[key] = val;
+    localStorage.setItem("qgis_cached_global_stats", JSON.stringify(cached));
+  } catch (e) {}
+}
+
+function animateCountUp(element, endVal, duration = 800) {
+  if (!element || typeof endVal !== "number" || isNaN(endVal)) return;
+  const rawText = (element.textContent || "").replace(/,/g, "").trim();
+  const startVal = parseInt(rawText, 10) || 0;
+  if (startVal === endVal) {
+    element.textContent = Number(endVal).toLocaleString();
+    return;
+  }
+
+  const startTime = performance.now();
+  const diff = endVal - startVal;
+
+  function step(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // easeOutCubic 极佳的平滑减速曲线，让数字跳动越来越慢，自然停在最终数值
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(startVal + diff * ease);
+    element.textContent = Number(current).toLocaleString();
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      element.textContent = Number(endVal).toLocaleString();
+    }
+  }
+  requestAnimationFrame(step);
 }
 
 function updateStatsUi(data) {
@@ -852,14 +878,16 @@ function connectBusuanziLiveStats() {
         const val = parseInt(bszPv.textContent, 10);
         if (!isNaN(val) && val > 0) {
           const pvEl = document.getElementById("stat-pv");
-          if (pvEl) pvEl.textContent = val.toLocaleString();
+          if (pvEl) animateCountUp(pvEl, val, 750);
+          updateCachedStat("pv", val);
         }
       }
       if (bszUv && bszUv.textContent && bszUv.textContent !== "" && bszUv.textContent !== "-") {
         const val = parseInt(bszUv.textContent, 10);
         if (!isNaN(val) && val > 0) {
           const uvEl = document.getElementById("stat-uv");
-          if (uvEl) uvEl.textContent = val.toLocaleString();
+          if (uvEl) animateCountUp(uvEl, val, 750);
+          updateCachedStat("uv", val);
         }
       }
       if (checkCount >= 16) clearInterval(bszTimer);
@@ -3565,9 +3593,10 @@ async function syncGlobalDownloads() {
         const globalVal = json.value;
         const dlEl = document.getElementById("stat-downloads");
         if (dlEl) {
-          dlEl.textContent = globalVal.toLocaleString();
+          animateCountUp(dlEl, globalVal, 750);
         }
         localStorage.setItem("qgis_site_downloads", globalVal);
+        updateCachedStat("downloads", globalVal);
       }
     }
   } catch (e) {
@@ -3577,11 +3606,12 @@ async function syncGlobalDownloads() {
 
 async function incrementLocalDownloads() {
   // 1. 本地即时响应 +1（保证无延迟反馈）
-  let localDl = parseInt(localStorage.getItem("qgis_site_downloads") || "18", 10) + 1;
+  let localDl = parseInt(localStorage.getItem("qgis_site_downloads") || "19", 10) + 1;
   localStorage.setItem("qgis_site_downloads", localDl);
+  updateCachedStat("downloads", localDl);
   const dlEl = document.getElementById("stat-downloads");
   if (dlEl) {
-    dlEl.textContent = localDl.toLocaleString();
+    animateCountUp(dlEl, localDl, 500);
   }
 
   // 2. 节流防连点刷量（同会话 10 秒内不重复向云端上报）
@@ -3599,8 +3629,9 @@ async function incrementLocalDownloads() {
       const json = await res.json();
       if (typeof json.value === "number") {
         localStorage.setItem("qgis_site_downloads", json.value);
+        updateCachedStat("downloads", json.value);
         if (dlEl) {
-          dlEl.textContent = json.value.toLocaleString();
+          animateCountUp(dlEl, json.value, 500);
         }
       }
     }
