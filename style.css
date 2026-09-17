@@ -143,6 +143,7 @@ html[data-theme="dark"], body[data-theme="dark"] {
 }
 
 html {
+  scrollbar-gutter: stable;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
@@ -3729,4 +3730,90 @@ html[data-theme="light"] .wms-dock-select {
 }
 .boundary-risk-tooltip::before {
   border-top-color: rgba(15, 23, 42, 0.92) !important;
+}
+
+/* ==========================================================================
+   Global Theme-Matched Custom Tooltip (Anti-AI Crafted Design)
+   ========================================================================== */
+.custom-tooltip {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(3px);
+  transition: opacity 0.12s cubic-bezier(0.16, 1, 0.3, 1), transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-weight: 500;
+  color: var(--text-main);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-hover);
+  box-shadow: var(--shadow-modal);
+  padding: 5px 9px;
+  border-radius: 0px;
+  max-width: 280px;
+  white-space: normal;
+  word-break: break-word;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  will-change: transform, opacity;
+}
+
+/* 深色模式下的微调 */
+html[data-theme="dark"] .custom-tooltip,
+body[data-theme="dark"] .custom-tooltip {
+  background: rgba(22, 27, 38, 0.96);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+  color: #f1f5f9;
+}
+
+/* 浅色模式下的微调 */
+html[data-theme="light"] .custom-tooltip,
+body[data-theme="light"] .custom-tooltip {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  color: #0f172a;
+}
+
+.custom-tooltip.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.custom-tooltip.placement-top {
+  transform: translateY(-3px);
+}
+
+.custom-tooltip.placement-top.visible {
+  transform: translateY(0);
+}
+
+/* 小三角指示器 */
+.custom-tooltip-arrow {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: inherit;
+  border: inherit;
+  pointer-events: none;
+  transform: rotate(45deg);
+}
+
+/* 当 tooltip 在元素下方（默认）：箭头在 tooltip 上边，露出上/左边框 */
+.custom-tooltip.placement-bottom .custom-tooltip-arrow {
+  top: -4px;
+  border-bottom: none !important;
+  border-right: none !important;
+}
+
+/* 当 tooltip 在元素上方：箭头在 tooltip 下边，露出下/右边框 */
+.custom-tooltip.placement-top .custom-tooltip-arrow {
+  bottom: -4px;
+  border-top: none !important;
+  border-left: none !important;
 }

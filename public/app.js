@@ -506,6 +506,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initToolbarCollapse();
   initMobileLayoutToggle();
   initDraggableCartBtn();
+  initCustomTooltip();
 });
 
 // --- Mobile Layout Column Switcher (≤767px) ---
@@ -3659,3 +3660,143 @@ async function incrementLocalDownloads() {
     }
   } catch (e) {}
 }
+
+// ==========================================================================
+// 全局主题匹配自定义 Tooltip 提示窗 (Anti-AI Crafted Design)
+// 替换浏览器原生默认 title 黄色提示窗，支持黑白主题自适应、智能避让与高质感微投影
+// ==========================================================================
+function initCustomTooltip() {
+  // 触屏粗指针设备不触发 hover tooltip，避免打扰移动端触控交互
+  if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
+    return;
+  }
+
+  let tooltipEl = document.getElementById("global-custom-tooltip");
+  if (!tooltipEl) {
+    tooltipEl = document.createElement("div");
+    tooltipEl.id = "global-custom-tooltip";
+    tooltipEl.className = "custom-tooltip";
+    tooltipEl.setAttribute("role", "tooltip");
+    tooltipEl.setAttribute("aria-hidden", "true");
+    tooltipEl.innerHTML = `<div class="custom-tooltip-arrow" id="custom-tooltip-arrow"></div><div class="custom-tooltip-text" id="custom-tooltip-text"></div>`;
+    document.body.appendChild(tooltipEl);
+  }
+
+  const textEl = tooltipEl.querySelector("#custom-tooltip-text");
+  const arrowEl = tooltipEl.querySelector("#custom-tooltip-arrow");
+
+  let showTimer = null;
+  let activeTarget = null;
+
+  function hideTooltip() {
+    clearTimeout(showTimer);
+    showTimer = null;
+    if (tooltipEl.classList.contains("visible")) {
+      tooltipEl.classList.remove("visible");
+      tooltipEl.setAttribute("aria-hidden", "true");
+    }
+    activeTarget = null;
+  }
+
+  function showTooltip(target, text) {
+    if (!text || !text.trim()) return;
+    textEl.textContent = text.trim();
+
+    // 预渲染测量尺寸
+    tooltipEl.style.left = "-9999px";
+    tooltipEl.style.top = "-9999px";
+    tooltipEl.classList.remove("placement-top", "placement-bottom");
+
+    const targetRect = target.getBoundingClientRect();
+    const tipWidth = tooltipEl.offsetWidth;
+    const tipHeight = tooltipEl.offsetHeight;
+
+    const gap = 8;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // 针对顶部工具栏与状态栏 (targetRect.top < 110) 优先在正下方展示，避免被视口上缘截断
+    let placement = "bottom";
+    if (targetRect.top > 120 && (targetRect.top - tipHeight - gap) > 6) {
+      placement = "top";
+    } else if (viewportHeight - targetRect.bottom < tipHeight + gap + 10 && targetRect.top > tipHeight + gap) {
+      placement = "top";
+    } else {
+      placement = "bottom";
+    }
+
+    let top = 0;
+    if (placement === "top") {
+      top = targetRect.top - tipHeight - gap;
+    } else {
+      top = targetRect.bottom + gap;
+    }
+
+    // 水平居中对齐
+    let left = targetRect.left + (targetRect.width / 2) - (tipWidth / 2);
+    // 视口安全边距留白 8px
+    left = Math.max(8, Math.min(viewportWidth - tipWidth - 8, left));
+
+    // 计算箭头偏移指向目标元素中心
+    const targetCenterX = targetRect.left + (targetRect.width / 2);
+    let arrowLeft = targetCenterX - left - 3;
+    arrowLeft = Math.max(8, Math.min(tipWidth - 14, arrowLeft));
+    if (arrowEl) {
+      arrowEl.style.left = `${arrowLeft}px`;
+    }
+
+    tooltipEl.style.left = `${Math.round(left)}px`;
+    tooltipEl.style.top = `${Math.round(top)}px`;
+    tooltipEl.classList.add(`placement-${placement}`, "visible");
+    tooltipEl.setAttribute("aria-hidden", "false");
+  }
+
+  // 统一事件委托处理 mouseover
+  document.addEventListener("mouseover", (e) => {
+    const target = e.target.closest("[data-tooltip], [title]");
+    if (!target) return;
+
+    // 彻底转移并移除原生 title，杜绝系统默认黄色方块提示
+    if (target.hasAttribute("title")) {
+      const orig = target.getAttribute("title");
+      if (orig && orig.trim()) {
+        target.setAttribute("data-tooltip", orig.trim());
+      }
+      target.removeAttribute("title");
+    }
+
+    const tipText = target.getAttribute("data-tooltip");
+    if (!tipText) return;
+
+    if (activeTarget === target && tooltipEl.classList.contains("visible")) {
+      return;
+    }
+
+    clearTimeout(showTimer);
+    activeTarget = target;
+    // 80ms 舒适微延时，防划过晃眼
+    showTimer = setTimeout(() => {
+      if (activeTarget === target) {
+        showTooltip(target, tipText);
+      }
+    }, 80);
+  }, { passive: true });
+
+  // 移出监听
+  document.addEventListener("mouseout", (e) => {
+    if (!activeTarget) return;
+    const related = e.relatedTarget;
+    if (related && (activeTarget === related || activeTarget.contains(related))) {
+      return;
+    }
+    hideTooltip();
+  }, { passive: true });
+
+  // 点击、滚动或按 ESC 键时立即收起
+  document.addEventListener("click", hideTooltip, { passive: true });
+  window.addEventListener("scroll", hideTooltip, { passive: true });
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") hideTooltip();
+  }, { passive: true });
+}
+
