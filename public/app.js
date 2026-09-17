@@ -803,13 +803,19 @@ function updateCachedStat(key, val) {
   } catch (e) {}
 }
 
-function animateCountUp(element, endVal, duration = 800) {
+function animateCountUp(element, endVal, duration = 700) {
   if (!element || typeof endVal !== "number" || isNaN(endVal)) return;
   const rawText = (element.textContent || "").replace(/,/g, "").trim();
   const startVal = parseInt(rawText, 10) || 0;
   if (startVal === endVal) {
     element.textContent = Number(endVal).toLocaleString();
     return;
+  }
+
+  // 终止上一次未完成的动画帧，防止多重 RAF 并发相互撕扯
+  if (element._countUpRaf) {
+    cancelAnimationFrame(element._countUpRaf);
+    element._countUpRaf = null;
   }
 
   const startTime = performance.now();
@@ -823,12 +829,13 @@ function animateCountUp(element, endVal, duration = 800) {
     const current = Math.round(startVal + diff * ease);
     element.textContent = Number(current).toLocaleString();
     if (progress < 1) {
-      requestAnimationFrame(step);
+      element._countUpRaf = requestAnimationFrame(step);
     } else {
       element.textContent = Number(endVal).toLocaleString();
+      element._countUpRaf = null;
     }
   }
-  requestAnimationFrame(step);
+  element._countUpRaf = requestAnimationFrame(step);
 }
 
 function updateStatsUi(data) {
@@ -870,28 +877,43 @@ function connectBusuanziLiveStats() {
     document.head.appendChild(s);
 
     let checkCount = 0;
+    let pvDone = false;
+    let uvDone = false;
+
     const bszTimer = setInterval(() => {
       checkCount++;
-      const bszPv = document.getElementById("busuanzi_value_site_pv");
-      const bszUv = document.getElementById("busuanzi_value_site_uv");
-      if (bszPv && bszPv.textContent && bszPv.textContent !== "" && bszPv.textContent !== "-") {
-        const val = parseInt(bszPv.textContent, 10);
-        if (!isNaN(val) && val > 0) {
-          const pvEl = document.getElementById("stat-pv");
-          if (pvEl) animateCountUp(pvEl, val, 750);
-          updateCachedStat("pv", val);
+
+      if (!pvDone) {
+        const bszPv = document.getElementById("busuanzi_value_site_pv");
+        if (bszPv && bszPv.textContent && bszPv.textContent !== "" && bszPv.textContent !== "-") {
+          const val = parseInt(bszPv.textContent, 10);
+          if (!isNaN(val) && val > 0) {
+            pvDone = true;
+            const pvEl = document.getElementById("stat-pv");
+            if (pvEl) animateCountUp(pvEl, val, 700);
+            updateCachedStat("pv", val);
+          }
         }
       }
-      if (bszUv && bszUv.textContent && bszUv.textContent !== "" && bszUv.textContent !== "-") {
-        const val = parseInt(bszUv.textContent, 10);
-        if (!isNaN(val) && val > 0) {
-          const uvEl = document.getElementById("stat-uv");
-          if (uvEl) animateCountUp(uvEl, val, 750);
-          updateCachedStat("uv", val);
+
+      if (!uvDone) {
+        const bszUv = document.getElementById("busuanzi_value_site_uv");
+        if (bszUv && bszUv.textContent && bszUv.textContent !== "" && bszUv.textContent !== "-") {
+          const val = parseInt(bszUv.textContent, 10);
+          if (!isNaN(val) && val > 0) {
+            uvDone = true;
+            const uvEl = document.getElementById("stat-uv");
+            if (uvEl) animateCountUp(uvEl, val, 700);
+            updateCachedStat("uv", val);
+          }
         }
       }
-      if (checkCount >= 16) clearInterval(bszTimer);
-    }, 500);
+
+      // 两者均已更新完成，或检测超过 20 次（6秒超时），坚决销毁定时器，杜绝重复触发
+      if ((pvDone && uvDone) || checkCount >= 20) {
+        clearInterval(bszTimer);
+      }
+    }, 300);
   } catch (e) {}
 }
 
