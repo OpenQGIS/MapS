@@ -169,8 +169,7 @@ body {
 /* 防移动端弹窗与抽屉滚动穿透 */
 .modal-body,
 .cart-drawer,
-.drawer-list,
-.layers-table-wrap {
+.drawer-list {
   overscroll-behavior: contain;
 }
 
@@ -564,10 +563,45 @@ body.cart-open .floating-cart-container,
     width: auto !important;
   }
 
+  /* 移动端视图单/双列切换按钮：与搜索框同行（位于搜索框与折叠按钮之间） */
+  .mobile-layout-toggle {
+    display: inline-flex;
+    order: 2;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding: 0 0.65rem;
+    font-size: 0.74rem;
+    color: var(--text-main);
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 0;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .mobile-layout-toggle:active {
+    background: var(--bg-hover, rgba(127, 127, 127, 0.15));
+  }
+  .mobile-layout-toggle .layout-toggle-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+  }
+  .mobile-layout-toggle[data-cols="2"] {
+    border-color: var(--accent-lime-border);
+  }
+  .mobile-layout-toggle[data-cols="2"] .layout-toggle-icon {
+    color: var(--accent-lime-hover);
+  }
+
   /* 移动端工具栏折叠开关：与搜索框同行（右侧），点击展开/收起筛选区 */
   .toolbar-collapse-toggle {
     display: inline-flex;
-    order: 2;
+    order: 3;
     align-items: center;
     justify-content: center;
     gap: 0.25rem;
@@ -678,6 +712,144 @@ body.cart-open .floating-cart-container,
     border-top: 1px solid var(--border-subtle);
     padding-top: 0.4rem;
   }
+
+  /* --- 移动端双列瀑布流 / 宫格浏览模式 (data-mobile-cols="2") --- */
+  body[data-mobile-cols="2"] .main-layout {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  body[data-mobile-cols="2"] .layers-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.45rem !important;
+  }
+
+  body[data-mobile-cols="2"] .layer-card {
+    border-radius: 0px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+
+  /* 缩略图：高度紧凑约 105px，比例非常适合瓦片切片与遥感图 */
+  body[data-mobile-cols="2"] .card-thumb-wrap {
+    height: 105px !important;
+  }
+
+  body[data-mobile-cols="2"] .card-format-badge {
+    font-size: 0.58rem !important;
+    padding: 1px 4px !important;
+    top: 4px !important;
+    right: 4px !important;
+  }
+
+  body[data-mobile-cols="2"] .card-thumb-overlay {
+    padding: 1.2rem 0.45rem 0.35rem 0.45rem !important;
+  }
+
+  body[data-mobile-cols="2"] .card-thumb-title {
+    font-size: 0.76rem !important;
+    line-height: 1.25 !important;
+    -webkit-line-clamp: 2 !important;
+    word-break: break-all;
+  }
+
+  /* 卡片主体：间距收紧，隐藏不必要的长文字与 URL 冗余框 */
+  body[data-mobile-cols="2"] .card-body {
+    padding: 0.45rem 0.45rem 0.4rem 0.45rem !important;
+    gap: 0.25rem !important;
+  }
+
+  /* 双列沉浸看图：隐藏冗长文字描述与明码 URL 框，详情由点击卡片呼出预览大图弹窗呈现 */
+  body[data-mobile-cols="2"] .card-desc,
+  body[data-mobile-cols="2"] .card-url-box {
+    display: none !important;
+  }
+
+  /* 标签单行轻量呈现，超出隐藏，避免卡片上下被多行标签拉伸 */
+  body[data-mobile-cols="2"] .card-tags {
+    gap: 2px !important;
+    max-height: 20px !important;
+    overflow: hidden !important;
+    flex-wrap: nowrap !important;
+  }
+
+  body[data-mobile-cols="2"] .card-tags .tag {
+    font-size: 0.6rem !important;
+    padding: 0 4px !important;
+    height: 18px !important;
+    line-height: 18px !important;
+    flex-shrink: 0;
+  }
+
+  /* 卡片底部操作栏 */
+  body[data-mobile-cols="2"] .card-footer {
+    padding-top: 0.3rem !important;
+    padding-bottom: 0px !important;
+    gap: 0.2rem !important;
+  }
+
+  body[data-mobile-cols="2"] .heat-badge {
+    display: none !important; /* 隐藏热度火焰数字，保持双列干净紧凑 */
+  }
+
+  body[data-mobile-cols="2"] .like-btn {
+    padding: 0.2rem 0.35rem !important;
+    font-size: 0.68rem !important;
+    gap: 0.2rem !important;
+    height: 25px !important;
+  }
+
+  body[data-mobile-cols="2"] .like-icon {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  body[data-mobile-cols="2"] .like-icon svg {
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  body[data-mobile-cols="2"] .add-cart-btn {
+    padding: 0.2rem 0.45rem !important;
+    font-size: 0.68rem !important;
+    height: 25px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  body[data-mobile-cols="2"] .add-cart-btn .btn-text-full {
+    display: none !important;
+  }
+
+  body[data-mobile-cols="2"] .add-cart-btn .btn-text-short {
+    display: inline !important;
+    font-weight: 600;
+  }
+
+  /* --- 移动端单列大图详细模式 (data-mobile-cols="1") --- */
+  body[data-mobile-cols="1"] .layers-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+  }
+  body[data-mobile-cols="1"] .card-thumb-wrap {
+    height: 135px !important;
+  }
+  body[data-mobile-cols="1"] .card-desc {
+    display: block !important;
+  }
+  body[data-mobile-cols="1"] .card-url-box {
+    display: flex !important;
+  }
+}
+
+/* 桌面端隐藏移动端专属单/双列切换按钮，默认显示完整加购文案 */
+.mobile-layout-toggle {
+  display: none;
+}
+.add-cart-btn .btn-text-short {
+  display: none;
+}
+.add-cart-btn .btn-text-full {
+  display: inline;
 }
 
 /* 底部弹窗自动淡出隐藏过渡状态 */
@@ -1437,6 +1609,8 @@ body.cart-open .floating-cart-container,
   border: 1px solid var(--border-subtle);
   border-radius: 0px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
 }
 
 .layers-table {

@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <!-- MapLibre GL CSS for Vector Tiles Preview (MVT) -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
-  <link rel="stylesheet" href="./style.css?v=7.4">
+  <link rel="stylesheet" href="/style.css?v=7.4">
 </head>
 <body>
 
@@ -43,7 +43,7 @@
           <span id="busuanzi_value_site_uv" style="display:none;"></span>
         </div>
         <div class="stat-item" title="全网累计生成并导出脚本次数">
-          <span>累计导出:</span> <strong id="stat-downloads">0</strong>
+          <span>累计导出:</span> <strong id="stat-downloads">18</strong>
         </div>
         <div class="stat-item" title="当前在线底图总数（已排除需本地安装的插件类）">
           <span>在线底图:</span> <strong id="stat-layers-count">55</strong> 款
@@ -102,6 +102,22 @@
           </span>
           <input type="text" id="search-input" class="search-input compact-search-input" placeholder="搜索底图..." autocomplete="off">
         </div>
+
+        <!-- 移动端视图切换：单列/双列切换按钮 (≤767px 显示) -->
+        <button type="button" class="mobile-layout-toggle" id="mobile-layout-toggle" title="切换单列/双列瀑布流" aria-label="切换单列/双列视图">
+          <span class="layout-toggle-icon icon-cols-1" aria-hidden="true" style="display: none;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="16" rx="0"/>
+            </svg>
+          </span>
+          <span class="layout-toggle-icon icon-cols-2" aria-hidden="true">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="8" height="16" rx="0"/>
+              <rect x="13" y="4" width="8" height="16" rx="0"/>
+            </svg>
+          </span>
+          <span class="mobile-layout-text">双列</span>
+        </button>
 
         <!-- 移动端工具栏折叠开关 (≤767px 显示)：折叠时仅保留搜索框，释放屏幕空间 -->
         <button type="button" class="toolbar-collapse-toggle" id="toolbar-collapse-toggle" aria-expanded="false" aria-controls="sticky-toolbar" title="展开/收起筛选工具栏">
@@ -506,7 +522,7 @@
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
   <!-- Lottie Web Animation -->
-  <script src="./lottie.min.js"></script>
-  <script src="./app.js?v=8.4"></script>
+  <script src="/lottie.min.js"></script>
+  <script src="/app.js?v=8.4"></script>
 </body>
 </html>

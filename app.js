@@ -504,8 +504,55 @@ document.addEventListener("DOMContentLoaded", () => {
   checkUrlScroll();
   initMobileGestures();
   initToolbarCollapse();
+  initMobileLayoutToggle();
   initDraggableCartBtn();
 });
+
+// --- Mobile Layout Column Switcher (≤767px) ---
+// 支持单列详细大图与双列紧凑瀑布流自由切换，状态记忆在 localStorage，移动端默认双列。
+function initMobileLayoutToggle() {
+  const btn = document.getElementById("mobile-layout-toggle");
+  if (!btn) return;
+
+  let cols = localStorage.getItem("qgis_mobile_cols");
+  if (!cols || (cols !== "1" && cols !== "2")) {
+    cols = "2"; // 移动端默认双列高效瀑布流
+  }
+  applyMobileCols(cols, false);
+
+  btn.addEventListener("click", () => {
+    const current = document.body.getAttribute("data-mobile-cols") || "2";
+    const next = current === "2" ? "1" : "2";
+    localStorage.setItem("qgis_mobile_cols", next);
+    applyMobileCols(next, true);
+  });
+}
+
+function applyMobileCols(cols, notify = false) {
+  document.body.setAttribute("data-mobile-cols", cols);
+  const btn = document.getElementById("mobile-layout-toggle");
+  if (!btn) return;
+
+  const isDouble = cols === "2";
+  btn.setAttribute("data-cols", cols);
+  btn.title = isDouble ? "当前为双列瀑布流，点击切换为单列大图" : "当前为单列大图，点击切换为双列瀑布流";
+
+  const textEl = btn.querySelector(".mobile-layout-text");
+  if (textEl) {
+    textEl.textContent = isDouble ? "双列" : "单列";
+  }
+
+  const icon1 = btn.querySelector(".icon-cols-1");
+  const icon2 = btn.querySelector(".icon-cols-2");
+  if (icon1 && icon2) {
+    icon1.style.display = isDouble ? "none" : "inline-flex";
+    icon2.style.display = isDouble ? "inline-flex" : "none";
+  }
+
+  if (notify && typeof showToast === "function") {
+    showToast(isDouble ? "已切换为双列瀑布流视图" : "已切换为单列详细大图视图");
+  }
+}
 
 // --- Mobile Toolbar Collapse (≤767px) ---
 // 折叠态仅保留搜索框 + 折叠按钮一行，释放被工具栏占用的屏幕空间；
@@ -727,7 +774,7 @@ async function loadStats() {
   // 2. 静态 Pages 离线自适应统计（支持本地设备访问自增与持久化记录）
   let localPv = parseInt(localStorage.getItem("qgis_site_pv") || "0", 10);
   let localUv = parseInt(localStorage.getItem("qgis_site_uv") || "0", 10);
-  let localDl = parseInt(localStorage.getItem("qgis_site_downloads") || "0", 10);
+  let localDl = parseInt(localStorage.getItem("qgis_site_downloads") || "18", 10);
 
   if (!sessionStorage.getItem("qgis_session_pv")) {
     localPv += 1;
@@ -754,6 +801,8 @@ async function loadStats() {
 
   // 3. 异步连接不蒜子 (Busuanzi) 全网汇总
   connectBusuanziLiveStats();
+  // 4. 异步同步 GitHub Pages 全网真实累计导出数
+  syncGlobalDownloads();
 }
 
 function updateStatsUi(data) {
@@ -1070,7 +1119,8 @@ function renderLayers() {
                 <span class="heat-badge" title="综合热度指数">${ICONS.flame} <span id="heat-${escapeHtml(layer.id)}">${layer.heat || 0}</span></span>
               </div>
               <button class="add-cart-btn ${inCart ? 'added' : ''}" onclick="toggleCart('${escapeAttrJs(layer.id)}')">
-                ${inCart ? '已在配置单' : '+ 加入配置'}
+                <span class="btn-text-full">${inCart ? '已在配置单' : '+ 加入配置'}</span>
+                <span class="btn-text-short">${inCart ? '已选' : '+ 选入'}</span>
               </button>
             </div>
           </div>
@@ -1834,8 +1884,10 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
       };
     }
     if (url.includes('geovisearth.com')) {
-      const userToken = localStorage.getItem('geovis_token') || '';
-      const sId = sublayerId || 'img_d';
+      const rawToken = localStorage.getItem('geovis_token') || '';
+      // 仅允许 ASCII 字母、数字与常见 token 符号，过滤其他字符，防止 URL 注入
+      const userToken = encodeURIComponent(rawToken.replace(/[^\w\-._~+/=]/g, ''));
+      const sId = encodeURIComponent((sublayerId || 'img_d').replace(/[^\w\-._]/g, ''));
       if (userToken) {
         return {
           layer: L.tileLayer(`https://tiles.geovisearth.com/base/v1/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${sId}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&token=${userToken}`, {
@@ -1843,7 +1895,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
             attribution: 'GEOVIS Earth 星图地球'
           }),
           status: 'ok',
-          statusText: `🟢 星图地球 - ${sId} (Token已激活)`
+          statusText: `🟢 星图地球 - ${decodeURIComponent(sId)} (Token已激活)`
         };
       }
       return {
@@ -3497,11 +3549,60 @@ function initDraggableCartBtn() {
 
 
 
-function incrementLocalDownloads() {
-  let localDl = parseInt(localStorage.getItem("qgis_site_downloads") || "0", 10) + 1;
+// --- 静态托管 (如 GitHub Pages) 全网累计导出公共计数器 ---
+const GLOBAL_COUNTER_BASE_URL = "https://counterapi.com/api/openqgis-mapsource/export/qgis-script";
+let lastTrackedExportTime = 0;
+
+async function syncGlobalDownloads() {
+  try {
+    const res = await fetch(`${GLOBAL_COUNTER_BASE_URL}?readOnly=true&startNumber=18`, {
+      method: "GET",
+      cache: "no-store"
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (typeof json.value === "number") {
+        const globalVal = json.value;
+        const dlEl = document.getElementById("stat-downloads");
+        if (dlEl) {
+          dlEl.textContent = globalVal.toLocaleString();
+        }
+        localStorage.setItem("qgis_site_downloads", globalVal);
+      }
+    }
+  } catch (e) {
+    // 离线/静默降级，不阻塞界面渲染
+  }
+}
+
+async function incrementLocalDownloads() {
+  // 1. 本地即时响应 +1（保证无延迟反馈）
+  let localDl = parseInt(localStorage.getItem("qgis_site_downloads") || "18", 10) + 1;
   localStorage.setItem("qgis_site_downloads", localDl);
   const dlEl = document.getElementById("stat-downloads");
   if (dlEl) {
     dlEl.textContent = localDl.toLocaleString();
   }
+
+  // 2. 节流防连点刷量（同会话 10 秒内不重复向云端上报）
+  const now = Date.now();
+  if (now - lastTrackedExportTime < 10000) return;
+  lastTrackedExportTime = now;
+
+  // 3. 异步提交至云端公共计数器
+  try {
+    const res = await fetch(GLOBAL_COUNTER_BASE_URL, {
+      method: "GET",
+      cache: "no-store"
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (typeof json.value === "number") {
+        localStorage.setItem("qgis_site_downloads", json.value);
+        if (dlEl) {
+          dlEl.textContent = json.value.toLocaleString();
+        }
+      }
+    }
+  } catch (e) {}
 }
