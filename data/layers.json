@@ -593,7 +593,7 @@
     "row_index": 37,
     "name": "影像_Bing",
     "format": "XYZ Tiles",
-    "url": "http://ecn.t3.tiles.virtualearth.net/tiles/a{q}.ipeg?g=0&dir=dir n'",
+    "url": "https://ecn.t3.tiles.virtualearth.net/tiles/a{q}.jpeg?g=1",
     "categories": [
       "影像图"
     ],

@@ -437,7 +437,7 @@ https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/til
 - **序号**: 37
 - **服务链接**:
 ```text
-http://ecn.t3.tiles.virtualearth.net/tiles/a{q}.ipeg?g=0&dir=dir n'
+https://ecn.t3.tiles.virtualearth.net/tiles/a{q}.jpeg?g=1
 ```
 - **描述**: Bing标准影像
 - **缩略图**: `/thumbnails/thumb_37.jpg`

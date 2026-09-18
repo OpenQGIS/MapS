@@ -1979,10 +1979,21 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
 
         const transformFn = (reqUrl, resourceType) => {
           if (reqUrl.includes('arcgis.com') && (resourceType === 'SpriteJSON' || resourceType === 'SpriteImage' || reqUrl.includes('sprite'))) {
-            const sep = reqUrl.includes('?') ? '&' : '?';
-            return { url: reqUrl + sep + 'f=pjson' };
+            if (!reqUrl.includes('f=pjson')) {
+              const sep = reqUrl.includes('?') ? '&' : '?';
+              return { url: reqUrl + sep + 'f=pjson' };
+            }
           }
           return { url: reqUrl };
+        };
+
+        const onGlSuccess = () => {
+          hideVpnFallbackOverlay();
+          const statusPill = document.getElementById("preview-map-status");
+          if (statusPill) {
+            statusPill.className = "map-status-pill ok";
+            statusPill.innerHTML = `<span class="status-dot ok"></span>🟢 ArcGIS 矢量底图已就绪 (Live)`;
+          }
         };
 
         if (arcgisStyleCache.has(styleUrl)) {
@@ -1992,6 +2003,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
             transformRequest: transformFn
           });
           group.addLayer(glLayer);
+          setTimeout(onGlSuccess, 100);
           return {
             layer: group,
             status: 'ok',
@@ -2009,6 +2021,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
           if (state.previewMap) {
             state.previewMap.invalidateSize();
           }
+          onGlSuccess();
         }).catch(err => {
           console.warn('ArcGIS 矢量切片加载异常，降级显示参考基底:', err);
           const fallbackTile = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.65 });
@@ -2202,6 +2215,34 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
     statusText += ' [火星坐标系GCJ-02]';
   }
 
+  // 针对微软 Bing Quadkey 格式瓦片支持 Web 端实时四叉树计算
+  if (cleanUrl.includes('{q}')) {
+    const tileLayer = L.tileLayer(cleanUrl, {
+      maxZoom: 19,
+      subdomains: ['0', '1', '2', '3']
+    });
+    tileLayer.getTileUrl = function(coords) {
+      let quadKey = '';
+      for (let i = coords.z; i > 0; i--) {
+        let digit = 0;
+        const mask = 1 << (i - 1);
+        if ((coords.x & mask) !== 0) digit += 1;
+        if ((coords.y & mask) !== 0) digit += 2;
+        quadKey += digit;
+      }
+      let finalUrl = cleanUrl.replace('{q}', quadKey);
+      if (finalUrl.includes('{s}')) {
+        finalUrl = finalUrl.replace('{s}', this._getSubdomain(coords));
+      }
+      return finalUrl;
+    };
+    return {
+      layer: tileLayer,
+      status: statusClass,
+      statusText: statusText
+    };
+  }
+
   const tileLayer = L.tileLayer(cleanUrl, {
     maxZoom: 19,
     tms: isTms
@@ -2223,13 +2264,18 @@ function attachTileNetworkListeners(tileLayer, resolved) {
 
   // 1. MapLibre GL 矢量图层状态监听
   if (resolved && resolved.isMaplibre) {
+    let attempts = 0;
     const bindGlEvents = () => {
       const glMap = typeof tileLayer.getMaplibreMap === 'function' ? tileLayer.getMaplibreMap() : null;
-      if (!glMap) return;
+      if (!glMap) {
+        if (++attempts < 25) setTimeout(bindGlEvents, 100);
+        return;
+      }
 
       let renderedAny = false;
 
       const markSuccess = () => {
+        if (renderedAny) return;
         renderedAny = true;
         hideVpnFallbackOverlay();
         if (statusPill) {
@@ -2242,6 +2288,10 @@ function attachTileNetworkListeners(tileLayer, resolved) {
       glMap.once('idle', markSuccess);
       glMap.once('load', markSuccess);
 
+      if (typeof glMap.loaded === 'function' && glMap.loaded()) {
+        markSuccess();
+      }
+
       glMap.on('error', (e) => {
         // 忽略非核心静态资源（如字体包、雪碧图404）造成的偶发报错
         // 只有在从未成功渲染任何画面，且发生数据源级致命错误时才提示
@@ -2251,7 +2301,7 @@ function attachTileNetworkListeners(tileLayer, resolved) {
       });
     };
 
-    setTimeout(bindGlEvents, 100);
+    setTimeout(bindGlEvents, 50);
     return;
   }
 
