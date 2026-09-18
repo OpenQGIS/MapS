@@ -45,7 +45,7 @@
         <div class="stat-item" title="全站底图累计获得的点赞推荐数">
           <span>累计点赞:</span> <strong id="stat-likes">13</strong>
         </div>
-        <div class="stat-item" title="全网累计生成并导出脚本次数">
+        <div class="stat-item" title="全站累计生成并导出脚本次数">
           <span>累计导出:</span> <strong id="stat-downloads">28</strong>
         </div>
         <div class="stat-item" title="当前在线底图总数（已排除需本地安装的插件类）">
@@ -206,10 +206,10 @@
 
     <!-- 预设快速勾选 -->
     <div class="drawer-presets">
-      <span style="font-size: 0.72rem; color: var(--text-dim);">常用套件:</span>
-      <button class="preset-btn" id="preset-direct">国内直连 Top10</button>
-      <button class="preset-btn" id="preset-imagery">全部高清影像</button>
-      <button class="preset-btn" id="preset-compliant">合规底图套件</button>
+      <span style="font-size: 0.72rem; color: var(--text-dim);">预设分组:</span>
+      <button class="preset-btn" id="preset-direct">国内常用10款</button>
+      <button class="preset-btn" id="preset-imagery">卫星影像</button>
+      <button class="preset-btn" id="preset-compliant">合规推荐</button>
     </div>
 
     <!-- 配置列表 -->
@@ -241,7 +241,7 @@
   <div class="modal-backdrop" id="checkout-modal">
     <div class="modal-window">
       <div class="modal-header">
-        <div style="font-weight: 600; color: var(--text-main);">PyQGIS 自动化导入脚本已生成</div>
+        <div style="font-weight: 600; color: var(--text-main);">PyQGIS 导入脚本</div>
         <button class="close-btn" onclick="closeModal('checkout-modal')">✕</button>
       </div>
 
@@ -253,10 +253,10 @@
 
         <!-- 使用指引 -->
         <div class="steps-list">
-          <div><strong>QGIS 极速导入步骤（仅需 3 秒）：</strong></div>
+          <div><strong>QGIS 导入步骤：</strong></div>
           <div>1. 打开 QGIS 桌面端，按快捷键 <kbd style="background: var(--bg-input); padding: 2px 6px; font-family:var(--font-mono); color: var(--accent-blue);">Ctrl + Alt + P</kbd> 打开内置 Python 控制台（或点击菜单【插件】->【Python 控制台】）。</div>
-          <div>2. 点击下方【复制脚本代码】按钮，将代码全部粘贴到 Python 控制台并按回车执行。</div>
-          <div>3. 执行完成后，所有底图将<strong>永久保存在 QGIS 左侧【浏览器】面板的【XYZ Tiles】或【WMS/WMTS】分类下</strong>，随时拖拽使用！</div>
+          <div>2. 点击下方【复制脚本代码】按钮，将代码粘贴到 Python 控制台并按回车执行。</div>
+          <div>3. 执行后，底图将<strong>保存在 QGIS 左侧【浏览器】面板的【XYZ Tiles】或【WMS/WMTS】分类下</strong>，可直接拖入画布使用。</div>
         </div>
 
 
@@ -363,7 +363,7 @@
               </div>
               <div class="vpn-overlay-body">
                 <div class="vpn-overlay-title">未能接收到有效瓦片切片</div>
-                <div class="vpn-overlay-desc">该底图服务器位于境外。若您已开启代理，可尝试轻微缩放/平移地图重试，或检查代理软件分流规则是否包含该图源；亦可一键换用国内免代理同类底图。</div>
+                <div class="vpn-overlay-desc">该底图服务器位于境外。若已开启代理，可尝试缩放或平移地图重试，或检查代理分流规则；也可更换为国内直连同类底图。</div>
               </div>
               <div class="vpn-overlay-actions">
                 <button type="button" class="btn-vpn-alt" id="btn-vpn-switch-direct">
@@ -411,10 +411,10 @@
                     </svg>
                   </span>
                   <span class="wms-dock-title">配置图层 (<span id="preview-sublayer-count">0</span>)</span>
-                  <span class="cache-badge" title="已离线缓存至网站库，无代理亦可直接浏览图层名">本地缓存</span>
+                  <span class="cache-badge" title="已离线缓存图层元数据">本地缓存</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.35rem;">
-                  <button type="button" id="preview-copy-sublayer-btn" class="preview-copy-btn" title="一键复制当前选中的子图层名（用于 QGIS 配置）">
+                  <button type="button" id="preview-copy-sublayer-btn" class="preview-copy-btn" title="复制当前选中的子图层标识">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <rect width="14" height="14" x="8" y="8" rx="0" ry="0"/>
                       <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
@@ -486,7 +486,7 @@
           </svg>
         </span>
         <strong class="bottom-banner-strong">合规提示：</strong>
-        <span class="bottom-banner-desc">使用在线底图请维护国家主权，注意行政国界线是否规范（特别是阿克赛钦、藏南、南海诸岛、黑瞎子岛、黄岩岛等区域）！！</span>
+        <span class="bottom-banner-desc">使用在线底图请注意行政国界线画法规范（重点关注藏南、阿克赛钦、南海诸岛等区域）。</span>
       </div>
       <div class="bottom-banner-right">
         <span class="bottom-banner-check">数据源：OpenQGIS</span>
@@ -526,6 +526,6 @@
   <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js"></script>
   <!-- Lottie Web Animation -->
   <script src="./lottie.min.js"></script>
-  <script src="./app.js?v=9.9"></script>
+  <script src="./app.js?v=10.0"></script>
 </body>
 </html>

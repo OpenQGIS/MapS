@@ -338,7 +338,7 @@ function locateDevicePosition() {
   if (!state.previewMap) return;
 
   if (!navigator.geolocation) {
-    showToast("⚠️ 当前环境不支持地理位置定位功能");
+    showToast("当前浏览器不支持地理定位");
     return;
   }
 
@@ -348,7 +348,7 @@ function locateDevicePosition() {
     btn.classList.remove("located");
   }
 
-  showToast("📡 正在获取设备当前位置...");
+  showToast("正在获取当前位置...");
 
   navigator.geolocation.getCurrentPosition(
     (position) => {
@@ -423,19 +423,19 @@ function locateDevicePosition() {
       const targetZoom = Math.max(state.previewMap.getZoom(), 15);
       state.previewMap.flyTo([lat, lng], targetZoom, { duration: 1 });
 
-      showToast(`📍 已成功定位至设备位置${accuracy ? ` (±${Math.round(accuracy)}m)` : ""}`);
+      showToast(`已定位至当前位置${accuracy ? ` (±${Math.round(accuracy)}m)` : ""}`);
     },
     (err) => {
       if (btn) {
         btn.classList.remove("locating");
       }
-      let errMsg = "获取设备位置失败";
+      let errMsg = "获取位置失败";
       if (err.code === 1) {
-        errMsg = "⚠️ 定位权限已拒绝：请在浏览器地址栏允许网站访问位置信息";
+        errMsg = "定位权限已拒绝，请在浏览器中允许位置访问";
       } else if (err.code === 2) {
-        errMsg = "⚠️ 无法获取位置信息：GPS/网络定位不可用";
+        errMsg = "无法获取位置信息：定位服务不可用";
       } else if (err.code === 3) {
-        errMsg = "⚠️ 定位请求超时，请稍后重试";
+        errMsg = "定位请求超时，请稍后重试";
       }
       showToast(errMsg);
     },
@@ -551,7 +551,7 @@ function applyMobileCols(cols, notify = false) {
   }
 
   if (notify && typeof showToast === "function") {
-    showToast(isDouble ? "已切换为双列瀑布流视图" : "已切换为单列详细大图视图");
+    showToast(isDouble ? "已切换为双列视图" : "已切换为单列视图");
   }
 }
 
@@ -1050,10 +1050,10 @@ function getFilteredLayers() {
 function toggleCategoryFilter(cat) {
   if (state.activeCategory === cat) {
     state.activeCategory = "全部";
-    showToast(`已取消【${cat}】分类筛选`);
+    showToast(`已取消【${cat}】筛选`);
   } else {
     state.activeCategory = cat;
-    showToast(`已激活【${cat}】分类筛选（再次点击可取消）`);
+    showToast(`已筛选：${cat}`);
   }
   const mobileSelect = document.getElementById("mobile-category-select");
   if (mobileSelect) {
@@ -1076,7 +1076,7 @@ function handleDirectClick(e) {
   if (state.filterDirectOnly) state.filterVpnOnly = false;
   const chk = document.getElementById("chk-direct");
   if (chk) chk.checked = state.filterDirectOnly;
-  showToast(state.filterDirectOnly ? "已筛选【国内直连】底图（再次点击取消）" : "已取消【国内直连】筛选");
+  showToast(state.filterDirectOnly ? "已筛选：国内直连" : "已取消直连筛选");
   renderLayers();
 }
 
@@ -1089,7 +1089,7 @@ function handleVpnClick(e) {
     const chk = document.getElementById("chk-direct");
     if (chk) chk.checked = false;
   }
-  showToast(state.filterVpnOnly ? "已筛选【需代理/魔法】底图（再次点击取消）" : "已取消【需代理/魔法】筛选");
+  showToast(state.filterVpnOnly ? "已筛选：需代理" : "已取消需代理筛选");
   renderLayers();
 }
 
@@ -1102,7 +1102,7 @@ function handleBoundaryClick(e) {
     const chk = document.getElementById("chk-boundary");
     if (chk) chk.checked = false;
   }
-  showToast(state.filterBoundaryOnly ? "已筛选【存在边界警示】底图（再次点击取消）" : "已取消【边界警示】筛选");
+  showToast(state.filterBoundaryOnly ? "已筛选：边界警示" : "已取消边界警示筛选");
   renderLayers();
 }
 
@@ -1115,7 +1115,7 @@ function handleDriftClick(e) {
     const chk = document.getElementById("chk-drift");
     if (chk) chk.checked = false;
   }
-  showToast(state.filterDriftOnly ? "已筛选【GCJ-02坐标偏移】底图（再次点击取消）" : "已取消【GCJ-02偏移】筛选");
+  showToast(state.filterDriftOnly ? "已筛选：GCJ-02偏移" : "已取消GCJ-02偏移筛选");
   renderLayers();
 }
 
@@ -1196,27 +1196,27 @@ function renderLayers() {
           </div>
           <div class="card-body">
             <p class="card-desc" title="${escapeHtml(layer.description || '无详细简介')}">
-              ${formatDescWithLinks(layer.description || '官方切片服务，支持在 QGIS 中高速流畅加载。')}
+              ${formatDescWithLinks(layer.description || '在线瓦片服务，支持在 QGIS 中加载。')}
             </p>
 
             <div class="card-tags">
               ${layer.categories.map(c => `
                 <span class="tag tag-cat ${state.activeCategory === c ? 'active' : ''}"
                       onclick="handleTagClick(event, '${escapeAttrJs(c)}')"
-                      title="点击筛选分类【${escapeHtml(c)}】（再次点击可取消）">
+                      title="按【${escapeHtml(c)}】分类筛选">
                   ${escapeHtml(c)}
                 </span>
               `).join('')}
               ${layer.needs_vpn 
-                ? `<span class="tag tag-vpn ${state.filterVpnOnly ? 'active' : ''}" onclick="handleVpnClick(event)" title="点击筛选【需代理/魔法】底图（再次点击可取消）">需代理/魔法</span>` 
-                : `<span class="tag tag-direct ${state.filterDirectOnly ? 'active' : ''}" onclick="handleDirectClick(event)" title="点击筛选【国内直连】底图（再次点击可取消）">国内直连</span>`
+                ? `<span class="tag tag-vpn ${state.filterVpnOnly ? 'active' : ''}" onclick="handleVpnClick(event)" title="按需代理底图筛选">需代理/魔法</span>` 
+                : `<span class="tag tag-direct ${state.filterDirectOnly ? 'active' : ''}" onclick="handleDirectClick(event)" title="按国内直连筛选">国内直连</span>`
               }
               ${layer.has_boundary_issue 
-                ? `<span class="tag tag-boundary ${state.filterBoundaryOnly ? 'active' : ''}" onclick="handleBoundaryClick(event)" title="点击筛选【存在边界警示】底图（再次点击可取消）">${ICONS.warning} 边界警示</span>` 
+                ? `<span class="tag tag-boundary ${state.filterBoundaryOnly ? 'active' : ''}" onclick="handleBoundaryClick(event)" title="按边界警示筛选">${ICONS.warning} 边界警示</span>` 
                 : ''
               }
               ${layer.has_coordinate_drift 
-                ? `<span class="tag tag-drift ${state.filterDriftOnly ? 'active' : ''}" onclick="handleDriftClick(event)" title="点击筛选【GCJ-02坐标偏移】底图（再次点击可取消）">${ICONS.compass} GCJ-02偏移</span>` 
+                ? `<span class="tag tag-drift ${state.filterDriftOnly ? 'active' : ''}" onclick="handleDriftClick(event)" title="按GCJ-02偏移筛选">${ICONS.compass} GCJ-02偏移</span>` 
                 : ''
               }
             </div>
@@ -1229,7 +1229,7 @@ function renderLayers() {
 
             <div class="card-footer">
               <div class="card-actions-left">
-                <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="handleLike('${escapeAttrJs(layer.id)}')" title="${isLiked ? '点赞中 · 点击取消点赞' : '点赞推荐此底图'}">
+                <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="handleLike('${escapeAttrJs(layer.id)}')" title="${isLiked ? '取消推荐' : '推荐此底图'}">
                   <span class="like-icon">${isLiked ? ICONS.heartFilled : ICONS.heartOutline}</span>
                   <span class="like-count" id="like-${escapeHtml(layer.id)}">${layer.likes || 0}</span>
                 </button>
@@ -1281,31 +1281,31 @@ function renderLayers() {
                   ${l.categories.map(c => `
                     <span class="tag tag-cat ${state.activeCategory === c ? 'active' : ''}"
                           onclick="handleTagClick(event, '${escapeAttrJs(c)}')"
-                          title="点击筛选分类【${escapeHtml(c)}】（再次点击可取消）">
+                          title="按【${escapeHtml(c)}】分类筛选">
                       ${escapeHtml(c)}
                     </span>
                   `).join(' ')}
                 </td>
                 <td>
                   ${l.needs_vpn 
-                    ? `<span class="tag tag-vpn ${state.filterVpnOnly ? 'active' : ''}" onclick="handleVpnClick(event)" title="点击筛选【需代理/魔法】底图（再次点击可取消）">需代理</span>` 
-                    : `<span class="tag tag-direct ${state.filterDirectOnly ? 'active' : ''}" onclick="handleDirectClick(event)" title="点击筛选【国内直连】底图（再次点击可取消）">直连</span>`
+                    ? `<span class="tag tag-vpn ${state.filterVpnOnly ? 'active' : ''}" onclick="handleVpnClick(event)" title="按需代理底图筛选">需代理</span>` 
+                    : `<span class="tag tag-direct ${state.filterDirectOnly ? 'active' : ''}" onclick="handleDirectClick(event)" title="按国内直连筛选">直连</span>`
                   }
                 </td>
                 <td>
                   ${l.has_boundary_issue 
-                    ? `<span class="tag tag-boundary ${state.filterBoundaryOnly ? 'active' : ''}" onclick="handleBoundaryClick(event)" title="点击筛选【存在边界警示】底图（再次点击可取消）">边界警示</span> ` 
+                    ? `<span class="tag tag-boundary ${state.filterBoundaryOnly ? 'active' : ''}" onclick="handleBoundaryClick(event)" title="按边界警示筛选">边界警示</span> ` 
                     : ''
                   }
                   ${l.has_coordinate_drift 
-                    ? `<span class="tag tag-drift ${state.filterDriftOnly ? 'active' : ''}" onclick="handleDriftClick(event)" title="点击筛选【GCJ-02坐标偏移】底图（再次点击可取消）">GCJ-02</span>` 
+                    ? `<span class="tag tag-drift ${state.filterDriftOnly ? 'active' : ''}" onclick="handleDriftClick(event)" title="按GCJ-02偏移筛选">GCJ-02</span>` 
                     : ''
                   }
                 </td>
                 <td>
                   <div style="display: inline-flex; align-items: center; gap: 8px;">
                     <span class="heat-badge" title="综合热度指数">${ICONS.flame} <span id="table-heat-${escapeHtml(l.id)}">${l.heat || 0}</span></span>
-                    <button class="like-btn table-like-btn ${isLiked ? 'liked' : ''}" onclick="handleLike('${escapeAttrJs(l.id)}')" title="${isLiked ? '点赞中 · 点击取消点赞' : '点赞推荐此底图'}">
+                    <button class="like-btn table-like-btn ${isLiked ? 'liked' : ''}" onclick="handleLike('${escapeAttrJs(l.id)}')" title="${isLiked ? '取消推荐' : '推荐此底图'}">
                       <span class="like-icon">${isLiked ? ICONS.heartFilled : ICONS.heartOutline}</span>
                       <span class="like-count" id="table-like-${escapeHtml(l.id)}">${l.likes || 0}</span>
                     </button>
@@ -1363,7 +1363,7 @@ function updateCartBadge() {
 function renderCartDrawer() {
   const listEl = document.getElementById("drawer-cart-list");
   if (state.cart.size === 0) {
-    listEl.innerHTML = `<div class="drawer-empty">配置单空空如也<br>请在左侧挑选底图加入</div>`;
+    listEl.innerHTML = `<div class="drawer-empty">未选择底图<br>请从列表中添加</div>`;
     updateCartBadge();
     return;
   }
@@ -1397,15 +1397,15 @@ function applyPreset(presetType) {
   if (presetType === "top10_direct") {
     const top = state.layers.filter(l => !l.needs_vpn && l.format !== "插件类").slice(0, 10);
     top.forEach(l => state.cart.add(l.id));
-    showToast("已加入国内直连高频推荐套件（10款）");
+    showToast("已选入 10 款常用直连底图");
   } else if (presetType === "imagery") {
     const imags = state.layers.filter(l => l.categories.some(c => c.includes("影像")));
     imags.forEach(l => state.cart.add(l.id));
-    showToast("已加入全部卫星遥感影像套件");
+    showToast("已选入全部卫星影像");
   } else if (presetType === "compliant") {
     const comp = state.layers.filter(l => !l.has_boundary_issue && !l.needs_vpn);
     comp.forEach(l => state.cart.add(l.id));
-    showToast("已加入全部合规无边界风险底图");
+    showToast("已选入合规推荐底图");
   }
   saveCart();
   updateCartBadge();
@@ -1604,7 +1604,7 @@ async function handleLike(layerId) {
     }
   }
 
-  showToast(willLike ? "感谢点赞推荐！" : "已取消点赞");
+  showToast(willLike ? "已推荐" : "已取消推荐");
 
   // 4. 【后台静默同步】不阻塞主线程，无需让用户等待网络响应
   (async () => {
@@ -1830,13 +1830,13 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
   lines.push("    pass");
   lines.push("");
   lines.push("print('=' * 60)");
-  lines.push("print('【OpenQGIS】底图自动化导入完成！')");
+  lines.push("print('【OpenQGIS】底图导入完成')");
   lines.push(`print('  - 图源核验基准: ${checkTime}')`);
   lines.push("print(f'  - XYZ Tiles 注册: {xyz_count} 项')");
   lines.push("print(f'  - WMS/WMTS 注册: {wms_count} 项')");
   lines.push("print(f'  - Vector Tiles 矢量切片注册: {vec_count} 项')");
   lines.push("print(f'  - 直接加载到画布: {loaded_layers} 项')");
-  lines.push("print('请在 QGIS 左侧【浏览器】面板对应分类中直接查看与调用！')");
+  lines.push("print('可在 QGIS【浏览器】面板对应分类中查看与调用。')");
   lines.push("print('=' * 60)");
 
   return lines.join("\n");
@@ -1944,7 +1944,7 @@ async function handleCheckout() {
     }
 
     if (data) {
-      document.getElementById("export-count-text").textContent = `已成功为 ${data.count} 款选定底图生成专属 PyQGIS 自动化导入脚本`;
+      document.getElementById("export-count-text").textContent = `已生成 ${data.count} 款底图的导入代码`;
       document.getElementById("script-code-box").textContent = data.script;
 
       // 实时递增选定导出底图的热力值并持久化
@@ -1961,12 +1961,12 @@ async function handleCheckout() {
         a.download = data.filename || "qgis_import_basemaps.py";
         a.click();
         URL.revokeObjectURL(url);
-        showToast("脚本已开始下载！");
+        showToast("脚本已下载");
         incrementLocalDownloads();
       };
 
       document.getElementById("copy-script-btn").onclick = () => {
-        copyText(data.script, "已成功复制 Python 脚本到剪贴板！");
+        copyText(data.script, "脚本代码已复制");
         incrementLocalDownloads();
       };
 
@@ -2053,7 +2053,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
       if (isArcGisVec) {
         // ArcGIS 矢量切片专属容器与异步样式预装载
         const group = L.layerGroup();
-        const statusText = '🟢 ArcGIS 矢量切片服务';
+        const statusText = 'ArcGIS 矢量切片服务';
 
         const transformFn = (reqUrl, resourceType) => {
           if (reqUrl.includes('arcgis.com') && (resourceType === 'SpriteJSON' || resourceType === 'SpriteImage' || reqUrl.includes('sprite'))) {
@@ -2070,7 +2070,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
           const statusPill = document.getElementById("preview-map-status");
           if (statusPill) {
             statusPill.className = "map-status-pill ok";
-            statusPill.innerHTML = `<span class="status-dot ok"></span>🟢 ArcGIS 矢量底图已就绪 (Live)`;
+            statusPill.innerHTML = `<span class="status-dot ok"></span>ArcGIS 矢量底图已连接`;
           }
         };
 
@@ -2123,7 +2123,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
           layer: glLayer,
           isMaplibre: true,
           status: 'ok',
-          statusText: '🟢 MVT 矢量切片'
+          statusText: 'MVT 矢量切片'
         };
       } catch (err) {
         console.warn('MapLibre GL 初始化失败，回退降级:', err);
@@ -2133,7 +2133,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
     return {
       layer: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.65 }),
       status: 'warn',
-      statusText: 'ℹ️ 矢量切片（WebGL渲染组件加载中，已展示参考基底）'
+      statusText: '矢量切片（加载中，已展示参考底图）'
     };
   }
 
@@ -2152,7 +2152,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
           attribution: 'Sentinel-2 cloudless by EOX'
         }),
         status: 'ok',
-        statusText: `🟢 哨兵2号 - ${sId} (Live)`
+        statusText: `哨兵2号 - ${sId}`
       };
     }
     if (url.includes('map.geoq.cn')) {
@@ -2161,7 +2161,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
           maxZoom: 18
         }),
         status: 'ok',
-        statusText: '🟢 GeoQ 在线底图服务 (Live)'
+        statusText: 'GeoQ 在线底图已连接'
       };
     }
     if (url.includes('thematic.geoq.cn')) {
@@ -2170,7 +2170,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
           maxZoom: 13
         }),
         status: 'ok',
-        statusText: '🟢 GeoQ 水系专题服务 (Live)'
+        statusText: 'GeoQ 水系专题已连接'
       };
     }
     if (url.includes('wayback.maptiles.arcgis.com')) {
@@ -2179,7 +2179,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
           maxZoom: 18
         }),
         status: 'ok',
-        statusText: '🟢 Wayback 历史遥感影像 (Live)'
+        statusText: 'Wayback 历史影像已连接'
       };
     }
     if (url.includes('terrestris.de/osm/service')) {
@@ -2192,7 +2192,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
           maxZoom: 19
         }),
         status: 'ok',
-        statusText: `🟢 terrestris WMS - ${sId} (Live)`
+        statusText: `terrestris WMS - ${sId}`
       };
     }
     if (url.includes('maps.heigit.org/osmlanduse') || (layer.name && layer.name.includes('土地利用'))) {
@@ -2221,7 +2221,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
         layer: group,
         wmsLayer: wmsLayer,
         status: 'ok',
-        statusText: `🟢 OSM土地利用 - ${sId} (Live + 参考底图)`
+        statusText: `OSM土地利用 - ${sId}`
       };
     }
     if (url.includes('geovisearth.com')) {
@@ -2236,13 +2236,13 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
             attribution: 'GEOVIS Earth 星图地球'
           }),
           status: 'ok',
-          statusText: `🟢 星图地球 - ${decodeURIComponent(sId)} (Token已激活)`
+          statusText: `星图地球 - ${decodeURIComponent(sId)}`
         };
       }
       return {
         layer: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.5 }),
         status: 'warn',
-        statusText: 'ℹ️ 星图地球（需个人申请 Token，已展示参考基底）'
+        statusText: '星图地球（需申请 Token，已展示参考底图）'
       };
     }
     // Generic WMS capabilities fallback
@@ -2256,7 +2256,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
           maxZoom: 19
         }),
         status: 'ok',
-        statusText: `🟢 ${cap.name || 'WMS'} - ${sId} (Live)`
+        statusText: `${cap.name || 'WMS'} - ${sId}`
       };
     }
   }
@@ -2271,7 +2271,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
     return {
       layer: tileLayer,
       status: 'ok',
-      statusText: '🟢 OSM 人道主义底图 (HOT Live)'
+      statusText: 'OSM 人道主义底图已连接'
     };
   }
 
@@ -2284,10 +2284,10 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
 
   // 代理与连通性提示
   let statusClass = 'ok';
-  let statusText = '🟢 在线底图已成功加载 (Live)';
+  let statusText = '在线底图已连接';
   if (layer.needs_vpn) {
     statusClass = 'warn';
-    statusText = '⚠️ 境外源（国内网络加载较慢或需代理）';
+    statusText = '境外图源（国内网络加载需代理或较慢）';
   }
   if (layer.has_coordinate_drift) {
     statusText += ' [火星坐标系GCJ-02]';
@@ -2358,7 +2358,7 @@ function attachTileNetworkListeners(tileLayer, resolved) {
         hideVpnFallbackOverlay();
         if (statusPill) {
           statusPill.className = "map-status-pill ok";
-          statusPill.innerHTML = `<span class="status-dot ok"></span>🟢 MVT 矢量底图已就绪${isVpnLayer ? '（代理已连通）' : ' (MapLibre Live)'}`;
+          statusPill.innerHTML = `<span class="status-dot ok"></span>MVT 矢量底图已连接${isVpnLayer ? '（代理已连通）' : ''}`;
         }
       };
 
@@ -2407,8 +2407,8 @@ function attachTileNetworkListeners(tileLayer, resolved) {
       if (statusPill) {
         statusPill.className = "map-status-pill ok";
         const successText = isVpnLayer
-          ? "🟢 境外底图已成功加载 (连接正常)"
-          : (resolved.statusText || "🟢 在线底图已成功加载 (Live)");
+          ? "境外底图已连接"
+          : (resolved.statusText || "在线底图已连接");
         statusPill.innerHTML = `<span class="status-dot ok"></span>${escapeHtml(successText)}`;
       }
     }
@@ -2441,7 +2441,7 @@ function showVpnFallbackOverlay(layer) {
   const statusPill = document.getElementById("preview-map-status");
   if (statusPill) {
     statusPill.className = "map-status-pill warn";
-    statusPill.innerHTML = `<span class="status-dot warn"></span>境外源网络受限，切片响应超时`;
+    statusPill.innerHTML = `<span class="status-dot warn"></span>境外图源响应超时`;
   }
 
   // 铺垫一层低透明度基础参考底图，避免大面积灰黑网格与空白感
@@ -2674,7 +2674,7 @@ function openPreviewModal(layerId) {
   }
   const previewDescEl = document.getElementById("preview-meta-desc");
   if (previewDescEl) {
-    previewDescEl.innerHTML = formatDescWithLinks(layer.description || "官方切片服务，支持在 QGIS 中高速流畅加载。");
+    previewDescEl.innerHTML = formatDescWithLinks(layer.description || "在线瓦片服务，支持在 QGIS 中加载。");
   }
 
   // 个人 Token 专用处理（针对星图地球等需 Token 鉴权图源）
@@ -2712,7 +2712,7 @@ function openPreviewModal(layerId) {
       }, 5000);
     }
     if (boundaryAlertText) {
-      boundaryAlertText.innerHTML = `<span class="svg-icon" style="display:inline-flex; align-items:center; margin-right:5px; vertical-align:-1px;">${ICONS.warning}</span>此图源国界线（藏南、阿克赛钦、南海诸岛、黑瞎子岛）不规范`;
+      boundaryAlertText.innerHTML = `<span class="svg-icon" style="display:inline-flex; align-items:center; margin-right:5px; vertical-align:-1px;">${ICONS.warning}</span>该图源国界线画法不规范（涉及藏南、阿克赛钦、南海诸岛等）`;
     }
   } else {
     if (boundaryAlertBox) boundaryAlertBox.style.display = "none";
@@ -2774,7 +2774,7 @@ function switchPreviewSublayer(sublayerId) {
       const statusPill = document.getElementById("preview-map-status");
       if (statusPill) {
         statusPill.className = "map-status-pill ok";
-        statusPill.innerHTML = `<span class="status-dot ok"></span>🟢 ${escapeHtml(sublayerId)} (Live)`;
+        statusPill.innerHTML = `<span class="status-dot ok"></span>${escapeHtml(sublayerId)}`;
       }
     } else {
       // WMTS 或新图层重建
@@ -3274,7 +3274,7 @@ function initEventListeners() {
       localStorage.setItem("geovis_token", val);
       if (state.activePreviewLayer) {
         initOrUpdatePreviewMap(state.activePreviewLayer, state.activeSublayerId);
-        showToast(val ? "已保存 Token 并加载星图地球真实切片！" : "已清除 Token，展示参考基底");
+        showToast(val ? "Token 已保存，切片已刷新" : "Token 已清除");
       }
     };
     tokenApplyBtn.addEventListener("click", applyToken);
@@ -3291,7 +3291,7 @@ function initEventListeners() {
       if (alt) {
         hideVpnFallbackOverlay();
         openPreviewModal(alt.id);
-        showToast(`已为您切换至国内直连同类底图：【${alt.name}】`);
+        showToast(`已切换为直连底图：${alt.name}`);
       } else {
         showToast("暂未找到匹配的同类直连底图");
       }
@@ -3303,7 +3303,7 @@ function initEventListeners() {
     btnVpnDismiss.addEventListener("click", () => {
       vpnDismissedForCurrentSession = true;
       hideVpnFallbackOverlay();
-      showToast("已保留当前视图。若开启代理软件后缩放或漫游地图，切片将自动刷新");
+      showToast("已保留当前视图");
     });
   }
 
@@ -3368,7 +3368,7 @@ function legacyCopyText(text) {
 
 function copyText(text, successMsg) {
   if (!text) return;
-  const onSuccess = () => showToast(successMsg || "已成功复制到剪贴板！");
+  const onSuccess = () => showToast(successMsg || "已复制到剪贴板");
   const onFail = () => showToast(legacyCopyText(text) ? onSuccess() : "复制失败，请手动选择复制");
   if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
     navigator.clipboard.writeText(text).then(onSuccess).catch(onFail);
@@ -3607,7 +3607,7 @@ function initTableHoverPopover() {
     tagsEl.innerHTML = tagsHtml.join("");
 
     // 简短描述（去除 HTML 超链接，保持纯文本预览）
-    descEl.textContent = (layer.description || "官方切片服务，支持在 QGIS 中高速流畅加载。").replace(/<[^>]*>/g, "");
+    descEl.textContent = (layer.description || "在线瓦片服务，支持在 QGIS 中加载。").replace(/<[^>]*>/g, "");
 
     // 展现并定位
     popover.style.display = "block";
