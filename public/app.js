@@ -1363,8 +1363,14 @@ let likeAnimationData = null;
 
 async function preloadLikeAnimation() {
   try {
-    const res = await fetch("/like-animation.json");
-    if (res.ok) {
+    let res = await fetch("./like-animation.json").catch(() => null);
+    if (!res || !res.ok) {
+      res = await fetch("like-animation.json").catch(() => null);
+    }
+    if (!res || !res.ok) {
+      res = await fetch("/like-animation.json").catch(() => null);
+    }
+    if (res && res.ok) {
       likeAnimationData = await res.json();
     }
   } catch (err) {
