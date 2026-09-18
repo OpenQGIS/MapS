@@ -697,12 +697,27 @@ function getVisitorId() {
   return vid;
 }
 
+// --- Cloudflare Worker API Base ---
+const WORKER_BASE_URL = "https://mapsource-api.lidmwork.workers.dev";
+
 function initClientVisit() {
   const vid = getVisitorId();
-  fetch("./api/visit", {
+  // 向 Cloudflare Worker 上报访问（PV/UV），完全不涉及 IP 存储
+  fetch(`${WORKER_BASE_URL}/visit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ visitor_id: vid })
+    body: JSON.stringify({ vid })
+  }).then(res => res.ok ? res.json() : null).then(json => {
+    if (json && json.code === 0 && json.data) {
+      // 访问上报成功，拿到最新 PV/UV，更新界面与缓存
+      const { pv, uv } = json.data;
+      const pvEl = document.getElementById("stat-pv");
+      const uvEl = document.getElementById("stat-uv");
+      if (pvEl) animateCountUp(pvEl, pv, 700);
+      if (uvEl) animateCountUp(uvEl, uv, 700);
+      updateCachedStat("pv", pv);
+      updateCachedStat("uv", uv);
+    }
   }).catch(() => {});
 }
 
@@ -742,6 +757,7 @@ async function loadLayers() {
       });
       renderCategories();
       renderLayers();
+      syncGlobalLikes();
     }
   } catch (err) {
     console.error("加载底图数据失败:", err);
@@ -749,38 +765,62 @@ async function loadLayers() {
   }
 }
 
-async function loadStats() {
-  // 1. 优先尝试从全栈后端 API 获取真实统计
+async function syncGlobalLikes() {
+  if (!state.layers || state.layers.length === 0) return;
+  const vid = getVisitorId();
+  const ids = state.layers.map(l => l.id).join(",");
   try {
-    let res = null;
-    try {
-      res = await fetch("./api/stats");
-    } catch (e) {}
-    if (res && res.ok) {
+    const res = await fetch(`${WORKER_BASE_URL}/likes?ids=${encodeURIComponent(ids)}&vid=${encodeURIComponent(vid)}`, {
+      cache: "no-store"
+    });
+    if (res.ok) {
       const json = await res.json();
       if (json.code === 0 && json.data) {
-        state.stats = json.data;
-        updateStatsUi({
-          pv: json.data.pv,
-          uv: json.data.uv,
-          downloads: json.data.total_downloads,
-          layers: state.layers.length || 55,
-          checkTime: json.data.check_time || "2026年5月26日"
+        state.layers.forEach(layer => {
+          const remote = json.data[layer.id];
+          if (remote) {
+            if (typeof remote.likes === 'number' && remote.likes > 0) {
+              const baseLikes = typeof layer._baseLikes === 'number' ? layer._baseLikes : 0;
+              layer.likes = Math.max(baseLikes, remote.likes);
+              layer.heat = layer.likes * 2 + (layer.downloads || 0) * 3;
+            }
+            if (remote.liked) {
+              state.liked.add(layer.id);
+            }
+            const likeEl = document.getElementById(`like-${layer.id}`);
+            if (likeEl) likeEl.textContent = layer.likes;
+            const tableLikeEl = document.getElementById(`table-like-${layer.id}`);
+            if (tableLikeEl) tableLikeEl.textContent = layer.likes;
+
+            const isLiked = state.liked.has(layer.id);
+            const cardBtn = document.querySelector(`.layer-card[data-id="${layer.id}"] .like-btn`);
+            if (cardBtn) {
+              cardBtn.classList.toggle("liked", isLiked);
+              const icon = cardBtn.querySelector(".like-icon");
+              if (icon) icon.innerHTML = isLiked ? ICONS.heartFilled : ICONS.heartOutline;
+            }
+            const rowBtn = document.querySelector(`tr[data-id="${layer.id}"] .like-btn`);
+            if (rowBtn) {
+              rowBtn.classList.toggle("liked", isLiked);
+              const icon = rowBtn.querySelector(".like-icon");
+              if (icon) icon.innerHTML = isLiked ? ICONS.heartFilled : ICONS.heartOutline;
+            }
+          }
         });
-        return;
+        localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
       }
     }
-  } catch (err) {}
-
-  // 2. 静态 Pages 离线自适应统计（优先读取上一次全网真实缓存，避免会话重启时突兀显示本地 1/2）
-  let cached = {};
-  try {
-    cached = JSON.parse(localStorage.getItem("qgis_cached_global_stats") || "{}");
   } catch (e) {}
+}
 
-  const basePv = cached.pv || 42;
-  const baseUv = cached.uv || 25;
-  const baseDownloads = cached.downloads || parseInt(localStorage.getItem("qgis_site_downloads") || "19", 10);
+async function loadStats() {
+  // 1. 先读缓存，立即渲染（首屏无闪烁）
+  let cached = {};
+  try { cached = JSON.parse(localStorage.getItem("qgis_cached_global_stats") || "{}"); } catch (e) {}
+
+  const basePv = cached.pv || 80;
+  const baseUv = cached.uv || 50;
+  const baseDownloads = cached.downloads || parseInt(localStorage.getItem("qgis_site_downloads") || "28", 10);
 
   updateStatsUi({
     pv: basePv,
@@ -790,10 +830,28 @@ async function loadStats() {
     checkTime: "2026年5月26日"
   });
 
-  // 3. 异步连接不蒜子 (Busuanzi) 全网汇总
-  connectBusuanziLiveStats();
-  // 4. 异步同步 GitHub Pages 全网真实累计导出数
-  syncGlobalDownloads();
+  // 2. 异步从 Cloudflare Worker 拉取最新全网真实数据
+  try {
+    const res = await fetch(`${WORKER_BASE_URL}/stats`, { cache: "no-store" });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.code === 0 && json.data) {
+        const { pv, uv, downloads } = json.data;
+        const pvEl = document.getElementById("stat-pv");
+        const uvEl = document.getElementById("stat-uv");
+        const dlEl = document.getElementById("stat-downloads");
+        if (pvEl) animateCountUp(pvEl, pv, 700);
+        if (uvEl) animateCountUp(uvEl, uv, 700);
+        if (dlEl) animateCountUp(dlEl, downloads, 700);
+        updateCachedStat("pv", pv);
+        updateCachedStat("uv", uv);
+        updateCachedStat("downloads", downloads);
+        localStorage.setItem("qgis_site_downloads", downloads);
+      }
+    }
+  } catch (e) {
+    // Worker 不可达时保持显示缓存值，静默降级
+  }
 }
 
 function updateCachedStat(key, val) {
@@ -867,56 +925,9 @@ function updateStatsUi(data) {
   if (bctEl) bctEl.textContent = data.checkTime || "2026年5月26日";
 }
 
-function connectBusuanziLiveStats() {
-  try {
-    if (document.getElementById("busuanzi-script")) return;
-    const s = document.createElement("script");
-    s.id = "busuanzi-script";
-    s.src = "https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js";
-    s.async = true;
-    s.referrerPolicy = "no-referrer-when-downgrade";
-    document.head.appendChild(s);
+// connectBusuanziLiveStats 已由 Cloudflare Worker /visit 接口替代，不蒜子已下线
+function connectBusuanziLiveStats() {}
 
-    let checkCount = 0;
-    let pvDone = false;
-    let uvDone = false;
-
-    const bszTimer = setInterval(() => {
-      checkCount++;
-
-      if (!pvDone) {
-        const bszPv = document.getElementById("busuanzi_value_site_pv");
-        if (bszPv && bszPv.textContent && bszPv.textContent !== "" && bszPv.textContent !== "-") {
-          const val = parseInt(bszPv.textContent, 10);
-          if (!isNaN(val) && val > 0) {
-            pvDone = true;
-            const pvEl = document.getElementById("stat-pv");
-            if (pvEl) animateCountUp(pvEl, val, 700);
-            updateCachedStat("pv", val);
-          }
-        }
-      }
-
-      if (!uvDone) {
-        const bszUv = document.getElementById("busuanzi_value_site_uv");
-        if (bszUv && bszUv.textContent && bszUv.textContent !== "" && bszUv.textContent !== "-") {
-          const val = parseInt(bszUv.textContent, 10);
-          if (!isNaN(val) && val > 0) {
-            uvDone = true;
-            const uvEl = document.getElementById("stat-uv");
-            if (uvEl) animateCountUp(uvEl, val, 700);
-            updateCachedStat("uv", val);
-          }
-        }
-      }
-
-      // 两者均已更新完成，或检测超过 20 次（6秒超时），坚决销毁定时器，杜绝重复触发
-      if ((pvDone && uvDone) || checkCount >= 20) {
-        clearInterval(bszTimer);
-      }
-    }, 300);
-  } catch (e) {}
-}
 
 async function loadWmsCapabilities() {
   try {
@@ -1504,12 +1515,32 @@ async function handleLike(layerId) {
       }
     }
   } catch (e) {
-    // 捕获无后端 404 或网络错误，无缝降级到本地离线存储
+    // 捕获无后端 404 或网络错误，无缝降级
+  }
+
+  // 1.5 若本地全栈后端未响应（如 GitHub Pages 静态环境），提交到 Cloudflare Worker
+  if (!serverSuccess) {
+    try {
+      const res = await fetch(`${WORKER_BASE_URL}/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ layer_id: layerId, vid, action }),
+        cache: "no-store"
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.code === 0 && json.data) {
+          serverSuccess = true;
+          finalLiked = !!json.data.liked;
+          finalLikes = json.data.likes;
+        }
+      }
+    } catch (e) {}
   }
 
   const layer = state.layers.find(l => l.id === layerId);
 
-  // 2. 离线/静态模式（GitHub Pages 纯前端持久化）：
+  // 2. 离线/降级模式（仅在网络断开时本地兜底）：
   if (!serverSuccess) {
     if (finalLiked) {
       state.liked.add(layerId);
@@ -1531,7 +1562,7 @@ async function handleLike(layerId) {
       finalLikes = layer.likes;
     }
   } else {
-    // 服务端模式同步
+    // 服务端/Worker 模式成功同步
     if (finalLiked) state.liked.add(layerId);
     else state.liked.delete(layerId);
     localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
@@ -3599,63 +3630,42 @@ function initDraggableCartBtn() {
 
 
 
-
-// --- 静态托管 (如 GitHub Pages) 全网累计导出公共计数器 ---
-const GLOBAL_COUNTER_BASE_URL = "https://counterapi.com/api/openqgis-mapsource/export/qgis-script";
+// --- 全网累计导出计数器（Cloudflare Worker） ---
 let lastTrackedExportTime = 0;
 
-async function syncGlobalDownloads() {
-  try {
-    const res = await fetch(`${GLOBAL_COUNTER_BASE_URL}?readOnly=true&startNumber=18`, {
-      method: "GET",
-      cache: "no-store"
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (typeof json.value === "number") {
-        const globalVal = json.value;
-        const dlEl = document.getElementById("stat-downloads");
-        if (dlEl) {
-          animateCountUp(dlEl, globalVal, 750);
-        }
-        localStorage.setItem("qgis_site_downloads", globalVal);
-        updateCachedStat("downloads", globalVal);
-      }
-    }
-  } catch (e) {
-    // 离线/静默降级，不阻塞界面渲染
-  }
-}
+// syncGlobalDownloads 已整合进 loadStats()，此函数保留为空壳以兼容旧调用点
+async function syncGlobalDownloads() {}
 
 async function incrementLocalDownloads() {
+  const vid = getVisitorId();
+
   // 1. 本地即时响应 +1（保证无延迟反馈）
-  let localDl = parseInt(localStorage.getItem("qgis_site_downloads") || "19", 10) + 1;
+  let localDl = parseInt(localStorage.getItem("qgis_site_downloads") || "28", 10) + 1;
   localStorage.setItem("qgis_site_downloads", localDl);
   updateCachedStat("downloads", localDl);
   const dlEl = document.getElementById("stat-downloads");
-  if (dlEl) {
-    animateCountUp(dlEl, localDl, 500);
-  }
+  if (dlEl) animateCountUp(dlEl, localDl, 500);
 
   // 2. 节流防连点刷量（同会话 10 秒内不重复向云端上报）
   const now = Date.now();
   if (now - lastTrackedExportTime < 10000) return;
   lastTrackedExportTime = now;
 
-  // 3. 异步提交至云端公共计数器
+  // 3. 异步提交至 Cloudflare Worker 公共计数器
   try {
-    const res = await fetch(GLOBAL_COUNTER_BASE_URL, {
-      method: "GET",
+    const res = await fetch(`${WORKER_BASE_URL}/export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vid }),
       cache: "no-store"
     });
     if (res.ok) {
       const json = await res.json();
-      if (typeof json.value === "number") {
-        localStorage.setItem("qgis_site_downloads", json.value);
-        updateCachedStat("downloads", json.value);
-        if (dlEl) {
-          animateCountUp(dlEl, json.value, 500);
-        }
+      if (json.code === 0 && json.data) {
+        const globalVal = json.data.downloads;
+        localStorage.setItem("qgis_site_downloads", globalVal);
+        updateCachedStat("downloads", globalVal);
+        if (dlEl) animateCountUp(dlEl, globalVal, 500);
       }
     }
   } catch (e) {}
