@@ -1489,137 +1489,121 @@ function triggerUnlikeLottie(iconEl) {
   }
 }
 
-// --- Likes (支持全栈后端 API 与纯静态离线持久化双模自适应) ---
+// --- Likes (乐观 UI 更新：0ms 立即变色并播放动画，后台静默云端同步) ---
 async function handleLike(layerId) {
   const vid = getVisitorId();
   const willLike = !state.liked.has(layerId);
   const action = willLike ? "like" : "unlike";
 
-  let serverSuccess = false;
-  let finalLiked = willLike;
-  let finalLikes = null;
-
-  // 1. 尝试向后端提交（若运行在含 server.py 的全栈环境中）
-  try {
-    const res = await fetch("./api/like", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ layer_id: layerId, visitor_id: vid, action })
-    });
-
-    if (res.status === 429) {
-      showToast("操作过于频繁，请稍后再试");
-      return;
-    }
-
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.code === 0 && json.data) {
-        serverSuccess = true;
-        finalLiked = !!json.data.liked;
-        finalLikes = json.data.likes;
-      }
-    }
-  } catch (e) {
-    // 捕获无后端 404 或网络错误，无缝降级
-  }
-
-  // 1.5 若本地全栈后端未响应（如 GitHub Pages 静态环境），提交到 Cloudflare Worker
-  if (!serverSuccess) {
-    try {
-      const res = await fetch(`${WORKER_BASE_URL}/like`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ layer_id: layerId, vid, action }),
-        cache: "no-store"
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json && json.code === 0 && json.data) {
-          serverSuccess = true;
-          finalLiked = !!json.data.liked;
-          finalLikes = json.data.likes;
-        }
-      }
-    } catch (e) {}
-  }
-
   const layer = state.layers.find(l => l.id === layerId);
 
-  // 2. 离线/降级模式（仅在网络断开时本地兜底）：
-  if (!serverSuccess) {
-    if (finalLiked) {
-      state.liked.add(layerId);
-    } else {
-      state.liked.delete(layerId);
-    }
-    localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
-
-    const localOffsets = JSON.parse(localStorage.getItem("qgis_likes_offsets") || "{}");
-    const offset = finalLiked ? 1 : 0;
-    localOffsets[layerId] = offset;
-    localStorage.setItem("qgis_likes_offsets", JSON.stringify(localOffsets));
-
-    if (layer) {
-      const baseLikes = typeof layer._baseLikes === 'number' ? layer._baseLikes : (layer.likes || 0);
-      layer._baseLikes = baseLikes;
-      layer.likes = Math.max(0, baseLikes + offset);
-      layer.heat = layer.likes * 2 + (layer.downloads || 0) * 3;
-      finalLikes = layer.likes;
-    }
+  // 1. 【0ms 乐观更新】先立即更新内存与界面，零延迟响应用户交互
+  if (willLike) {
+    state.liked.add(layerId);
   } else {
-    // 服务端/Worker 模式成功同步
-    if (finalLiked) state.liked.add(layerId);
-    else state.liked.delete(layerId);
-    localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
+    state.liked.delete(layerId);
+  }
+  localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
 
-    if (layer) {
-      layer.likes = finalLikes;
-      layer.heat = layer.likes * 2 + (layer.downloads || 0) * 3;
-    }
+  if (layer) {
+    const currentLikes = typeof layer.likes === 'number' ? layer.likes : 0;
+    layer.likes = Math.max(0, currentLikes + (willLike ? 1 : -1));
+    layer.heat = layer.likes * 2 + (layer.downloads || 0) * 3;
   }
 
-  // 3. 同步卡片视图 DOM
+  // 2. 立即同步更新卡片视图 DOM 与播放动效
   const likeCountEl = document.getElementById(`like-${layerId}`);
-  if (likeCountEl && finalLikes !== null) likeCountEl.textContent = finalLikes;
+  if (likeCountEl && layer) likeCountEl.textContent = layer.likes;
 
   const heatEl = document.getElementById(`heat-${layerId}`);
   if (heatEl && layer) heatEl.textContent = layer.heat;
 
   const card = document.querySelector(`.layer-card[data-id="${layerId}"] .like-btn`);
   if (card) {
-    card.classList.toggle("liked", finalLiked);
-    card.title = finalLiked ? "点赞中 · 点击取消点赞" : "点赞推荐此底图";
+    card.classList.toggle("liked", willLike);
+    card.title = willLike ? "点赞中 · 点击取消点赞" : "点赞推荐此底图";
     const icon = card.querySelector(".like-icon");
     if (icon) {
-      icon.innerHTML = finalLiked ? ICONS.heartFilled : ICONS.heartOutline;
-      if (finalLiked) triggerLikeLottie(icon);
+      icon.innerHTML = willLike ? ICONS.heartFilled : ICONS.heartOutline;
+      if (willLike) triggerLikeLottie(icon);
       else triggerUnlikeLottie(icon);
     }
   }
 
-  // 4. 同步表格列表视图 DOM
+  // 3. 立即同步更新表格列表视图 DOM 与播放动效
   const tableLikeEl = document.getElementById(`table-like-${layerId}`);
-  if (tableLikeEl && finalLikes !== null) tableLikeEl.textContent = finalLikes;
+  if (tableLikeEl && layer) tableLikeEl.textContent = layer.likes;
 
   const tableHeatEl = document.getElementById(`table-heat-${layerId}`);
   if (tableHeatEl && layer) tableHeatEl.textContent = layer.heat;
 
   const tableRowBtn = document.querySelector(`tr[data-id="${layerId}"] .like-btn`);
   if (tableRowBtn) {
-    tableRowBtn.classList.toggle("liked", finalLiked);
-    tableRowBtn.title = finalLiked ? "点赞中 · 点击取消点赞" : "点赞推荐此底图";
+    tableRowBtn.classList.toggle("liked", willLike);
+    tableRowBtn.title = willLike ? "点赞中 · 点击取消点赞" : "点赞推荐此底图";
     const icon = tableRowBtn.querySelector(".like-icon");
     if (icon) {
-      icon.innerHTML = finalLiked ? ICONS.heartFilled : ICONS.heartOutline;
-      if (finalLiked) triggerLikeLottie(icon);
+      icon.innerHTML = willLike ? ICONS.heartFilled : ICONS.heartOutline;
+      if (willLike) triggerLikeLottie(icon);
       else triggerUnlikeLottie(icon);
     }
   }
 
-  showToast(finalLiked ? "感谢点赞推荐！" : "已取消点赞");
-}
+  showToast(willLike ? "感谢点赞推荐！" : "已取消点赞");
 
+  // 4. 【后台静默同步】不阻塞主线程，无需让用户等待网络响应
+  (async () => {
+    let finalLikes = null;
+    let synced = false;
+
+    // 若非本地 Python 环境，直接发给 Cloudflare Worker（跳过 404 的 ./api/like）
+    const isLocalServer = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    if (isLocalServer) {
+      try {
+        const res = await fetch("./api/like", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ layer_id: layerId, visitor_id: vid, action })
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.code === 0 && json.data) {
+            finalLikes = json.data.likes;
+            synced = true;
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (!synced) {
+      try {
+        const res = await fetch(`${WORKER_BASE_URL}/like`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ layer_id: layerId, vid, action }),
+          cache: "no-store"
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.code === 0 && json.data) {
+            finalLikes = json.data.likes;
+            synced = true;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 若云端返回权威数字，静默对齐 DOM
+    if (synced && typeof finalLikes === 'number' && layer) {
+      layer.likes = finalLikes;
+      layer.heat = layer.likes * 2 + (layer.downloads || 0) * 3;
+      if (likeCountEl) likeCountEl.textContent = finalLikes;
+      if (tableLikeEl) tableLikeEl.textContent = finalLikes;
+      if (heatEl) heatEl.textContent = layer.heat;
+      if (tableHeatEl) tableHeatEl.textContent = layer.heat;
+    }
+  })();
+}
 
 // --- Client-side Standalone PyQGIS Script Generator for GitHub Pages ---
 function generateClientQgisScript(selectedLayers, addToCanvas) {
