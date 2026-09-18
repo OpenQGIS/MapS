@@ -744,6 +744,8 @@ async function loadLayers() {
       const localOffsets = JSON.parse(localStorage.getItem("qgis_likes_offsets") || "{}");
       let cachedLikes = {};
       try { cachedLikes = JSON.parse(localStorage.getItem("qgis_cached_global_likes") || "{}"); } catch (e) {}
+      let cachedDownloads = {};
+      try { cachedDownloads = JSON.parse(localStorage.getItem("qgis_cached_layer_downloads") || "{}"); } catch (e) {}
 
       state.layers = rawData.map(l => {
         const rawLikes = (typeof l.likes === 'number' && !isNaN(l.likes)) ? l.likes : 0;
@@ -752,8 +754,14 @@ async function loadLayers() {
         const remoteLikes = (typeof cachedCount === 'number') ? cachedCount : 0;
         const offset = state.liked.has(l.id) ? (localOffsets[l.id] !== undefined ? localOffsets[l.id] : 1) : 0;
         l.likes = Math.max(rawLikes, remoteLikes, offset);
-        l.downloads = (typeof l.downloads === 'number' && !isNaN(l.downloads)) ? l.downloads : 0;
-        l.heat = (typeof l.heat === 'number' && !isNaN(l.heat)) ? l.heat : (l.likes * 2 + l.downloads * 3);
+
+        const rawDownloads = (typeof l.downloads === 'number' && !isNaN(l.downloads)) ? l.downloads : 0;
+        const localDl = (typeof cachedDownloads[l.id] === 'number') ? cachedDownloads[l.id] : 0;
+        l.downloads = Math.max(rawDownloads, localDl);
+
+        l.heat = (typeof l.heat === 'number' && !isNaN(l.heat) && l.heat > 0)
+          ? Math.max(l.heat, l.likes * 2 + l.downloads * 3)
+          : (l.likes * 2 + l.downloads * 3);
         // 修正缩略图相对路径
         if (l.thumbnail && l.thumbnail.startsWith("/")) {
           l.thumbnail = "." + l.thumbnail;
@@ -1179,7 +1187,7 @@ function renderLayers() {
       return `
         <div class="layer-card ${inCart ? 'in-cart' : ''} ${isOSMWinter ? 'card-compact-winter' : ''}"
              data-id="${escapeHtml(layer.id)}">
-          <div class="card-thumb-wrap" onclick="openPreviewModal('${escapeAttrJs(layer.id)}')" title="点击直接调用在线底图预览">
+          <div class="card-thumb-wrap" onclick="openPreviewModal('${escapeAttrJs(layer.id)}')" title="点击预览底图">
             ${thumb}
             <span class="card-format-badge">${escapeHtml(layer.format)}</span>
             <div class="card-thumb-overlay">
@@ -1214,7 +1222,7 @@ function renderLayers() {
             </div>
 
             <!-- 直接明码显示 URL -->
-            <div class="card-url-box" onclick="event.stopPropagation(); copyText('${escapeAttrJs(layer.url)}', '已复制底图服务 URL')" title="点击直接一键复制底图服务 URL">
+            <div class="card-url-box" onclick="event.stopPropagation(); copyText('${escapeAttrJs(layer.url)}', '已复制底图服务 URL')" title="点击复制URL">
               <code class="card-url-code">${escapeHtml(layer.url || '插件管理（无需URL）')}</code>
               <button class="btn-copy-url" title="复制 URL">${ICONS.copy}</button>
             </div>
@@ -1834,6 +1842,73 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
   return lines.join("\n");
 }
 
+// --- 导出底图热力值与下载统计实时递增 ---
+function applyExportHeat(layerIds, serverStats = null) {
+  if (!Array.isArray(layerIds) || layerIds.length === 0) return;
+
+  let cachedDownloads = {};
+  try {
+    cachedDownloads = JSON.parse(localStorage.getItem("qgis_cached_layer_downloads") || "{}");
+  } catch (e) {}
+
+  let hasChanges = false;
+
+  layerIds.forEach(lid => {
+    const layer = state.layers.find(l => l.id === lid);
+    if (!layer) return;
+
+    if (serverStats && serverStats[lid] && typeof serverStats[lid].downloads === "number") {
+      layer.downloads = Math.max(layer.downloads || 0, serverStats[lid].downloads);
+      layer.heat = typeof serverStats[lid].heat === "number"
+        ? Math.max(layer.heat || 0, serverStats[lid].heat)
+        : (layer.likes * 2 + layer.downloads * 3);
+    } else {
+      layer.downloads = (typeof layer.downloads === "number" ? layer.downloads : 0) + 1;
+      layer.heat = (typeof layer.likes === "number" ? layer.likes : 0) * 2 + layer.downloads * 3;
+    }
+
+    cachedDownloads[lid] = layer.downloads;
+    hasChanges = true;
+
+    // 实时刷新卡片视图上的热力值数字与动效
+    const heatEl = document.getElementById(`heat-${lid}`);
+    if (heatEl) {
+      heatEl.textContent = layer.heat;
+      const badge = heatEl.closest(".heat-badge");
+      if (badge) {
+        badge.classList.remove("heat-bump");
+        void badge.offsetWidth;
+        badge.classList.add("heat-bump");
+        setTimeout(() => badge.classList.remove("heat-bump"), 1200);
+      }
+    }
+
+    // 实时刷新表格视图上的热力值数字与动效
+    const tableHeatEl = document.getElementById(`table-heat-${lid}`);
+    if (tableHeatEl) {
+      tableHeatEl.textContent = layer.heat;
+      const tableBadge = tableHeatEl.closest(".heat-badge");
+      if (tableBadge) {
+        tableBadge.classList.remove("heat-bump");
+        void tableBadge.offsetWidth;
+        tableBadge.classList.add("heat-bump");
+        setTimeout(() => tableBadge.classList.remove("heat-bump"), 1200);
+      }
+    }
+  });
+
+  if (hasChanges) {
+    try {
+      localStorage.setItem("qgis_cached_layer_downloads", JSON.stringify(cachedDownloads));
+    } catch (e) {}
+
+    // 若当前为热度或下载量排序，重新渲染列表确保高热度底图实时上浮置顶
+    if (state.currentSort === "heat" || state.currentSort === "downloads") {
+      renderLayers();
+    }
+  }
+}
+
 // --- Checkout & Script Generation ---
 async function handleCheckout() {
   if (state.cart.size === 0) return;
@@ -1871,6 +1946,9 @@ async function handleCheckout() {
     if (data) {
       document.getElementById("export-count-text").textContent = `已成功为 ${data.count} 款选定底图生成专属 PyQGIS 自动化导入脚本`;
       document.getElementById("script-code-box").textContent = data.script;
+
+      // 实时递增选定导出底图的热力值并持久化
+      applyExportHeat(layerIds, data.layer_stats);
 
 
       

@@ -863,7 +863,22 @@ class RequestHandler(SimpleHTTPRequestHandler):
                         ON CONFLICT(layer_id) DO UPDATE SET downloads = downloads + 1, updated_at = CURRENT_TIMESTAMP
                     """, (lid,))
             conn.commit()
+
+            # 查询选中图层的实时数据库统计（点赞、下载与综合热度），用于前端即时同步
+            cur.execute("SELECT layer_id, likes, downloads FROM layer_stats WHERE layer_id IN ({})".format(
+                ','.join('?' for _ in layer_ids)
+            ), layer_ids)
+            stats_rows = cur.fetchall()
             conn.close()
+
+            layer_stats = {
+                row[0]: {
+                    "likes": row[1],
+                    "downloads": row[2],
+                    "heat": row[1] * 2 + row[2] * 3
+                }
+                for row in stats_rows
+            }
 
             script = generate_qgis_script(selected_layers, add_to_canvas=add_to_canvas)
 
@@ -872,7 +887,8 @@ class RequestHandler(SimpleHTTPRequestHandler):
                 "data": {
                     "count": len(selected_layers),
                     "script": script,
-                    "filename": f"qgis_basemaps_import_{len(selected_layers)}.py"
+                    "filename": f"qgis_basemaps_import_{len(selected_layers)}.py",
+                    "layer_stats": layer_stats
                 }
             })
             return
