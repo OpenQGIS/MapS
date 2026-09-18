@@ -742,11 +742,16 @@ async function loadLayers() {
 
     if (rawData) {
       const localOffsets = JSON.parse(localStorage.getItem("qgis_likes_offsets") || "{}");
+      let cachedLikes = {};
+      try { cachedLikes = JSON.parse(localStorage.getItem("qgis_cached_global_likes") || "{}"); } catch (e) {}
+
       state.layers = rawData.map(l => {
         const rawLikes = (typeof l.likes === 'number' && !isNaN(l.likes)) ? l.likes : 0;
         l._baseLikes = rawLikes;
+        const cachedCount = cachedLikes[l.id];
+        const remoteLikes = (typeof cachedCount === 'number') ? cachedCount : 0;
         const offset = state.liked.has(l.id) ? (localOffsets[l.id] !== undefined ? localOffsets[l.id] : 1) : 0;
-        l.likes = rawLikes + offset;
+        l.likes = Math.max(rawLikes, remoteLikes, offset);
         l.downloads = (typeof l.downloads === 'number' && !isNaN(l.downloads)) ? l.downloads : 0;
         l.heat = (typeof l.heat === 'number' && !isNaN(l.heat)) ? l.heat : (l.likes * 2 + l.downloads * 3);
         // 修正缩略图相对路径
@@ -776,13 +781,17 @@ async function syncGlobalLikes() {
     if (res.ok) {
       const json = await res.json();
       if (json.code === 0 && json.data) {
+        let cachedLikes = {};
+        try { cachedLikes = JSON.parse(localStorage.getItem("qgis_cached_global_likes") || "{}"); } catch (e) {}
+
         state.layers.forEach(layer => {
           const remote = json.data[layer.id];
           if (remote) {
-            if (typeof remote.likes === 'number' && remote.likes > 0) {
+            if (typeof remote.likes === 'number') {
               const baseLikes = typeof layer._baseLikes === 'number' ? layer._baseLikes : 0;
               layer.likes = Math.max(baseLikes, remote.likes);
               layer.heat = layer.likes * 2 + (layer.downloads || 0) * 3;
+              cachedLikes[layer.id] = layer.likes;
             }
             if (remote.liked) {
               state.liked.add(layer.id);
@@ -791,6 +800,11 @@ async function syncGlobalLikes() {
             if (likeEl) likeEl.textContent = layer.likes;
             const tableLikeEl = document.getElementById(`table-like-${layer.id}`);
             if (tableLikeEl) tableLikeEl.textContent = layer.likes;
+
+            const heatEl = document.getElementById(`heat-${layer.id}`);
+            if (heatEl) heatEl.textContent = layer.heat;
+            const tableHeatEl = document.getElementById(`table-heat-${layer.id}`);
+            if (tableHeatEl) tableHeatEl.textContent = layer.heat;
 
             const isLiked = state.liked.has(layer.id);
             const cardBtn = document.querySelector(`.layer-card[data-id="${layer.id}"] .like-btn`);
@@ -807,10 +821,13 @@ async function syncGlobalLikes() {
             }
           }
         });
+        localStorage.setItem("qgis_cached_global_likes", JSON.stringify(cachedLikes));
         localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn("同步全网点赞数据失败:", e);
+  }
 }
 
 async function loadStats() {
@@ -1593,10 +1610,14 @@ async function handleLike(layerId) {
       } catch (e) {}
     }
 
-    // 若云端返回权威数字，静默对齐 DOM
     if (synced && typeof finalLikes === 'number' && layer) {
       layer.likes = finalLikes;
       layer.heat = layer.likes * 2 + (layer.downloads || 0) * 3;
+      try {
+        const cachedLikes = JSON.parse(localStorage.getItem("qgis_cached_global_likes") || "{}");
+        cachedLikes[layerId] = finalLikes;
+        localStorage.setItem("qgis_cached_global_likes", JSON.stringify(cachedLikes));
+      } catch (e) {}
       if (likeCountEl) likeCountEl.textContent = finalLikes;
       if (tableLikeEl) tableLikeEl.textContent = finalLikes;
       if (heatEl) heatEl.textContent = layer.heat;
