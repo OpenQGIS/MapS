@@ -4076,11 +4076,11 @@ function initCustomTooltip() {
     const targetX = e.clientX;
     const targetY = e.clientY;
 
-    // 卡片跟随模式响应稍快更跟手 (40ms)，工具栏微延时防晃眼 (80ms)
-    const delay = isCard ? 40 : 80;
+    // 卡片提示增加 350ms 悬停停留延时，避免快速扫过误触发；工具栏保留 150ms 舒适微延时
+    const delay = isCard ? 350 : 150;
     showTimer = setTimeout(() => {
       if (activeTarget === target) {
-        showTooltip(target, tipText, targetX, targetY);
+        showTooltip(target, tipText, lastMouseX, lastMouseY);
       }
     }, delay);
   }, { passive: true });
