@@ -3007,7 +3007,7 @@ function initEventListeners() {
   if (btnResetChina) {
     btnResetChina.addEventListener("click", () => {
       resetToChinaView();
-      showToast("已切换至【中国全图】宏观视野");
+      showToast("已切换至中国视野");
     });
   }
 
@@ -3015,7 +3015,7 @@ function initEventListeners() {
   if (btnResetWorld) {
     btnResetWorld.addEventListener("click", () => {
       resetToWorldView();
-      showToast("已切换至【全球全图】宏观视野（南北极完全可见）");
+      showToast("已切换至全球视野");
     });
   }
 
