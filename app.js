@@ -824,6 +824,9 @@ async function syncGlobalLikes() {
         localStorage.setItem("qgis_cached_global_likes", JSON.stringify(cachedLikes));
         localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
 
+        // 更新顶部总赞数展示
+        updateTotalLikesStat(true);
+
         // 若当前处于默认热度或点赞排序，重新渲染确保高赞底图按热度实时浮动置顶展示
         if (state.currentSort === "heat" || state.currentSort === "likes") {
           renderLayers();
@@ -941,10 +944,32 @@ function updateStatsUi(data) {
   }
   if (countEl) countEl.textContent = data.layers || state.layers.length || 55;
 
+  updateTotalLikesStat(false);
+
   const ctEl = document.getElementById("stat-check-time");
   if (ctEl) ctEl.textContent = data.checkTime || "2026年5月26日";
   const bctEl = document.getElementById("banner-check-time");
   if (bctEl) bctEl.textContent = data.checkTime || "2026年5月26日";
+}
+
+function updateTotalLikesStat(animate = true) {
+  const likesEl = document.getElementById("stat-likes");
+  if (!likesEl) return;
+  let total = 0;
+  if (state.layers && state.layers.length > 0) {
+    total = state.layers.reduce((sum, l) => sum + (l.likes || 0), 0);
+  } else {
+    try {
+      const cached = JSON.parse(localStorage.getItem("qgis_cached_global_likes") || "{}");
+      total = Object.values(cached).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0);
+    } catch (e) {}
+  }
+  const finalVal = Math.max(total, 13);
+  if (animate) {
+    animateCountUp(likesEl, finalVal, 500);
+  } else {
+    likesEl.textContent = finalVal;
+  }
 }
 
 // connectBusuanziLiveStats 已由 Cloudflare Worker /visit 接口替代，不蒜子已下线
@@ -1627,6 +1652,7 @@ async function handleLike(layerId) {
       if (tableLikeEl) tableLikeEl.textContent = finalLikes;
       if (heatEl) heatEl.textContent = layer.heat;
       if (tableHeatEl) tableHeatEl.textContent = layer.heat;
+      updateTotalLikesStat(true);
     }
   })();
 }
