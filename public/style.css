@@ -3793,7 +3793,18 @@ body[data-theme="light"] .custom-tooltip {
   transform: translateY(0);
 }
 
-/* 小三角指示器 */
+/* 跟随鼠标模式（卡片区域专属）：取消锚定偏移、平滑跟随、隐藏小箭头 */
+.custom-tooltip.mode-follow {
+  transform: none !important;
+  transition: opacity 0.12s ease !important;
+  will-change: opacity, left, top;
+}
+
+.custom-tooltip.mode-follow .custom-tooltip-arrow {
+  display: none !important;
+}
+
+/* 小三角指示器（锚定模式：工具栏/悬浮栏等） */
 .custom-tooltip-arrow {
   position: absolute;
   width: 6px;

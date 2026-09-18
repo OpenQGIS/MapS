@@ -3892,6 +3892,9 @@ async function incrementLocalDownloads() {
 // ==========================================================================
 // 全局主题匹配自定义 Tooltip 提示窗 (Anti-AI Crafted Design)
 // 替换浏览器原生默认 title 黄色提示窗，支持黑白主题自适应、智能避让与高质感微投影
+// 区分两类交互模式：
+// 1. 卡片区域 (.layer-card)：跟随鼠标指针 (Follow Cursor)，不带箭头，视口边缘智能避让
+// 2. 顶部工具栏/状态栏/控制按钮：吸附锚定 (Anchor)，居中对齐，带微型指示三角
 // ==========================================================================
 function initCustomTooltip() {
   // 触屏粗指针设备不触发 hover tooltip，避免打扰移动端触控交互
@@ -3915,10 +3918,18 @@ function initCustomTooltip() {
 
   let showTimer = null;
   let activeTarget = null;
+  let currentMode = "anchor"; // "anchor" | "follow"
+  let lastMouseX = 0;
+  let lastMouseY = 0;
+  let rafId = null;
 
   function hideTooltip() {
     clearTimeout(showTimer);
     showTimer = null;
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
     if (tooltipEl.classList.contains("visible")) {
       tooltipEl.classList.remove("visible");
       tooltipEl.setAttribute("aria-hidden", "true");
@@ -3926,63 +3937,117 @@ function initCustomTooltip() {
     activeTarget = null;
   }
 
-  function showTooltip(target, text) {
+  // 计算并更新跟随鼠标模式下的坐标
+  function updateFollowPosition(clientX, clientY) {
+    if (!tooltipEl || currentMode !== "follow" || !tooltipEl.classList.contains("visible")) return;
+
+    const tipWidth = tooltipEl.offsetWidth;
+    const tipHeight = tooltipEl.offsetHeight;
+    const gapX = 14;
+    const gapY = 16;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // 默认在鼠标光标右下方
+    let left = clientX + gapX;
+    let top = clientY + gapY;
+
+    // 边缘避让：超出右边缘则翻转到光标左侧
+    if (left + tipWidth > viewportWidth - 10) {
+      left = clientX - tipWidth - 12;
+    }
+    // 超出底边缘则翻转到光标上方
+    if (top + tipHeight > viewportHeight - 10) {
+      top = clientY - tipHeight - 12;
+    }
+
+    // 视口安全边距夹紧
+    left = Math.max(8, Math.min(viewportWidth - tipWidth - 8, left));
+    top = Math.max(8, Math.min(viewportHeight - tipHeight - 8, top));
+
+    tooltipEl.style.left = `${Math.round(left)}px`;
+    tooltipEl.style.top = `${Math.round(top)}px`;
+  }
+
+  function showTooltip(target, text, clientX, clientY) {
     if (!text || !text.trim()) return;
     textEl.textContent = text.trim();
 
     // 预渲染测量尺寸
     tooltipEl.style.left = "-9999px";
     tooltipEl.style.top = "-9999px";
-    tooltipEl.classList.remove("placement-top", "placement-bottom");
+    tooltipEl.classList.remove("placement-top", "placement-bottom", "mode-follow");
 
-    const targetRect = target.getBoundingClientRect();
-    const tipWidth = tooltipEl.offsetWidth;
-    const tipHeight = tooltipEl.offsetHeight;
+    // 判定是否在卡片内部（底图卡片区域）
+    const isCard = !!target.closest(".layer-card");
 
-    const gap = 8;
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    if (isCard) {
+      // --- 模式 1：跟随鼠标模式 (Follow Cursor) ---
+      currentMode = "follow";
+      tooltipEl.classList.add("mode-follow");
 
-    // 针对顶部工具栏与状态栏 (targetRect.top < 110) 优先在正下方展示，避免被视口上缘截断
-    let placement = "bottom";
-    if (targetRect.top > 120 && (targetRect.top - tipHeight - gap) > 6) {
-      placement = "top";
-    } else if (viewportHeight - targetRect.bottom < tipHeight + gap + 10 && targetRect.top > tipHeight + gap) {
-      placement = "top";
+      const posX = typeof clientX === "number" ? clientX : lastMouseX;
+      const posY = typeof clientY === "number" ? clientY : lastMouseY;
+
+      tooltipEl.classList.add("visible");
+      tooltipEl.setAttribute("aria-hidden", "false");
+      updateFollowPosition(posX, posY);
     } else {
-      placement = "bottom";
+      // --- 模式 2：吸附锚定模式 (Anchor - 工具栏、状态栏、操作按钮等) ---
+      currentMode = "anchor";
+
+      const targetRect = target.getBoundingClientRect();
+      const tipWidth = tooltipEl.offsetWidth;
+      const tipHeight = tooltipEl.offsetHeight;
+
+      const gap = 8;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      // 针对顶部工具栏与状态栏 (targetRect.top < 110) 优先在正下方展示，避免被视口上缘截断
+      let placement = "bottom";
+      if (targetRect.top > 120 && (targetRect.top - tipHeight - gap) > 6) {
+        placement = "top";
+      } else if (viewportHeight - targetRect.bottom < tipHeight + gap + 10 && targetRect.top > tipHeight + gap) {
+        placement = "top";
+      } else {
+        placement = "bottom";
+      }
+
+      let top = 0;
+      if (placement === "top") {
+        top = targetRect.top - tipHeight - gap;
+      } else {
+        top = targetRect.bottom + gap;
+      }
+
+      // 水平居中对齐
+      let left = targetRect.left + (targetRect.width / 2) - (tipWidth / 2);
+      // 视口安全边距留白 8px
+      left = Math.max(8, Math.min(viewportWidth - tipWidth - 8, left));
+
+      // 计算箭头偏移指向目标元素中心
+      const targetCenterX = targetRect.left + (targetRect.width / 2);
+      let arrowLeft = targetCenterX - left - 3;
+      arrowLeft = Math.max(8, Math.min(tipWidth - 14, arrowLeft));
+      if (arrowEl) {
+        arrowEl.style.left = `${arrowLeft}px`;
+      }
+
+      tooltipEl.style.left = `${Math.round(left)}px`;
+      tooltipEl.style.top = `${Math.round(top)}px`;
+      tooltipEl.classList.add(`placement-${placement}`, "visible");
+      tooltipEl.setAttribute("aria-hidden", "false");
     }
-
-    let top = 0;
-    if (placement === "top") {
-      top = targetRect.top - tipHeight - gap;
-    } else {
-      top = targetRect.bottom + gap;
-    }
-
-    // 水平居中对齐
-    let left = targetRect.left + (targetRect.width / 2) - (tipWidth / 2);
-    // 视口安全边距留白 8px
-    left = Math.max(8, Math.min(viewportWidth - tipWidth - 8, left));
-
-    // 计算箭头偏移指向目标元素中心
-    const targetCenterX = targetRect.left + (targetRect.width / 2);
-    let arrowLeft = targetCenterX - left - 3;
-    arrowLeft = Math.max(8, Math.min(tipWidth - 14, arrowLeft));
-    if (arrowEl) {
-      arrowEl.style.left = `${arrowLeft}px`;
-    }
-
-    tooltipEl.style.left = `${Math.round(left)}px`;
-    tooltipEl.style.top = `${Math.round(top)}px`;
-    tooltipEl.classList.add(`placement-${placement}`, "visible");
-    tooltipEl.setAttribute("aria-hidden", "false");
   }
 
   // 统一事件委托处理 mouseover
   document.addEventListener("mouseover", (e) => {
     const target = e.target.closest("[data-tooltip], [title]");
     if (!target) return;
+
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
 
     // 彻底转移并移除原生 title，杜绝系统默认黄色方块提示
     if (target.hasAttribute("title")) {
@@ -3996,18 +4061,42 @@ function initCustomTooltip() {
     const tipText = target.getAttribute("data-tooltip");
     if (!tipText) return;
 
+    const isCard = !!target.closest(".layer-card");
+
+    // 如果已经在同一个目标元素上且已可见，仅更新坐标（跟随模式）
     if (activeTarget === target && tooltipEl.classList.contains("visible")) {
+      if (isCard) {
+        updateFollowPosition(e.clientX, e.clientY);
+      }
       return;
     }
 
     clearTimeout(showTimer);
     activeTarget = target;
-    // 80ms 舒适微延时，防划过晃眼
+    const targetX = e.clientX;
+    const targetY = e.clientY;
+
+    // 卡片跟随模式响应稍快更跟手 (40ms)，工具栏微延时防晃眼 (80ms)
+    const delay = isCard ? 40 : 80;
     showTimer = setTimeout(() => {
       if (activeTarget === target) {
-        showTooltip(target, tipText);
+        showTooltip(target, tipText, targetX, targetY);
       }
-    }, 80);
+    }, delay);
+  }, { passive: true });
+
+  // 监听 mousemove：在卡片跟随模式下流畅跟踪鼠标指针
+  document.addEventListener("mousemove", (e) => {
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+
+    if (activeTarget && currentMode === "follow" && tooltipEl.classList.contains("visible")) {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        updateFollowPosition(lastMouseX, lastMouseY);
+      });
+    }
   }, { passive: true });
 
   // 移出监听
@@ -4027,4 +4116,5 @@ function initCustomTooltip() {
     if (e.key === "Escape") hideTooltip();
   }, { passive: true });
 }
+
 
