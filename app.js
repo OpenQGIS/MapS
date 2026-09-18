@@ -1852,6 +1852,43 @@ async function handleCheckout() {
   }
 }
 
+// --- ArcGIS 矢量切片自适应解析缓存器 ---
+const arcgisStyleCache = new Map();
+
+async function getNormalizedArcgisStyle(styleUrl) {
+  if (arcgisStyleCache.has(styleUrl)) {
+    return arcgisStyleCache.get(styleUrl);
+  }
+  const fullUrl = styleUrl.includes('f=pjson') ? styleUrl : (styleUrl + (styleUrl.includes('?') ? '&f=pjson' : '?f=pjson'));
+  const res = await fetch(fullUrl);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+
+  // 关键：展开 sources 中的 VectorTileServer 相对路径为绝对切片模板
+  if (json.sources) {
+    for (const [sKey, sVal] of Object.entries(json.sources)) {
+      if (sVal && sVal.type === 'vector') {
+        const sUrl = sVal.url || '';
+        if (sUrl.includes('VectorTileServer')) {
+          const base = sUrl.replace(/\/+$/, '');
+          delete sVal.url;
+          sVal.tiles = [`${base}/tile/{z}/{y}/{x}.pbf`];
+          sVal.minzoom = sVal.minzoom || 0;
+          sVal.maxzoom = sVal.maxzoom || 22;
+        }
+      }
+    }
+  }
+
+  // 修复 sprite 地址参数，避开 ArcGIS 403 权限拦截
+  if (json.sprite && json.sprite.includes('arcgis.com') && !json.sprite.includes('f=pjson')) {
+    json.sprite = json.sprite + (json.sprite.includes('?') ? '&f=pjson' : '?f=pjson');
+  }
+
+  arcgisStyleCache.set(styleUrl, json);
+  return json;
+}
+
 // --- Live Online Map Caller Engine ---
 function resolveLeafletTileLayer(layer, targetSublayerId = null) {
   let url = (layer.url || '').split('\n')[0].trim();
@@ -1868,7 +1905,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
     };
   }
 
-  // 1.5 矢量切片 (MVT / PBF / ArcGIS Vector Tiles) Web 端适配（优先使用 MapLibre GL 实时矢量渲染）
+  // 1.5 矢量切片 (MVT / PBF / ArcGIS Vector Tiles) Web 端适配
   if (layer.format === 'VEC') {
     const rawLines = (layer.url || '').split('\n').map(l => l.trim()).filter(Boolean);
     const tileUrl = rawLines[0] || '';
@@ -1883,18 +1920,67 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
 
     // 若当前环境已成功加载 MapLibre GL + Leaflet 桥接插件
     if (typeof L.maplibreGL === 'function' && styleUrl) {
+      if (isArcGisVec) {
+        // ArcGIS 矢量切片专属容器与异步样式预装载
+        const group = L.layerGroup();
+        const statusText = '🟢 ArcGIS 矢量切片服务';
+
+        const transformFn = (reqUrl, resourceType) => {
+          if (reqUrl.includes('arcgis.com') && (resourceType === 'SpriteJSON' || resourceType === 'SpriteImage' || reqUrl.includes('sprite'))) {
+            const sep = reqUrl.includes('?') ? '&' : '?';
+            return { url: reqUrl + sep + 'f=pjson' };
+          }
+          return { url: reqUrl };
+        };
+
+        if (arcgisStyleCache.has(styleUrl)) {
+          const glLayer = L.maplibreGL({
+            style: arcgisStyleCache.get(styleUrl),
+            attribution: '© Esri, USGS, FAO',
+            transformRequest: transformFn
+          });
+          group.addLayer(glLayer);
+          return {
+            layer: group,
+            status: 'ok',
+            statusText: statusText
+          };
+        }
+
+        getNormalizedArcgisStyle(styleUrl).then(normStyle => {
+          const glLayer = L.maplibreGL({
+            style: normStyle,
+            attribution: '© Esri, USGS, FAO',
+            transformRequest: transformFn
+          });
+          group.addLayer(glLayer);
+          if (state.previewMap) {
+            state.previewMap.invalidateSize();
+          }
+        }).catch(err => {
+          console.warn('ArcGIS 矢量切片加载异常，降级显示参考基底:', err);
+          const fallbackTile = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.65 });
+          group.addLayer(fallbackTile);
+        });
+
+        return {
+          layer: group,
+          status: 'ok',
+          statusText: statusText
+        };
+      }
+
+      // 普通 MVT / PBF 矢量切片
       try {
         const glLayer = L.maplibreGL({
           style: styleUrl,
-          attribution: isArcGisVec ? '© Esri, HERE, Garmin, FAO, USGS' : '© OpenStreetMap contributors, VersaTiles'
+          attribution: '© OpenStreetMap contributors, VersaTiles'
         });
         return {
           layer: glLayer,
           isMaplibre: true,
           status: 'ok',
-          statusText: isArcGisVec 
-            ? '🟢 ArcGIS 矢量切片服务 (MapLibre WebGL 实时渲染)' 
-            : '🟢 MVT 矢量切片 (MapLibre 矢量实时渲染)'
+          statusText: '🟢 MVT 矢量切片'
         };
       } catch (err) {
         console.warn('MapLibre GL 初始化失败，回退降级:', err);

@@ -9,8 +9,8 @@
 ### 🚀 重大重构与新特性 (Major Features)
 - **ArcGIS 矢量切片服务深度适配 (MapComposer 规范)**：
   - 修正图源 World-Topo-Map_NoLabel 分类为 VEC（矢量切片大类），理清图源协议本质；
-  - 弹窗预览全面支持 MapLibre GL 直接读取 
-oot.json 并渲染 Esri 官方 385 层高清矢量地图；
+  - **弹窗预览实测修复**：内置 getNormalizedArcgisStyle 智能解析器，将 ArcGIS 相对切片路径自动展开为全球 CDN 绝对切片模板，并拦截修正精灵图参数避开 403 权限拦截，使 MapLibre GL 能够毫秒级渲染出官方 385 层高清矢量底图；
+  - **预览状态标识精简化**：将状态药丸文本统一精简为干脆高级的 🟢 ArcGIS 矢量切片服务；
   - 导出脚本原生采用 MapComposer 规范（serviceType=arcgis 单 URL 驱动），兼顾 QGIS 3.x/4.x 浏览器连接与画布直载。
 - **Cloudflare Worker 统一云端服务迁移**：
   - 将全站访问统计（PV 浏览量 / UV 独立访客）从第三方不蒜子（Busuanzi）正式迁移至自建 Cloudflare Worker 服务（mapsource-api），实现自主可控。
