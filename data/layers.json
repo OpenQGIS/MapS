@@ -968,10 +968,10 @@
     "id": "layer_59",
     "row_index": 59,
     "name": "World-Topo-Map_NoLabel",
-    "format": "WMS/WMTS",
+    "format": "VEC",
     "url": "https://www.arcgis.com/sharing/rest/content/items/5a0e14f7287b4aa5973f6a35638e4b9a/resources/styles/root.json?f=pjson",
     "categories": [
-      "标注图"
+      "地形图"
     ],
     "description": "无标签的地形标注图层",
     "needs_vpn": false,

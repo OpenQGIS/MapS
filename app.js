@@ -735,7 +735,7 @@ async function loadLayers() {
 
     // 静态降级：若后端 API 不可用（如 GitHub Pages 托管环境），无缝读取本地静态 layers.json
     if (!rawData) {
-      const sRes = await fetch("./data/layers.json?v=7.9");
+      const sRes = await fetch("./data/layers.json?v=8.0");
       const sData = await sRes.json();
       rawData = Array.isArray(sData) ? sData : (sData.data || []);
     }
@@ -1660,8 +1660,9 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
     if (fmt === "VEC") {
       const urlLines = rawUrl.split("\n").map(u => u.trim()).filter(Boolean);
       const tileUrl = pySq(urlLines[0]);
-      const styleUrl = urlLines.length > 1 ? pySq(urlLines[1]) : "";
-      lines.push(`# >>> [VEC 矢量切片] ${name}`);
+      const isArcGisVec = tileUrl.includes('arcgis.com') || tileUrl.includes('VectorTileServer') || tileUrl.includes('root.json');
+
+      lines.push(`# >>> [VEC 矢量切片${isArcGisVec ? ' - ArcGIS服务' : ''}] ${name}`);
       if (cats) lines.push(`#     分类: ${cats}`);
       if (desc) lines.push(`#     说明: ${desc}`);
       if (layer.has_boundary_issue) lines.push("#     ⚠️ 标注: 存在国界线/边界争议，仅供内部科研参考");
@@ -1669,19 +1670,49 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
       if (layer.needs_vpn) lines.push("#     🌐 标注: 境外服务器源，加载需网络代理");
       lines.push("try:");
       lines.push(`    layer_name = '${name}'`);
-      lines.push(`    tile_url = '${tileUrl}'`);
-      lines.push(`    style_url = '${styleUrl}'`);
-      lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)");
-      if (styleUrl) lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)");
-      lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)");
-      lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 14)");
-      lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'xyz')");
-      lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', tile_url)");
-      if (styleUrl) lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/styleUrl', style_url)");
-      lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmin', 0)");
-      lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmax', 14)");
+
+      if (isArcGisVec) {
+        // ArcGIS 矢量切片服务 (MapComposer / QGIS 原生 arcgis 规范：单 URL 驱动)
+        lines.push(`    arcgis_url = '${tileUrl}'`);
+        lines.push("    quoted_url = urllib.parse.quote(arcgis_url, safe=':/?={}%@+,-')");
+        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/serviceType', 'arcgis')");
+        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', quoted_url)");
+        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)");
+        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 22)");
+        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'arcgis')");
+        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', quoted_url)");
+      } else {
+        // 通用矢量切片 (Generic XYZ PBF 切片)
+        const styleUrl = urlLines.length > 1 ? pySq(urlLines[1]) : "";
+        lines.push(`    tile_url = '${tileUrl}'`);
+        lines.push(`    style_url = '${styleUrl}'`);
+        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/serviceType', 'xyz')");
+        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)");
+        if (styleUrl) lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)");
+        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)");
+        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 14)");
+        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'xyz')");
+        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', tile_url)");
+        if (styleUrl) lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/styleUrl', style_url)");
+      }
+
+      if (addToCanvas) {
+        lines.push("    if QgsVectorTileLayer:");
+        if (isArcGisVec) {
+          lines.push("        uri = f'serviceType=arcgis&type=xyz&url={quoted_url}&styleUrl={quoted_url}&zmin=0&zmax=22&http-header:referer='");
+        } else {
+          lines.push("        uri = f'type=xyz&url={tile_url}'");
+          const styleUrl = urlLines.length > 1 ? pySq(urlLines[1]) : "";
+          if (styleUrl) lines.push(`        uri = f'styleUrl=${styleUrl}&' + uri`);
+        }
+        lines.push("        vl = QgsVectorTileLayer(uri, layer_name)");
+        lines.push("        if vl.isValid():");
+        lines.push("            QgsProject.instance().addMapLayer(vl)");
+        lines.push("            loaded_layers += 1");
+      }
+
       lines.push("    vec_count += 1");
-      lines.push("    print(f'  [√] 成功注册 Vector Tiles 连接: {layer_name}')");
+      lines.push("    print(f'  [√] 成功注册 Vector Tiles 矢量切片: {layer_name}')");
       lines.push("except Exception as err:");
       lines.push("    print(f'  [×] 注册矢量切片失败: {layer_name}, 错误: {err}')");
       lines.push("");
@@ -1837,24 +1868,33 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
     };
   }
 
-  // 1.5 矢量切片 (MVT / PBF) Web 端适配（优先使用 MapLibre GL 实时矢量渲染）
+  // 1.5 矢量切片 (MVT / PBF / ArcGIS Vector Tiles) Web 端适配（优先使用 MapLibre GL 实时矢量渲染）
   if (layer.format === 'VEC') {
     const rawLines = (layer.url || '').split('\n').map(l => l.trim()).filter(Boolean);
     const tileUrl = rawLines[0] || '';
-    const styleUrl = rawLines[1] || (tileUrl.endsWith('.json') ? tileUrl : '');
+    let styleUrl = rawLines[1] || '';
+    if (!styleUrl) {
+      if (tileUrl.includes('root.json') || tileUrl.includes('.json') || tileUrl.includes('VectorTileServer')) {
+        styleUrl = tileUrl;
+      }
+    }
+
+    const isArcGisVec = tileUrl.includes('arcgis.com') || tileUrl.includes('VectorTileServer') || tileUrl.includes('root.json');
 
     // 若当前环境已成功加载 MapLibre GL + Leaflet 桥接插件
     if (typeof L.maplibreGL === 'function' && styleUrl) {
       try {
         const glLayer = L.maplibreGL({
           style: styleUrl,
-          attribution: '© OpenStreetMap contributors, VersaTiles'
+          attribution: isArcGisVec ? '© Esri, HERE, Garmin, FAO, USGS' : '© OpenStreetMap contributors, VersaTiles'
         });
         return {
           layer: glLayer,
           isMaplibre: true,
           status: 'ok',
-          statusText: '🟢 MVT 矢量切片 (MapLibre 矢量实时渲染)'
+          statusText: isArcGisVec 
+            ? '🟢 ArcGIS 矢量切片服务 (MapLibre WebGL 实时渲染)' 
+            : '🟢 MVT 矢量切片 (MapLibre 矢量实时渲染)'
         };
       } catch (err) {
         console.warn('MapLibre GL 初始化失败，回退降级:', err);
@@ -1864,7 +1904,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
     return {
       layer: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.65 }),
       status: 'warn',
-      statusText: 'ℹ️ MVT 矢量切片（WebGL渲染组件加载中，已展示参考基底）'
+      statusText: 'ℹ️ 矢量切片（WebGL渲染组件加载中，已展示参考基底）'
     };
   }
 
