@@ -185,7 +185,8 @@
     "notes": "",
     "has_boundary_issue": false,
     "has_coordinate_drift": false,
-    "thumbnail": "/thumbnails/thumb_13.png"
+    "thumbnail": "/thumbnails/thumb_13.png",
+    "likes": 1
   },
   {
     "id": "layer_14",
@@ -271,7 +272,8 @@
     "notes": "边界问题",
     "has_boundary_issue": true,
     "has_coordinate_drift": false,
-    "thumbnail": "/thumbnails/thumb_18.png"
+    "thumbnail": "/thumbnails/thumb_18.png",
+    "likes": 1
   },
   {
     "id": "layer_19",
@@ -339,7 +341,8 @@
     "notes": "边界问题",
     "has_boundary_issue": true,
     "has_coordinate_drift": false,
-    "thumbnail": "/thumbnails/thumb_22.png"
+    "thumbnail": "/thumbnails/thumb_22.png",
+    "likes": 1
   },
   {
     "id": "layer_23",
@@ -427,7 +430,8 @@
     "notes": "",
     "has_boundary_issue": false,
     "has_coordinate_drift": false,
-    "thumbnail": "/thumbnails/thumb_27.png"
+    "thumbnail": "/thumbnails/thumb_27.png",
+    "likes": 1
   },
   {
     "id": "layer_28",
@@ -529,7 +533,8 @@
     "notes": "边界问题",
     "has_boundary_issue": true,
     "has_coordinate_drift": false,
-    "thumbnail": "/thumbnails/thumb_33.png"
+    "thumbnail": "/thumbnails/thumb_33.png",
+    "likes": 1
   },
   {
     "id": "layer_34",
@@ -580,7 +585,8 @@
     "notes": "",
     "has_boundary_issue": false,
     "has_coordinate_drift": false,
-    "thumbnail": "/thumbnails/thumb_36.jpg"
+    "thumbnail": "/thumbnails/thumb_36.jpg",
+    "likes": 1
   },
   {
     "id": "layer_37",
@@ -597,7 +603,8 @@
     "notes": "",
     "has_boundary_issue": false,
     "has_coordinate_drift": false,
-    "thumbnail": "/thumbnails/thumb_37.jpg"
+    "thumbnail": "/thumbnails/thumb_37.jpg",
+    "likes": 1
   },
   {
     "id": "layer_38",
@@ -667,7 +674,8 @@
     "notes": "",
     "has_boundary_issue": false,
     "has_coordinate_drift": false,
-    "thumbnail": "/thumbnails/thumb_41.png"
+    "thumbnail": "/thumbnails/thumb_41.png",
+    "likes": 1
   },
   {
     "id": "layer_42",
@@ -702,7 +710,8 @@
     "notes": "",
     "has_boundary_issue": false,
     "has_coordinate_drift": false,
-    "thumbnail": "/thumbnails/thumb_43.png"
+    "thumbnail": "/thumbnails/thumb_43.png",
+    "likes": 1
   },
   {
     "id": "layer_44",
@@ -788,7 +797,8 @@
     "notes": "",
     "has_boundary_issue": false,
     "has_coordinate_drift": false,
-    "thumbnail": "/thumbnails/thumb_48.png"
+    "thumbnail": "/thumbnails/thumb_48.png",
+    "likes": 1
   },
   {
     "id": "layer_49",
@@ -857,7 +867,8 @@
     "notes": "数据漂移",
     "has_boundary_issue": false,
     "has_coordinate_drift": true,
-    "thumbnail": "/thumbnails/thumb_52.png"
+    "thumbnail": "/thumbnails/thumb_52.png",
+    "likes": 1
   },
   {
     "id": "layer_53",
@@ -979,7 +990,8 @@
     "notes": "",
     "has_boundary_issue": false,
     "has_coordinate_drift": false,
-    "thumbnail": "/thumbnails/thumb_59.png"
+    "thumbnail": "/thumbnails/thumb_59.png",
+    "likes": 1
   },
   {
     "id": "layer_60",
@@ -996,6 +1008,7 @@
     "notes": "边界问题",
     "has_boundary_issue": true,
     "has_coordinate_drift": false,
-    "thumbnail": "/thumbnails/thumb_60.png"
+    "thumbnail": "/thumbnails/thumb_60.png",
+    "likes": 1
   }
 ]

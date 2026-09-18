@@ -735,7 +735,7 @@ async function loadLayers() {
 
     // 静态降级：若后端 API 不可用（如 GitHub Pages 托管环境），无缝读取本地静态 layers.json
     if (!rawData) {
-      const sRes = await fetch("./data/layers.json?v=8.0");
+      const sRes = await fetch("./data/layers.json?v=8.1");
       const sData = await sRes.json();
       rawData = Array.isArray(sData) ? sData : (sData.data || []);
     }
@@ -823,6 +823,11 @@ async function syncGlobalLikes() {
         });
         localStorage.setItem("qgis_cached_global_likes", JSON.stringify(cachedLikes));
         localStorage.setItem("qgis_liked", JSON.stringify(Array.from(state.liked)));
+
+        // 若当前处于默认热度或点赞排序，重新渲染确保高赞底图按热度实时浮动置顶展示
+        if (state.currentSort === "heat" || state.currentSort === "likes") {
+          renderLayers();
+        }
       }
     }
   } catch (e) {
