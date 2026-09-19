@@ -56,7 +56,198 @@ function _dStr(b64) {
 }
 
 const _AESTHETIC_PREF_KEY = '_sgdb_pref';
+const _AESTHETIC_WELCOMED_KEY = '_sgdb_welcomed';
 let isAncientAesthetic = false;
+let _cachedPaperTextureUrl = null;
+
+// 五维做旧宣纸/绢帛纹理生成器 (程序化 Canvas 渲染，五维能量守恒 Sum of Weights = 1.0)
+class PaperTextureGenerator {
+  static generatePattern() {
+    if (_cachedPaperTextureUrl) return _cachedPaperTextureUrl;
+    try {
+      const pSize = 360;
+      const pCanvas = document.createElement('canvas');
+      pCanvas.width = pSize;
+      pCanvas.height = pSize;
+      const pCtx = pCanvas.getContext('2d');
+      if (!pCtx) return null;
+
+      pCtx.clearRect(0, 0, pSize, pSize);
+
+      // A. 会话级动态随机种子
+      let seed = (Date.now() ^ (Math.random() * 0x10000000)) >>> 0;
+      function rnd() {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed / 233280;
+      }
+
+      // B. 五维区间严格归一化 (Sum of Weights = 1.0)
+      const intervals = [
+        { min: 0.10, max: 0.22 }, // 竹帘经纬
+        { min: 0.10, max: 0.22 }, // 楮皮颗粒
+        { min: 0.18, max: 0.30 }, // 植物纤维
+        { min: 0.22, max: 0.34 }, // 古水墨底润
+        { min: 0.10, max: 0.22 }  // 云絮水晕
+      ];
+      const raw = intervals.map(item => item.min + rnd() * (item.max - item.min));
+      const sumRaw = raw.reduce((a, b) => a + b, 0);
+      const [w_bamboo, w_bark, w_fiber, w_patina, w_cloud] = raw.map(w => w / sumRaw);
+
+      // C. 【竹】竹帘经纬横纵线 (32px~40px 纵向密织竹丝经线 + 4px 极淡纬线交织)
+      const yOffset = rnd() * 4;
+      pCtx.fillStyle = `rgba(215, 185, 130, ${(0.05 + w_bamboo * 0.35).toFixed(3)})`;
+      for (let y = yOffset; y < pSize; y += 4) {
+        pCtx.fillRect(0, y, pSize, 0.9);
+      }
+      const xStep = Math.round(34 + rnd() * 6);
+      pCtx.fillStyle = `rgba(215, 185, 130, ${(0.04 + w_bamboo * 0.25).toFixed(3)})`;
+      for (let x = rnd() * xStep; x < pSize; x += xStep) {
+        pCtx.fillRect(x, 0, 1.2, pSize);
+      }
+
+      // D. 【纤】全向散落植物长短纤维丝 (数量克制，360° 全向自然交错)
+      pCtx.strokeStyle = `rgba(230, 195, 140, ${(0.12 + w_fiber * 0.45).toFixed(3)})`;
+      pCtx.lineWidth = 0.7 + w_fiber * 0.7;
+      const fiberCount = Math.round(32 + w_fiber * 160);
+      pCtx.beginPath();
+      for (let i = 0; i < fiberCount; i++) {
+        const fx = rnd() * pSize, fy = rnd() * pSize;
+        const len = 4 + rnd() * (8 + w_fiber * 14);
+        const angle = rnd() * Math.PI * 2;
+        pCtx.moveTo(fx, fy);
+        pCtx.quadraticCurveTo(
+          fx + Math.cos(angle) * (len * 0.5) + (rnd() - 0.5) * 3,
+          fy + Math.sin(angle) * (len * 0.5) + (rnd() - 0.5) * 3,
+          fx + Math.cos(angle) * len,
+          fy + Math.sin(angle) * len
+        );
+      }
+      pCtx.stroke();
+
+      // E. 【皮】楮皮颗粒微观杂质噪点
+      pCtx.fillStyle = `rgba(238, 205, 150, ${(0.14 + w_bark * 0.55).toFixed(3)})`;
+      const speckCount = Math.round(150 + w_bark * 800);
+      for (let i = 0; i < speckCount; i++) {
+        const px = rnd() * pSize, py = rnd() * pSize;
+        const r = rnd() < 0.85 ? (0.5 + w_bark * 0.4) : (1.0 + rnd() * (0.4 + w_bark * 0.6));
+        pCtx.beginPath();
+        pCtx.arc(px, py, r, 0, Math.PI * 2);
+        pCtx.fill();
+      }
+
+      // F. 【絮】水墨云絮水晕大尺度半透明晕染斑驳
+      const cloudAlpha = 0.03 + w_cloud * 0.22;
+      const cloudCount = Math.round(12 + w_cloud * 60);
+      for (let i = 0; i < cloudCount; i++) {
+        const cx = rnd() * pSize, cy = rnd() * pSize;
+        const radius = 10 + rnd() * (16 + w_cloud * 26);
+        const grad = pCtx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+        grad.addColorStop(0, `rgba(220, 185, 125, ${cloudAlpha.toFixed(3)})`);
+        grad.addColorStop(1, 'rgba(220, 185, 125, 0)');
+        pCtx.fillStyle = grad;
+        pCtx.beginPath();
+        pCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+        pCtx.fill();
+      }
+
+      _cachedPaperTextureUrl = pCanvas.toDataURL('image/png');
+      return _cachedPaperTextureUrl;
+    } catch (e) {
+      return null;
+    }
+  }
+}
+
+// 动态管理做旧宣纸全屏底衬
+function updatePaperBackdrop(show) {
+  let bg = document.getElementById('ancient-paper-backdrop');
+  if (show) {
+    if (!bg) {
+      bg = document.createElement('div');
+      bg.id = 'ancient-paper-backdrop';
+      bg.className = 'ancient-paper-backdrop';
+      bg.setAttribute('aria-hidden', 'true');
+      document.body.insertBefore(bg, document.body.firstChild);
+    }
+    const textureUrl = PaperTextureGenerator.generatePattern();
+    if (textureUrl) {
+      bg.style.backgroundImage = `url("${textureUrl}")`;
+    }
+  } else {
+    if (bg) bg.remove();
+  }
+}
+
+// 全屏仪式感居中大弹窗
+function showAncientWelcomeModal() {
+  let modal = document.getElementById('ancient-welcome-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'ancient-welcome-modal';
+    modal.className = 'ancient-modal-backdrop';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-hidden', 'true');
+
+    modal.innerHTML = `
+      <div class="ancient-modal-card">
+        <button class="ancient-modal-close" id="ancient-modal-close" title="退出（Esc）" aria-label="关闭">✕</button>
+        <div class="ancient-modal-header">
+          <div class="ancient-modal-emblem">閣</div>
+          <div class="ancient-modal-title-wrap">
+            <div class="ancient-modal-subtitle">天机 · 奇遇</div>
+            <h2 class="ancient-modal-title">江湖舆图阁 <span class="ancient-seal">江湖</span></h2>
+          </div>
+        </div>
+        <div class="ancient-modal-divider">
+          <span class="ancient-divider-line"></span>
+          <span class="ancient-divider-icon">◆</span>
+          <span class="ancient-divider-line"></span>
+        </div>
+        <div class="ancient-modal-body">
+          <p class="ancient-lead-verse">“偶入舆图秘境，乾坤万里入卷。”</p>
+          <p class="ancient-desc-text">
+            天下名山大川、经纬舆图悉数封存于此。<br>
+            无需银两，一“剑”径入 QGIS，愿少侠尽收囊中！
+          </p>
+          <div class="ancient-modal-tips">
+            <span class="ancient-tip-item">⚡ 秘境状态：已施“舆图遁法”</span>
+            <span class="ancient-tip-item">📜 随时可点右上「现世」还俗</span>
+          </div>
+        </div>
+        <div class="ancient-modal-footer">
+          <button class="ancient-modal-action-btn" id="ancient-modal-confirm-btn">
+            <span class="ancient-btn-text">入卷领略</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const closeHandler = () => {
+      modal.classList.remove('visible');
+      modal.setAttribute('aria-hidden', 'true');
+    };
+
+    modal.querySelector('#ancient-modal-close').addEventListener('click', closeHandler);
+    modal.querySelector('#ancient-modal-confirm-btn').addEventListener('click', closeHandler);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeHandler();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('visible')) {
+        closeHandler();
+      }
+    });
+  }
+
+  requestAnimationFrame(() => {
+    modal.classList.add('visible');
+    modal.setAttribute('aria-hidden', 'false');
+  });
+}
 
 function checkAestheticPreference() {
   try {
@@ -91,6 +282,8 @@ function applyAestheticMode(active, isInteractive = false) {
   const body = document.body;
   if (root) root.classList.toggle('theme-sublime', isAncientAesthetic);
   if (body) body.classList.toggle('theme-sublime', isAncientAesthetic);
+
+  updatePaperBackdrop(isAncientAesthetic);
 
   const titleFull = document.querySelector('.brand-title-full');
   const titleShort = document.querySelector('.brand-title-short');
@@ -129,7 +322,7 @@ function applyAestheticMode(active, isInteractive = false) {
     ensureEscapeHatch(true);
 
     if (isInteractive) {
-      showAncientToast("✨ 偶入秘境！少侠触发了隐藏江湖《江湖舆图阁》");
+      showAncientWelcomeModal();
       triggerAestheticShake();
     }
   } else {
@@ -214,6 +407,7 @@ function checkSearchEasterEgg(val) {
   if (s === kw1 || s === kw2) {
     try {
       sessionStorage.setItem(_AESTHETIC_PREF_KEY, '1');
+      sessionStorage.setItem(_AESTHETIC_WELCOMED_KEY, '1');
     } catch (e) {}
     applyAestheticMode(true, true);
     return true;
@@ -689,12 +883,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (checkAestheticPreference()) {
     setTimeout(() => {
       applyAestheticMode(true, false);
-      const notified = sessionStorage.getItem('_sgdb_notified');
-      if (!notified) {
-        showAncientToast("✨ 偶入秘境！少侠触发了隐藏江湖《江湖舆图阁》");
-        sessionStorage.setItem('_sgdb_notified', '1');
+      const welcomed = sessionStorage.getItem(_AESTHETIC_WELCOMED_KEY);
+      if (!welcomed) {
+        showAncientWelcomeModal();
+        sessionStorage.setItem(_AESTHETIC_WELCOMED_KEY, '1');
       }
-    }, 40);
+    }, 120);
   }
 });
 
