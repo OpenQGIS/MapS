@@ -309,7 +309,7 @@ function applyAestheticMode(active, isInteractive = false) {
     if (titleShort) titleShort.textContent = "舆图阁";
     if (brandIcon) brandIcon.textContent = "阁";
     if (brandBadge) {
-      brandBadge.innerHTML = `乾坤谱 <span class="ancient-seal">江湖</span>`;
+      brandBadge.innerHTML = `<span>乾坤谱</span><span class="ancient-seal">江湖</span>`;
     }
     if (searchInput) searchInput.placeholder = "搜寻天下山河秘图（如：天地图、OSM、高德…）";
     if (mobileSearchInput) mobileSearchInput.placeholder = "搜寻天下山河秘图...";
@@ -370,9 +370,9 @@ function ensureEscapeHatch(show) {
         applyAestheticMode(false, false);
         showToast("已返归现世界面");
       };
-      const brandSec = document.querySelector('.brand-section > div');
-      if (brandSec) {
-        brandSec.appendChild(hatch);
+      const brandTitle = document.querySelector('.brand-title');
+      if (brandTitle) {
+        brandTitle.appendChild(hatch);
       }
     }
   } else {
@@ -1185,6 +1185,11 @@ function initTheme() {
 }
 
 function applyTheme(theme) {
+  // 方案 A：临时消除所有 transition 时序差，实现 GitHub/Vercel 级全站同帧利落瞬切
+  const disableTransitions = document.createElement('style');
+  disableTransitions.textContent = '*,*::before,*::after{-webkit-transition:none!important;-moz-transition:none!important;-o-transition:none!important;-ms-transition:none!important;transition:none!important}';
+  document.head.appendChild(disableTransitions);
+
   state.theme = theme;
   document.documentElement.setAttribute("data-theme", theme);
   if (document.body) {
@@ -1203,6 +1208,18 @@ function applyTheme(theme) {
       text.textContent = "深色";
     }
   }
+
+  // 强制触发一次重排，确保当前帧即刻呈现新主题
+  if (document.body) {
+    (() => window.getComputedStyle(document.body).opacity)();
+  }
+
+  // 待新主题渲染完毕后恢复正常鼠标 hover 交互微动效
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      disableTransitions.remove();
+    });
+  });
 }
 
 function toggleTheme() {
