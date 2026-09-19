@@ -158,9 +158,10 @@ class PaperTextureGenerator {
   }
 }
 
-// 动态管理做旧宣纸全屏底衬
+// 动态管理做旧宣纸全屏底衬与卡片层共享纹理
 function updatePaperBackdrop(show) {
   let bg = document.getElementById('ancient-paper-backdrop');
+  const root = document.documentElement;
   if (show) {
     if (!bg) {
       bg = document.createElement('div');
@@ -172,9 +173,11 @@ function updatePaperBackdrop(show) {
     const textureUrl = PaperTextureGenerator.generatePattern();
     if (textureUrl) {
       bg.style.backgroundImage = `url("${textureUrl}")`;
+      if (root) root.style.setProperty('--ancient-paper-pattern', `url("${textureUrl}")`);
     }
   } else {
     if (bg) bg.remove();
+    if (root) root.style.removeProperty('--ancient-paper-pattern');
   }
 }
 
