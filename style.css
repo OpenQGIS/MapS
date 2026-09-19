@@ -4651,8 +4651,8 @@ body[data-theme="light"] .custom-tooltip {
   --font-ancient-serif: "Songti SC", "STSong", "STKaiti", "KaiTi", "Source Han Serif CN", "Noto Serif SC", "SimSun", serif;
 }
 
-html.theme-wuxia[data-theme="light"],
-body.theme-wuxia[data-theme="light"] {
+html.theme-sublime[data-theme="light"],
+body.theme-sublime[data-theme="light"] {
   --accent-blue: #1e50a2;
   --accent-blue-hover: #163f82;
   --accent-lime: #629b26;
@@ -4662,8 +4662,8 @@ body.theme-wuxia[data-theme="light"] {
   --bg-main: #f5f6f8;
 }
 
-html.theme-wuxia[data-theme="dark"],
-body.theme-wuxia[data-theme="dark"] {
+html.theme-sublime[data-theme="dark"],
+body.theme-sublime[data-theme="dark"] {
   --accent-blue: #3264b8;
   --accent-blue-hover: #4176d1;
   --accent-lime: #6da82e;
@@ -4673,12 +4673,12 @@ body.theme-wuxia[data-theme="dark"] {
   --bg-card: #121622;
 }
 
-.theme-wuxia .brand-title-full,
-.theme-wuxia .brand-title-short,
-.theme-wuxia .drawer-title,
-.theme-wuxia .checkout-btn,
-.theme-wuxia .btn-hero,
-.theme-wuxia .wuxia-toast {
+.theme-sublime .brand-title-full,
+.theme-sublime .brand-title-short,
+.theme-sublime .drawer-title,
+.theme-sublime .checkout-btn,
+.theme-sublime .btn-hero,
+.theme-sublime .aesthetic-toast {
   font-family: var(--font-ancient-serif);
   letter-spacing: 0.03em;
 }
@@ -4742,7 +4742,7 @@ html[data-theme="dark"] .ancient-mode-exit {
 }
 
 /* 偶入奇遇提示 Toast */
-.wuxia-toast {
+.aesthetic-toast {
   position: fixed;
   bottom: 24px;
   right: 24px;
@@ -4759,45 +4759,45 @@ html[data-theme="dark"] .ancient-mode-exit {
   box-shadow: 0 10px 32px rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  animation: wuxiaFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: aestheticFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes wuxiaFadeIn {
+@keyframes aestheticFadeIn {
   from { opacity: 0; transform: translateY(12px) scale(0.96); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes wuxiaShake {
+@keyframes aestheticShake {
   0%, 100% { transform: translateX(0); }
   20%, 60% { transform: translateX(-4px); }
   40%, 80% { transform: translateX(4px); }
 }
 
-.wuxia-shaking {
-  animation: wuxiaShake 0.32s ease-in-out;
+.aesthetic-shaking {
+  animation: aestheticShake 0.32s ease-in-out;
 }
 
 /* 百宝囊抽屉古风微调 */
-.theme-wuxia .cart-drawer {
+.theme-sublime .cart-drawer {
   border-left: 1px solid rgba(30, 80, 162, 0.25) !important;
   box-shadow: -6px 0 28px rgba(0, 0, 0, 0.25) !important;
 }
 
 /* 收入囊中主按钮 - 霁蓝锦缎质感 */
-.theme-wuxia .checkout-btn {
+.theme-sublime .checkout-btn {
   background: linear-gradient(135deg, #1e50a2 0%, #153a77 100%) !important;
   border: 1px solid #102d5e !important;
   box-shadow: 0 4px 14px rgba(30, 80, 162, 0.35) !important;
 }
 
-.theme-wuxia .checkout-btn:hover:not(:disabled) {
+.theme-sublime .checkout-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #245ebf 0%, #194389 100%) !important;
   box-shadow: 0 6px 18px rgba(30, 80, 162, 0.45) !important;
 }
 
 /* 移动端响应式适配 (< 768px) */
 @media (max-width: 767px) {
-  .wuxia-toast {
+  .aesthetic-toast {
     left: 16px !important;
     right: 16px !important;
     bottom: auto !important;
@@ -4824,8 +4824,8 @@ html[data-theme="dark"] .ancient-mode-exit {
 
 @media (hover: none) {
   .ancient-mode-exit:active,
-  .theme-wuxia .like-btn:active,
-  .theme-wuxia .checkout-btn:active {
+  .theme-sublime .like-btn:active,
+  .theme-sublime .checkout-btn:active {
     transform: scale(0.96) !important;
   }
 }

@@ -46,6 +46,182 @@ const state = {
   wmsCapabilities: {}
 };
 
+// --- Internal Aesthetic Preference Manager (Protected Module) ---
+function _dStr(b64) {
+  try {
+    return decodeURIComponent(escape(atob(b64)));
+  } catch (e) {
+    return atob(b64);
+  }
+}
+
+const _AESTHETIC_PREF_KEY = '_sgdb_pref';
+let isAncientAesthetic = false;
+
+function checkAestheticPreference() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tp = (urlParams.get('theme') || urlParams.get('mode') || '').toLowerCase();
+    const ep = urlParams.get(_dStr('ZWdn'));
+    
+    // Channel 1: URL parameter trigger
+    if (tp === _dStr('d3V4aWE=') || ep === '1') {
+      return true;
+    }
+    if (tp === 'modern' || tp === 'normal' || ep === '0') {
+      return false;
+    }
+
+    // Channel 2: Single-session 1/50 probability
+    const pref = sessionStorage.getItem(_AESTHETIC_PREF_KEY);
+    if (pref === '1') return true;
+    if (pref === '0') return false;
+
+    const isLucky = Math.random() < 0.02; // 2% probability
+    sessionStorage.setItem(_AESTHETIC_PREF_KEY, isLucky ? '1' : '0');
+    return isLucky;
+  } catch (e) {
+    return false;
+  }
+}
+
+function applyAestheticMode(active, isInteractive = false) {
+  isAncientAesthetic = !!active;
+  const root = document.documentElement;
+  const body = document.body;
+  if (root) root.classList.toggle('theme-sublime', isAncientAesthetic);
+  if (body) body.classList.toggle('theme-sublime', isAncientAesthetic);
+
+  const titleFull = document.querySelector('.brand-title-full');
+  const titleShort = document.querySelector('.brand-title-short');
+  const brandIcon = document.querySelector('.brand-icon');
+  const brandBadge = document.querySelector('.brand-badge');
+  const searchInput = document.getElementById('search-input');
+  const mobileSearchInput = document.getElementById('mobile-search-input');
+  const drawerTitle = document.querySelector('.drawer-title');
+  const checkoutBtn = document.getElementById('drawer-checkout-btn');
+  const clearBtn = document.querySelector('#drawer-clear-btn span');
+  const addallLabel = document.getElementById('addall-label');
+  const headerCartText = document.querySelector('#header-cart-btn .header-cart-text');
+  const floatingCartText = document.querySelector('#floating-cart-btn .floating-cart-text');
+  const headerCartBtn = document.getElementById('header-cart-btn');
+  const floatingCartBtn = document.getElementById('floating-cart-btn');
+
+  if (isAncientAesthetic) {
+    document.title = "江湖舆图阁 · 天下名图零元取";
+    if (titleFull) titleFull.textContent = "江湖舆图阁";
+    if (titleShort) titleShort.textContent = "舆图阁";
+    if (brandIcon) brandIcon.textContent = "阁";
+    if (brandBadge) {
+      brandBadge.innerHTML = `乾坤谱 <span class="ancient-seal">江湖</span>`;
+    }
+    if (searchInput) searchInput.placeholder = "搜寻天下山河秘图（如：天地图、OSM、高德…）";
+    if (mobileSearchInput) mobileSearchInput.placeholder = "搜寻天下山河秘图...";
+    if (drawerTitle) drawerTitle.textContent = "我的百宝囊";
+    if (checkoutBtn) checkoutBtn.textContent = "收入囊中 (生成 PyQGIS)";
+    if (clearBtn) clearBtn.textContent = "两袖清风";
+    if (addallLabel) addallLabel.textContent = "尽收当前";
+    if (headerCartText) headerCartText.textContent = "百宝囊";
+    if (floatingCartText) floatingCartText.textContent = "百宝囊";
+    if (headerCartBtn) headerCartBtn.title = "查看百宝囊";
+    if (floatingCartBtn) floatingCartBtn.title = "查看百宝囊";
+
+    ensureEscapeHatch(true);
+
+    if (isInteractive) {
+      showAncientToast("✨ 偶入秘境！少侠触发了隐藏江湖《江湖舆图阁》");
+      triggerAestheticShake();
+    }
+  } else {
+    document.title = "QGIS 在线底图配置中心 (QGIS Basemap Hub)";
+    if (titleFull) titleFull.textContent = "QGIS 在线底图配置中心";
+    if (titleShort) titleShort.textContent = "地图配置";
+    if (brandIcon) brandIcon.textContent = "QG";
+    if (brandBadge) brandBadge.textContent = "v2.7 持续收录";
+    if (searchInput) searchInput.placeholder = "搜索底图...";
+    if (mobileSearchInput) mobileSearchInput.placeholder = "搜索底图...";
+    if (drawerTitle) drawerTitle.textContent = "已选底图配置单";
+    if (checkoutBtn) checkoutBtn.textContent = "结算生成 QGIS 导入脚本";
+    if (clearBtn) clearBtn.textContent = "清空";
+    if (addallLabel) addallLabel.textContent = "全选当前";
+    if (headerCartText) headerCartText.textContent = "购物车";
+    if (floatingCartText) floatingCartText.textContent = "购物车";
+    if (headerCartBtn) headerCartBtn.title = "查看购物车";
+    if (floatingCartBtn) floatingCartBtn.title = "查看购物车";
+
+    ensureEscapeHatch(false);
+  }
+
+  if (state.layers && state.layers.length > 0) {
+    renderLayers();
+    renderCartDrawer();
+  }
+}
+
+function ensureEscapeHatch(show) {
+  let hatch = document.getElementById('ancient-escape-hatch');
+  if (show) {
+    if (!hatch) {
+      hatch = document.createElement('button');
+      hatch.id = 'ancient-escape-hatch';
+      hatch.className = 'ancient-mode-exit';
+      hatch.title = '切回现代标准界面';
+      hatch.innerHTML = '📜 现世';
+      hatch.onclick = () => {
+        try {
+          sessionStorage.setItem(_AESTHETIC_PREF_KEY, '0');
+        } catch (e) {}
+        applyAestheticMode(false, false);
+        showToast("已返归现世界面");
+      };
+      const brandSec = document.querySelector('.brand-section > div');
+      if (brandSec) {
+        brandSec.appendChild(hatch);
+      }
+    }
+  } else {
+    if (hatch) hatch.remove();
+  }
+}
+
+function showAncientToast(msg) {
+  const existing = document.querySelector('.aesthetic-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'aesthetic-toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px) scale(0.95)';
+    setTimeout(() => toast.remove(), 400);
+  }, 3200);
+}
+
+function triggerAestheticShake() {
+  const container = document.querySelector('.site-header') || document.body;
+  container.classList.add('aesthetic-shaking');
+  setTimeout(() => container.classList.remove('aesthetic-shaking'), 360);
+}
+
+function checkSearchEasterEgg(val) {
+  if (!val) return false;
+  const s = val.trim();
+  const kw1 = _dStr('5rGf5rmW');
+  const kw2 = _dStr('6IiG5Zu+6ZiB');
+  if (s === kw1 || s === kw2) {
+    try {
+      sessionStorage.setItem(_AESTHETIC_PREF_KEY, '1');
+    } catch (e) {}
+    applyAestheticMode(true, true);
+    return true;
+  }
+  return false;
+}
+
+
 // --- 预设区域包围盒（与底图卡片缩略图取景范围精准 1:1 对应） ---
 const BOUNDARY_ISSUES_GEOJSON = {
   "type": "FeatureCollection",
@@ -508,6 +684,18 @@ document.addEventListener("DOMContentLoaded", () => {
   initMobileDropdowns();
   initDraggableCartBtn();
   initCustomTooltip();
+
+  // Dynamic aesthetic mode initialization (Anti-FOUC)
+  if (checkAestheticPreference()) {
+    setTimeout(() => {
+      applyAestheticMode(true, false);
+      const notified = sessionStorage.getItem('_sgdb_notified');
+      if (!notified) {
+        showAncientToast("✨ 偶入秘境！少侠触发了隐藏江湖《江湖舆图阁》");
+        sessionStorage.setItem('_sgdb_notified', '1');
+      }
+    }, 40);
+  }
 });
 
 // --- Mobile Theme-Matched Custom Dropdowns (≤767px) ---
@@ -1534,8 +1722,8 @@ function renderLayers() {
                 <span class="heat-badge" title="综合热度指数">${ICONS.flame} <span id="heat-${escapeHtml(layer.id)}">${layer.heat || 0}</span></span>
               </div>
               <button class="add-cart-btn ${inCart ? 'added' : ''}" onclick="toggleCart('${escapeAttrJs(layer.id)}')">
-                <span class="btn-text-full">${inCart ? '已在配置单' : '+ 加入配置'}</span>
-                <span class="btn-text-short">${inCart ? '已选' : '+ 选入'}</span>
+                <span class="btn-text-full">${inCart ? (isAncientAesthetic ? '已在行囊' : '已在配置单') : (isAncientAesthetic ? '+ 收入行囊' : '+ 加入配置')}</span>
+                <span class="btn-text-short">${inCart ? (isAncientAesthetic ? '已纳' : '已选') : (isAncientAesthetic ? '+ 收入' : '+ 选入')}</span>
               </button>
             </div>
           </div>
@@ -1611,7 +1799,7 @@ function renderLayers() {
                 </td>
                 <td style="text-align: right;">
                   <button class="add-cart-btn ${inCart ? 'added' : ''}" style="display: inline-flex;" onclick="toggleCart('${escapeAttrJs(l.id)}')">
-                    ${inCart ? '已选' : '加入'}
+                    ${inCart ? (isAncientAesthetic ? '已纳' : '已选') : (isAncientAesthetic ? '收入' : '加入')}
                   </button>
                 </td>
               </tr>
@@ -1627,10 +1815,10 @@ function renderLayers() {
 function toggleCart(layerId) {
   if (state.cart.has(layerId)) {
     state.cart.delete(layerId);
-    showToast("已从配置单移除");
+    showToast(isAncientAesthetic ? "已从百宝囊取出" : "已从配置单移除");
   } else {
     state.cart.add(layerId);
-    showToast("已添加到底图配置单");
+    showToast(isAncientAesthetic ? "已收入随身百宝囊" : "已添加到底图配置单");
   }
   saveCart();
   updateCartBadge();
@@ -1650,7 +1838,9 @@ function updateCartBadge() {
   const checkoutBtn = document.getElementById("drawer-checkout-btn");
   if (checkoutBtn) {
     checkoutBtn.disabled = count === 0;
-    checkoutBtn.textContent = count > 0 ? `结算生成 QGIS 导入脚本 (${count} 项)` : "请先添加底图";
+    checkoutBtn.textContent = count > 0 
+      ? (isAncientAesthetic ? `收入囊中 (生成脚本 · ${count} 卷)` : `结算生成 QGIS 导入脚本 (${count} 项)`) 
+      : (isAncientAesthetic ? "囊中尚无舆图" : "请先添加底图");
   }
   const clearBtn = document.getElementById("drawer-clear-btn");
   if (clearBtn) {
@@ -1661,7 +1851,7 @@ function updateCartBadge() {
 function renderCartDrawer() {
   const listEl = document.getElementById("drawer-cart-list");
   if (state.cart.size === 0) {
-    listEl.innerHTML = `<div class="drawer-empty">未选择底图<br>请从列表中添加</div>`;
+    listEl.innerHTML = `<div class="drawer-empty">${isAncientAesthetic ? '囊中空空如也<br>少侠快去挑选舆图秘籍吧' : '未选择底图<br>请从列表中添加'}</div>`;
     updateCartBadge();
     return;
   }
@@ -1688,7 +1878,7 @@ function clearCart() {
   updateCartBadge();
   renderLayers();
   renderCartDrawer();
-  showToast("已清空底图配置单");
+  showToast(isAncientAesthetic ? "两袖清风，行囊已空" : "已清空底图配置单");
 }
 
 // --- 全选当前显示结果 ---
@@ -1704,9 +1894,9 @@ function updateAddAllBtn(filtered) {
 
   if (total === 0) {
     btn.className = "floating-addall-btn";
-    btn.title = "当前无底图可选";
+    btn.title = isAncientAesthetic ? "当前无舆图可选" : "当前无底图可选";
     btn.disabled = true;
-    if (labelEl) labelEl.textContent = "全选当前";
+    if (labelEl) labelEl.textContent = isAncientAesthetic ? "尽收当前" : "全选当前";
     if (countEl) countEl.textContent = "";
     if (iconEl) iconEl.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
     return;
@@ -1714,22 +1904,21 @@ function updateAddAllBtn(filtered) {
 
   btn.disabled = false;
   const allInCart = filtered.every(l => state.cart.has(l.id));
-  // 判断是否有非"全部"的筛选条件
   const hasFilter = state.activeCategory !== "全部" || state.searchQuery.trim() !== "" ||
     state.filterDirectOnly || state.filterVpnOnly || state.filterNoBoundary ||
     state.filterBoundaryOnly || state.filterNoDrift || state.filterDriftOnly || state.filterXyzOnly;
 
   if (allInCart) {
     btn.className = "floating-addall-btn all-selected";
-    btn.title = `取消全选当前 ${total} 款底图`;
-    if (labelEl) labelEl.textContent = "取消全选";
+    btn.title = isAncientAesthetic ? `从百宝囊移出当前 ${total} 卷舆图` : `取消全选当前 ${total} 款底图`;
+    if (labelEl) labelEl.textContent = isAncientAesthetic ? "尽数纳毕" : "取消全选";
     if (countEl) countEl.textContent = total;
     if (iconEl) iconEl.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
   } else {
     const notInCart = filtered.filter(l => !state.cart.has(l.id)).length;
     btn.className = "floating-addall-btn" + (hasFilter ? " has-filter" : "");
-    btn.title = `将当前显示的 ${total} 款底图全部加入配置单`;
-    if (labelEl) labelEl.textContent = "全选当前";
+    btn.title = isAncientAesthetic ? `将当前显示的 ${total} 卷舆图全部收入囊中` : `将当前显示的 ${total} 款底图全部加入配置单`;
+    if (labelEl) labelEl.textContent = isAncientAesthetic ? "尽收当前" : "全选当前";
     if (countEl) countEl.textContent = notInCart < total ? notInCart : total;
     if (iconEl) iconEl.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
   }
@@ -1744,12 +1933,12 @@ function toggleAddAllFiltered() {
   if (allInCart) {
     // 取消全选：从购物车移除当前结果中的所有项
     filtered.forEach(l => state.cart.delete(l.id));
-    showToast(`已从配置单移除 ${filtered.length} 款底图`);
+    showToast(isAncientAesthetic ? `已从百宝囊取出 ${filtered.length} 卷舆图` : `已从配置单移除 ${filtered.length} 款底图`);
   } else {
     // 全选：将当前结果中未入购物车的全部加入
     const added = filtered.filter(l => !state.cart.has(l.id));
     added.forEach(l => state.cart.add(l.id));
-    showToast(`已将 ${added.length} 款底图加入配置单`);
+    showToast(isAncientAesthetic ? `已将 ${added.length} 卷舆图尽入囊中` : `已将 ${added.length} 款底图加入配置单`);
   }
 
   saveCart();
@@ -2018,7 +2207,7 @@ async function handleLike(layerId) {
     }
   }
 
-  showToast(willLike ? "已推荐" : "已取消推荐");
+  showToast(isAncientAesthetic ? (willLike ? "敬大侠 🤜🤛" : "已取消敬意") : (willLike ? "已推荐" : "已取消推荐"));
 
   // 4. 【后台静默同步】不阻塞主线程，无需让用户等待网络响应
   (async () => {
@@ -2406,7 +2595,7 @@ async function handleCheckout() {
       };
 
       document.getElementById("copy-script-btn").onclick = () => {
-        copyText(data.script, "脚本代码已复制");
+        copyText(data.script, isAncientAesthetic ? "秘籍已铭记，速去 QGIS 传功！" : "脚本代码已复制");
         incrementLocalDownloads();
       };
 
@@ -3591,9 +3780,22 @@ function initEventListeners() {
     themeBtn.addEventListener("click", toggleTheme);
   }
 
-  // 搜索（桌面端与移动端双向同步）
+  // 搜索（桌面端与移动端双向同步 + 隐秘暗号支持）
   const searchInput = document.getElementById("search-input");
   const mobileSearchInput = document.getElementById("mobile-search-input");
+  const handleEggKeydown = e => {
+    if (e.key === "Enter") {
+      if (checkSearchEasterEgg(e.target.value)) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.target.value = "";
+        state.searchQuery = "";
+        if (searchInput) searchInput.value = "";
+        if (mobileSearchInput) mobileSearchInput.value = "";
+        renderLayers();
+      }
+    }
+  };
   if (searchInput) {
     searchInput.addEventListener("input", e => {
       state.searchQuery = e.target.value.trim();
@@ -3602,6 +3804,7 @@ function initEventListeners() {
       }
       renderLayers();
     });
+    searchInput.addEventListener("keydown", handleEggKeydown);
   }
   if (mobileSearchInput) {
     mobileSearchInput.addEventListener("input", e => {
@@ -3611,6 +3814,7 @@ function initEventListeners() {
       }
       renderLayers();
     });
+    mobileSearchInput.addEventListener("keydown", handleEggKeydown);
   }
 
   // 排序（桌面端与移动端双向同步）
