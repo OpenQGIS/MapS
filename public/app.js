@@ -3336,7 +3336,7 @@ function openPreviewModal(layerId) {
 
   const titleEl = document.getElementById("preview-modal-title");
   if (titleEl) {
-    titleEl.innerHTML = `<span class="preview-title-prefix">底图预览 · </span><span class="preview-title-name">${escapeHtml(layer.name)}</span>`;
+    titleEl.innerHTML = `<span class="preview-title-name">${escapeHtml(layer.name)}</span>`;
   }
   const formatEl = document.getElementById("preview-meta-format");
   if (formatEl) formatEl.textContent = layer.format || "-";
