@@ -505,9 +505,138 @@ document.addEventListener("DOMContentLoaded", () => {
   initMobileGestures();
   initToolbarCollapse();
   initMobileLayoutToggle();
+  initMobileDropdowns();
   initDraggableCartBtn();
   initCustomTooltip();
 });
+
+// --- Mobile Theme-Matched Custom Dropdowns (≤767px) ---
+function closeAllMobileDropdowns() {
+  document.querySelectorAll(".mobile-mod-card.has-dropdown").forEach(card => {
+    card.classList.remove("open");
+    const menu = card.querySelector(".mobile-custom-dropdown");
+    if (menu) menu.style.display = "none";
+  });
+}
+
+function syncMobileSortDropdown() {
+  const sortLabels = {
+    "heat": "综合",
+    "likes": "点赞",
+    "downloads": "导出",
+    "name": "名称"
+  };
+  const sortLabel = document.getElementById("mobile-sort-label");
+  if (sortLabel) {
+    sortLabel.textContent = sortLabels[state.currentSort] || "综合";
+  }
+  const sortItems = document.querySelectorAll("#mobile-sort-dropdown .mobile-dropdown-item");
+  sortItems.forEach(it => {
+    if (it.dataset.value === state.currentSort) it.classList.add("active");
+    else it.classList.remove("active");
+  });
+}
+
+function initMobileDropdowns() {
+  const dropdownCards = document.querySelectorAll(".mobile-mod-card.has-dropdown");
+  dropdownCards.forEach(card => {
+    const trigger = card.querySelector(".mobile-mod-trigger") || card;
+    trigger.addEventListener("click", e => {
+      if (e.target.closest(".mobile-custom-dropdown")) return;
+      e.stopPropagation();
+      const isOpen = card.classList.contains("open");
+      closeAllMobileDropdowns();
+      if (!isOpen) {
+        card.classList.add("open");
+        const menu = card.querySelector(".mobile-custom-dropdown");
+        if (menu) menu.style.display = "flex";
+      }
+    });
+  });
+
+  // Multi-select filter items click (不自动关闭，支持自由多选)
+  const filterItems = document.querySelectorAll("#mobile-filter-dropdown .mobile-filter-item");
+  filterItems.forEach(item => {
+    item.addEventListener("click", e => {
+      e.stopPropagation();
+      const filterKey = item.dataset.filter;
+      if (filterKey === "direct") {
+        state.filterDirectOnly = !state.filterDirectOnly;
+        if (state.filterDirectOnly) state.filterVpnOnly = false;
+        showToast(state.filterDirectOnly ? "已勾选：国内直连" : "已取消：国内直连");
+      } else if (filterKey === "no-boundary") {
+        state.filterNoBoundary = !state.filterNoBoundary;
+        if (state.filterNoBoundary) state.filterBoundaryOnly = false;
+        showToast(state.filterNoBoundary ? "已勾选：无边界争议" : "已取消：无边界争议");
+      } else if (filterKey === "no-drift") {
+        state.filterNoDrift = !state.filterNoDrift;
+        if (state.filterNoDrift) state.filterDriftOnly = false;
+        showToast(state.filterNoDrift ? "已勾选：无坐标偏移" : "已取消：无坐标偏移");
+      } else if (filterKey === "xyz") {
+        state.filterXyzOnly = !state.filterXyzOnly;
+        showToast(state.filterXyzOnly ? "已勾选：仅XYZ瓦片" : "已取消：仅XYZ瓦片");
+      }
+      syncMobileFilterDropdown();
+      renderLayers();
+    });
+  });
+
+  // Reset button click in filter dropdown
+  const filterResetBtn = document.getElementById("mobile-filter-reset-btn");
+  if (filterResetBtn) {
+    filterResetBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      state.filterDirectOnly = false;
+      state.filterVpnOnly = false;
+      state.filterNoBoundary = false;
+      state.filterBoundaryOnly = false;
+      state.filterNoDrift = false;
+      state.filterDriftOnly = false;
+      state.filterXyzOnly = false;
+      showToast("已清空所有筛选");
+      syncMobileFilterDropdown();
+      renderLayers();
+    });
+  }
+
+  // Sort dropdown items click
+  const sortItems = document.querySelectorAll("#mobile-sort-dropdown .mobile-dropdown-item");
+  sortItems.forEach(item => {
+    item.addEventListener("click", e => {
+      e.stopPropagation();
+      const val = item.dataset.value;
+      state.currentSort = val;
+      const sortSelect = document.getElementById("sort-select");
+      if (sortSelect) sortSelect.value = val;
+      const mobileSortSelect = document.getElementById("mobile-sort-select");
+      if (mobileSortSelect) mobileSortSelect.value = val;
+      syncMobileSortDropdown();
+      renderLayers();
+      closeAllMobileDropdowns();
+    });
+  });
+
+  // Click outside to close
+  document.addEventListener("click", e => {
+    if (!e.target.closest(".mobile-mod-card.has-dropdown")) {
+      closeAllMobileDropdowns();
+    }
+  });
+
+  window.addEventListener("scroll", () => {
+    closeAllMobileDropdowns();
+  }, { passive: true });
+
+  window.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      closeAllMobileDropdowns();
+    }
+  });
+
+  // 初始化移动端下拉状态
+  syncMobileFilterDropdown();
+  syncMobileSortDropdown();
+}
 
 // --- Mobile Layout Column Switcher (≤767px) ---
 // 支持单列详细大图与双列紧凑瀑布流自由切换，状态记忆在 localStorage，移动端默认双列。
@@ -538,7 +667,7 @@ function applyMobileCols(cols, notify = false) {
   btn.setAttribute("data-cols", cols);
   btn.title = isDouble ? "当前为双列瀑布流，点击切换为单列大图" : "当前为单列大图，点击切换为双列瀑布流";
 
-  const textEl = btn.querySelector(".mobile-layout-text");
+  const textEl = btn.querySelector(".view-toggle-text") || btn.querySelector(".mobile-layout-text");
   if (textEl) {
     textEl.textContent = isDouble ? "双列" : "单列";
   }
@@ -571,6 +700,16 @@ function initToolbarCollapse() {
     const next = !toolbar.classList.contains("toolbar-collapsed");
     localStorage.setItem("qgis_toolbar_collapsed", next ? "1" : "0");
     applyToolbarCollapsed(toolbar, btn, next);
+  });
+
+  // 移动端：当展开筛选工具栏后，点击工具栏外部区域自动收起折叠
+  document.addEventListener("pointerdown", e => {
+    if (window.innerWidth > 767) return;
+    if (toolbar.classList.contains("toolbar-collapsed")) return;
+    if (!toolbar.contains(e.target)) {
+      localStorage.setItem("qgis_toolbar_collapsed", "1");
+      applyToolbarCollapsed(toolbar, btn, true);
+    }
   });
 }
 
@@ -1128,6 +1267,130 @@ function handleCardClick(e, layerId) {
   // no-op
 }
 
+// 移动端【筛选】下拉选择特性
+function applyMobileFilterSelect(val) {
+  state.filterDirectOnly = false;
+  state.filterVpnOnly = false;
+  state.filterNoBoundary = false;
+  state.filterBoundaryOnly = false;
+  state.filterNoDrift = false;
+  state.filterDriftOnly = false;
+  state.filterXyzOnly = false;
+
+  if (val === "direct") {
+    state.filterDirectOnly = true;
+    showToast("已筛选：国内直连");
+  } else if (val === "no-boundary") {
+    state.filterNoBoundary = true;
+    showToast("已筛选：无边界争议");
+  } else if (val === "no-drift") {
+    state.filterNoDrift = true;
+    showToast("已筛选：无坐标偏移");
+  } else if (val === "xyz") {
+    state.filterXyzOnly = true;
+    showToast("已筛选：仅XYZ瓦片");
+  } else if (val === "compliant") {
+    state.filterDirectOnly = true;
+    state.filterNoBoundary = true;
+    showToast("已筛选：合规直连(无边界+直连)");
+  } else if (val === "vpn") {
+    state.filterVpnOnly = true;
+    showToast("已筛选：需代理/VPN");
+  } else if (val === "boundary-risk") {
+    state.filterBoundaryOnly = true;
+    showToast("已筛选：存在边界争议");
+  } else if (val === "drift") {
+    state.filterDriftOnly = true;
+    showToast("已筛选：火星坐标偏移");
+  } else {
+    showToast("已重置特性筛选：全部底图");
+  }
+
+  // 同步桌面端复选框勾选状态
+  const chkDirect = document.getElementById("chk-direct");
+  const chkBoundary = document.getElementById("chk-boundary");
+  const chkDrift = document.getElementById("chk-drift");
+  const chkXyz = document.getElementById("chk-xyz");
+  if (chkDirect) chkDirect.checked = state.filterDirectOnly;
+  if (chkBoundary) chkBoundary.checked = state.filterNoBoundary;
+  if (chkDrift) chkDrift.checked = state.filterNoDrift;
+  if (chkXyz) chkXyz.checked = state.filterXyzOnly;
+
+  syncMobileFilterDropdown();
+  renderLayers();
+}
+
+function syncMobileFilterDropdown() {
+  const card = document.getElementById("mobile-mod-filter");
+  const filterLabel = document.getElementById("mobile-filter-label");
+  const resetBtn = document.getElementById("mobile-filter-reset-btn");
+
+  const isDirect = !!state.filterDirectOnly;
+  const isNoBoundary = !!state.filterNoBoundary;
+  const isNoDrift = !!state.filterNoDrift;
+  const isXyz = !!state.filterXyzOnly;
+
+  // Sync checkboxes inside the dropdown
+  const itemDirect = document.querySelector('#mobile-filter-dropdown .mobile-filter-item[data-filter="direct"]');
+  const itemBoundary = document.querySelector('#mobile-filter-dropdown .mobile-filter-item[data-filter="no-boundary"]');
+  const itemDrift = document.querySelector('#mobile-filter-dropdown .mobile-filter-item[data-filter="no-drift"]');
+  const itemXyz = document.querySelector('#mobile-filter-dropdown .mobile-filter-item[data-filter="xyz"]');
+
+  if (itemDirect) itemDirect.classList.toggle("checked", isDirect);
+  if (itemBoundary) itemBoundary.classList.toggle("checked", isNoBoundary);
+  if (itemDrift) itemDrift.classList.toggle("checked", isNoDrift);
+  if (itemXyz) itemXyz.classList.toggle("checked", isXyz);
+
+  // Sync desktop checkboxes
+  const chkDirect = document.getElementById("chk-direct");
+  const chkBoundary = document.getElementById("chk-boundary");
+  const chkDrift = document.getElementById("chk-drift");
+  const chkXyz = document.getElementById("chk-xyz");
+  if (chkDirect && chkDirect.checked !== isDirect) chkDirect.checked = isDirect;
+  if (chkBoundary && chkBoundary.checked !== isNoBoundary) chkBoundary.checked = isNoBoundary;
+  if (chkDrift && chkDrift.checked !== isNoDrift) chkDrift.checked = isNoDrift;
+  if (chkXyz && chkXyz.checked !== isXyz) chkXyz.checked = isXyz;
+
+  // Calculate selected labels
+  const selected = [];
+  if (isDirect) selected.push("直连");
+  if (isNoBoundary) selected.push("无争议");
+  if (isNoDrift) selected.push("无偏移");
+  if (isXyz) selected.push("XYZ");
+
+  if (filterLabel) {
+    if (selected.length === 0) {
+      filterLabel.textContent = "无";
+    } else if (selected.length === 1) {
+      filterLabel.textContent = selected[0];
+    } else if (isDirect && isNoBoundary && selected.length === 2) {
+      filterLabel.textContent = "合规(2)";
+    } else {
+      filterLabel.textContent = `已选(${selected.length})`;
+    }
+  }
+
+  if (card) {
+    card.classList.toggle("has-active-filter", selected.length > 0);
+  }
+
+  if (resetBtn) {
+    resetBtn.style.opacity = selected.length > 0 ? "1" : "0.35";
+    resetBtn.style.pointerEvents = selected.length > 0 ? "auto" : "none";
+  }
+
+  // Sync hidden native select value
+  const sel = document.getElementById("mobile-filter-select");
+  if (sel) {
+    if (isDirect && isNoBoundary) sel.value = "compliant";
+    else if (isDirect) sel.value = "direct";
+    else if (isNoBoundary) sel.value = "no-boundary";
+    else if (isNoDrift) sel.value = "no-drift";
+    else if (isXyz) sel.value = "xyz";
+    else sel.value = "all";
+  }
+}
+
 // --- Rendering ---
 function renderCategories() {
   const cats = ["全部", "电子地图", "地形图", "影像图", "标注图", "铁路地图", "土地利用图", "海床图"];
@@ -1150,6 +1413,36 @@ function renderCategories() {
     });
   }
 
+  // 同步移动端标签触发器当前文本与专属下拉浮层
+  const tagLabel = document.getElementById("mobile-tag-label");
+  if (tagLabel) {
+    tagLabel.textContent = state.activeCategory === "全部" ? "全部" : state.activeCategory;
+  }
+  const tagCard = document.getElementById("mobile-mod-tag");
+  if (tagCard) {
+    tagCard.classList.toggle("has-active-category", state.activeCategory !== "全部");
+  }
+
+  const tagDropdown = document.getElementById("mobile-tag-dropdown");
+  if (tagDropdown) {
+    tagDropdown.innerHTML = "";
+    cats.forEach(c => {
+      const count = c === "全部" 
+        ? state.layers.filter(l => l.format !== "插件类").length
+        : state.layers.filter(l => l.format !== "插件类" && l.categories.includes(c)).length;
+      const item = document.createElement("div");
+      item.className = `mobile-dropdown-item ${state.activeCategory === c ? "active" : ""}`;
+      item.dataset.value = c;
+      item.innerHTML = `<span>${c}</span><span class="item-count">${count}</span>`;
+      item.addEventListener("click", e => {
+        e.stopPropagation();
+        toggleCategoryFilter(c);
+        closeAllMobileDropdowns();
+      });
+      tagDropdown.appendChild(item);
+    });
+  }
+
   if (mobileSelect) {
     mobileSelect.innerHTML = "";
     cats.forEach(c => {
@@ -1158,7 +1451,7 @@ function renderCategories() {
         : state.layers.filter(l => l.format !== "插件类" && l.categories.includes(c)).length;
       const opt = document.createElement("option");
       opt.value = c;
-      opt.textContent = `${c === "全部" ? "全部分类" : c} (${count}款)`;
+      opt.textContent = `${c} (${count})`;
       if (state.activeCategory === c) opt.selected = true;
       mobileSelect.appendChild(opt);
     });
@@ -1174,6 +1467,7 @@ function renderLayers() {
   const filtered = getFilteredLayers();
   
   document.getElementById("filtered-count").textContent = `${filtered.length} 款底图`;
+  updateAddAllBtn(filtered);
 
   if (state.viewMode === "grid") {
     container.className = "layers-grid";
@@ -1397,17 +1691,133 @@ function clearCart() {
   showToast("已清空底图配置单");
 }
 
+// --- 全选当前显示结果 ---
+function updateAddAllBtn(filtered) {
+  const btn = document.getElementById("floating-addall-btn");
+  const iconEl = document.getElementById("addall-icon");
+  const labelEl = document.getElementById("addall-label");
+  const countEl = document.getElementById("addall-count");
+  if (!btn) return;
+
+  filtered = filtered || getFilteredLayers();
+  const total = filtered.length;
+
+  if (total === 0) {
+    btn.className = "floating-addall-btn";
+    btn.title = "当前无底图可选";
+    btn.disabled = true;
+    if (labelEl) labelEl.textContent = "全选当前";
+    if (countEl) countEl.textContent = "";
+    if (iconEl) iconEl.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+    return;
+  }
+
+  btn.disabled = false;
+  const allInCart = filtered.every(l => state.cart.has(l.id));
+  // 判断是否有非"全部"的筛选条件
+  const hasFilter = state.activeCategory !== "全部" || state.searchQuery.trim() !== "" ||
+    state.filterDirectOnly || state.filterVpnOnly || state.filterNoBoundary ||
+    state.filterBoundaryOnly || state.filterNoDrift || state.filterDriftOnly || state.filterXyzOnly;
+
+  if (allInCart) {
+    btn.className = "floating-addall-btn all-selected";
+    btn.title = `取消全选当前 ${total} 款底图`;
+    if (labelEl) labelEl.textContent = "取消全选";
+    if (countEl) countEl.textContent = total;
+    if (iconEl) iconEl.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  } else {
+    const notInCart = filtered.filter(l => !state.cart.has(l.id)).length;
+    btn.className = "floating-addall-btn" + (hasFilter ? " has-filter" : "");
+    btn.title = `将当前显示的 ${total} 款底图全部加入配置单`;
+    if (labelEl) labelEl.textContent = "全选当前";
+    if (countEl) countEl.textContent = notInCart < total ? notInCart : total;
+    if (iconEl) iconEl.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+  }
+}
+
+function toggleAddAllFiltered() {
+  const filtered = getFilteredLayers();
+  if (filtered.length === 0) return;
+
+  const allInCart = filtered.every(l => state.cart.has(l.id));
+
+  if (allInCart) {
+    // 取消全选：从购物车移除当前结果中的所有项
+    filtered.forEach(l => state.cart.delete(l.id));
+    showToast(`已从配置单移除 ${filtered.length} 款底图`);
+  } else {
+    // 全选：将当前结果中未入购物车的全部加入
+    const added = filtered.filter(l => !state.cart.has(l.id));
+    added.forEach(l => state.cart.add(l.id));
+    showToast(`已将 ${added.length} 款底图加入配置单`);
+  }
+
+  saveCart();
+  updateCartBadge();
+  renderLayers();
+  renderCartDrawer();
+}
+
 function applyPreset(presetType) {
   if (presetType === "top10_direct") {
-    const top = state.layers.filter(l => !l.needs_vpn && l.format !== "插件类").slice(0, 10);
-    top.forEach(l => state.cart.add(l.id));
-    showToast("已选入 10 款常用直连底图");
+    // 精选推荐 10 款底图：
+    // 1. esri影像 (layer_36)
+    // 2. 谷歌影像 (layer_38)
+    // 3. osm.de (layer_18)
+    // 4. 星图地球 (layer_12)
+    // 5. Esri_World_Light_Gray_Base (layer_15)
+    // 6. Esri Topography Map地形图 (layer_13)
+    // 7. 欧洲海洋观测EMODnet (layer_48)
+    // 8. 高德卫星图 (layer_49)
+    // 9. CycleOSM_Waymarked_Trails (layer_26)
+    // 10. 高德矢量电子地图 (layer_51)
+    const targetLayerIds = [
+      "layer_36", // esri影像
+      "layer_38", // 谷歌影像
+      "layer_18", // osm.de
+      "layer_12", // 星图地球
+      "layer_15", // Esri World Light Gray Base
+      "layer_13", // Esri Elevation World Hillshade
+      "layer_48", // 欧洲海洋观测EMODnet
+      "layer_49", // 高德卫星图 style=6
+      "layer_26", // CycleOSM Waymarked Trails
+      "layer_51"  // 高德矢量电子地图 style=7
+    ];
+    const top10 = [];
+    targetLayerIds.forEach(id => {
+      const match = state.layers.find(l => l.id === id);
+      if (match && !top10.some(item => item.id === match.id)) {
+        top10.push(match);
+      }
+    });
+    // 容错补充（支持 URL 特征匹配）
+    if (top10.length < 10) {
+      const fallbackUrlKeywords = [
+        "World_Imagery/MapServer",
+        "mt1.google.com/vt/lyrs=s",
+        "tile.openstreetmap.de",
+        "geovisearth.com",
+        "Canvas/World_Light_Gray_Base",
+        "Elevation/World_Hillshade",
+        "tiles.emodnet-bathymetry.eu",
+        "autonavi.com/appmaptile?style=6",
+        "waymarkedtrails.org/cycling",
+        "autonavi.com/appmaptile?lang=zh_cn&size=1&style=7"
+      ];
+      fallbackUrlKeywords.forEach(kw => {
+        if (top10.length >= 10) return;
+        const match = state.layers.find(l => l.url && l.url.includes(kw) && !top10.some(item => item.id === l.id));
+        if (match) top10.push(match);
+      });
+    }
+    top10.forEach(l => state.cart.add(l.id));
+    showToast(`已选入 ${top10.length} 款国内常用推荐底图`);
   } else if (presetType === "imagery") {
     const imags = state.layers.filter(l => l.categories.some(c => c.includes("影像")));
     imags.forEach(l => state.cart.add(l.id));
     showToast("已选入全部卫星影像");
   } else if (presetType === "compliant") {
-    const comp = state.layers.filter(l => !l.has_boundary_issue && !l.needs_vpn);
+    const comp = state.layers.filter(l => l.format !== "插件类" && !l.has_boundary_issue && !l.needs_vpn);
     comp.forEach(l => state.cart.add(l.id));
     showToast("已选入合规推荐底图");
   }
@@ -2565,10 +2975,50 @@ function findWmsCapabilityForLayer(layer) {
   return null;
 }
 
+// 格式化子图层友好简明标题，剔除冗余前缀与过长技术废话，防止移动端下拉弹窗文字过长撑爆屏幕
+function formatSublayerDisplayTitle(sl, layerId) {
+  if (!sl) return '';
+  const id = sl.id || '';
+  const title = (sl.title || '').trim();
+
+  if (layerId === 'layer_6') {
+    const mYear = title.match(/Sentinel-2\s+cloudless(?:\s+layer)?\s+(?:for\s+)?(\d{4})/i) || id.match(/s2cloudless-(\d{4})/i) || id.match(/s2cloudless_(\d{4})/i);
+    const mEpsg = title.match(/(\d{4})$/) || id.match(/(\d{4})$/);
+    const epsgStr = mEpsg ? mEpsg[1] : '';
+
+    if (mYear) return `哨兵2号 ${mYear[1]}无云${epsgStr ? ` (${epsgStr})` : ''}`;
+    if (id.includes('streets') || title.toLowerCase().includes('streets')) return `街道路网${epsgStr ? ` (${epsgStr})` : ''}`;
+    if (id.includes('graticules') || title.toLowerCase().includes('graticules')) return `经纬度网格${epsgStr ? ` (${epsgStr})` : ''}`;
+    if (id.includes('coastline') || title.toLowerCase().includes('coastline')) return `海岸线图层${epsgStr ? ` (${epsgStr})` : ''}`;
+    if (id.includes('hydrography') || title.toLowerCase().includes('hydrography')) return `水系水文图层${epsgStr ? ` (${epsgStr})` : ''}`;
+    if (id.includes('overlay_bright') || title.toLowerCase().includes('bright overlay')) return `明亮路网叠加${epsgStr ? ` (${epsgStr})` : ''}`;
+    if (id.includes('overlay_base') || title.toLowerCase().includes('overlay base')) return `基础路网叠加${epsgStr ? ` (${epsgStr})` : ''}`;
+    if (id.includes('overlay') || title.toLowerCase().includes('overlay')) return `标准路网叠加${epsgStr ? ` (${epsgStr})` : ''}`;
+    if (id.includes('bluemarble')) return `NASA蓝色大理石${epsgStr ? ` (${epsgStr})` : ''}`;
+    if (id.includes('blackmarble')) return `NASA黑色大理石夜光${epsgStr ? ` (${epsgStr})` : ''}`;
+    if (id.includes('terrain-light')) return `浅色地形底图${epsgStr ? ` (${epsgStr})` : ''}`;
+    if (id.includes('terrain')) return `晕渲地形底图${epsgStr ? ` (${epsgStr})` : ''}`;
+    if (id.includes('osm')) return `OSM基础底图${epsgStr ? ` (${epsgStr})` : ''}`;
+  }
+
+  if (title && title !== id) {
+    if (title.startsWith(id)) return title;
+    if (title.startsWith('World Imagery (Wayback')) {
+      const m = title.match(/Wayback\s+[^)]+/);
+      if (m) return m[0];
+    }
+    if (title.includes('by terrestris')) {
+      return title.replace(' - by terrestris', '');
+    }
+    return title;
+  }
+  return id;
+}
+
 function updateSublayerMetaDisplay(layerId, sublayerId) {
   const capData = findWmsCapabilityForLayer({ id: layerId });
   const sublayerObj = capData && capData.layers ? capData.layers.find(s => s.id === sublayerId) : null;
-  const sublayerTitle = sublayerObj ? (sublayerObj.title || sublayerId) : (sublayerId || "");
+  const sublayerTitle = sublayerObj ? formatSublayerDisplayTitle(sublayerObj, layerId) : (sublayerId || "");
 
   const metaSublayer = document.getElementById("preview-meta-sublayer");
   if (metaSublayer) {
@@ -2635,9 +3085,10 @@ function setupPreviewSublayers(layer) {
 
     if (sublayerSelect) {
       sublayerSelect.innerHTML = capData.layers.map(sl => {
-        const titleText = sl.title && sl.title !== sl.id ? `${sl.id} · ${sl.title}` : sl.id;
+        const displayTitle = formatSublayerDisplayTitle(sl, layerId);
         const cleanAbs = (sl.abstract || '').replace(/<[^>]+>/g, '').trim();
-        return `<option value="${escapeHtml(sl.id)}" title="${escapeHtml(cleanAbs || sl.title || sl.id)}">${escapeHtml(titleText)}</option>`;
+        const fullTooltip = sl.id && sl.id !== displayTitle ? `${sl.id} · ${cleanAbs || sl.title || sl.id}` : (cleanAbs || sl.title || sl.id);
+        return `<option value="${escapeHtml(sl.id)}" title="${escapeHtml(fullTooltip)}">${escapeHtml(displayTitle)}</option>`;
       }).join('');
 
       // 智能首选子图层匹配策略：
@@ -2694,7 +3145,10 @@ function openPreviewModal(layerId) {
   const metaToggle = document.getElementById("preview-meta-toggle");
   if (metaToggle) metaToggle.setAttribute("aria-expanded", "false");
 
-  document.getElementById("preview-modal-title").textContent = `底图预览 · ${layer.name}`;
+  const titleEl = document.getElementById("preview-modal-title");
+  if (titleEl) {
+    titleEl.innerHTML = `<span class="preview-title-prefix">底图预览 · </span><span class="preview-title-name">${escapeHtml(layer.name)}</span>`;
+  }
   const formatEl = document.getElementById("preview-meta-format");
   if (formatEl) formatEl.textContent = layer.format || "-";
   const urlEl = document.getElementById("preview-meta-url");
@@ -3064,6 +3518,8 @@ function openCart() {
   document.body.classList.add("cart-open");
   const fc = document.getElementById("floating-cart-container");
   if (fc) fc.classList.add("drawer-open");
+  const drawer = document.getElementById("cart-drawer");
+  if (drawer) drawer.style.transform = "";
   document.getElementById("cart-drawer").classList.add("open");
   document.getElementById("cart-backdrop").classList.add("open");
   document.body.style.overflow = "hidden";
@@ -3084,13 +3540,16 @@ function closeCart() {
   }
 }
 
+let toastTimer = null;
 function showToast(msg) {
   const toast = document.getElementById("toast");
-  toast.textContent = msg;
+  if (!toast) return;
+  toast.innerHTML = `<span class="toast-dot" aria-hidden="true"></span><span class="toast-text">${escapeHtml(msg)}</span>`;
   toast.classList.add("show");
-  setTimeout(() => {
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
     toast.classList.remove("show");
-  }, 2200);
+  }, 2000);
 }
 
 function escapeHtml(str) {
@@ -3132,17 +3591,51 @@ function initEventListeners() {
     themeBtn.addEventListener("click", toggleTheme);
   }
 
-  // 搜索
-  document.getElementById("search-input").addEventListener("input", e => {
-    state.searchQuery = e.target.value.trim();
-    renderLayers();
-  });
+  // 搜索（桌面端与移动端双向同步）
+  const searchInput = document.getElementById("search-input");
+  const mobileSearchInput = document.getElementById("mobile-search-input");
+  if (searchInput) {
+    searchInput.addEventListener("input", e => {
+      state.searchQuery = e.target.value.trim();
+      if (mobileSearchInput && mobileSearchInput.value !== e.target.value) {
+        mobileSearchInput.value = e.target.value;
+      }
+      renderLayers();
+    });
+  }
+  if (mobileSearchInput) {
+    mobileSearchInput.addEventListener("input", e => {
+      state.searchQuery = e.target.value.trim();
+      if (searchInput && searchInput.value !== e.target.value) {
+        searchInput.value = e.target.value;
+      }
+      renderLayers();
+    });
+  }
 
-  // 排序
-  document.getElementById("sort-select").addEventListener("change", e => {
-    state.currentSort = e.target.value;
-    renderLayers();
-  });
+  // 排序（桌面端与移动端双向同步）
+  const sortSelect = document.getElementById("sort-select");
+  const mobileSortSelect = document.getElementById("mobile-sort-select");
+  if (sortSelect) {
+    sortSelect.addEventListener("change", e => {
+      state.currentSort = e.target.value;
+      if (mobileSortSelect && mobileSortSelect.value !== e.target.value) {
+        mobileSortSelect.value = e.target.value;
+      }
+      syncMobileSortDropdown();
+      renderLayers();
+    });
+  }
+  if (mobileSortSelect) {
+    mobileSortSelect.addEventListener("change", e => {
+      state.currentSort = e.target.value;
+      if (sortSelect && sortSelect.value !== e.target.value) {
+        sortSelect.value = e.target.value;
+      }
+      syncMobileSortDropdown();
+      renderLayers();
+    });
+  }
 
   // 视图切换 (纯 SVG 矢量图标)
   const btnGrid = document.getElementById("view-btn-grid");
@@ -3165,7 +3658,7 @@ function initEventListeners() {
     });
   }
 
-  // 手机端成熟下拉选择器
+  // 手机端【标签】下拉选择器
   const mobileCatSelect = document.getElementById("mobile-category-select");
   if (mobileCatSelect) {
     mobileCatSelect.addEventListener("change", e => {
@@ -3173,29 +3666,53 @@ function initEventListeners() {
     });
   }
 
-  // 过滤复选框
-  document.getElementById("chk-direct").addEventListener("change", e => {
-    state.filterDirectOnly = e.target.checked;
-    if (state.filterDirectOnly) state.filterVpnOnly = false;
-    renderLayers();
-  });
+  // 手机端【筛选】特性下拉选择器
+  const mobileFilterSelect = document.getElementById("mobile-filter-select");
+  if (mobileFilterSelect) {
+    mobileFilterSelect.addEventListener("change", e => {
+      applyMobileFilterSelect(e.target.value);
+    });
+  }
 
-  document.getElementById("chk-boundary").addEventListener("change", e => {
-    state.filterNoBoundary = e.target.checked;
-    if (state.filterNoBoundary) state.filterBoundaryOnly = false;
-    renderLayers();
-  });
+  // 桌面端过滤复选框
+  const chkDirect = document.getElementById("chk-direct");
+  if (chkDirect) {
+    chkDirect.addEventListener("change", e => {
+      state.filterDirectOnly = e.target.checked;
+      if (state.filterDirectOnly) state.filterVpnOnly = false;
+      syncMobileFilterDropdown();
+      renderLayers();
+    });
+  }
 
-  document.getElementById("chk-drift").addEventListener("change", e => {
-    state.filterNoDrift = e.target.checked;
-    if (state.filterNoDrift) state.filterDriftOnly = false;
-    renderLayers();
-  });
+  const chkBoundary = document.getElementById("chk-boundary");
+  if (chkBoundary) {
+    chkBoundary.addEventListener("change", e => {
+      state.filterNoBoundary = e.target.checked;
+      if (state.filterNoBoundary) state.filterBoundaryOnly = false;
+      syncMobileFilterDropdown();
+      renderLayers();
+    });
+  }
 
-  document.getElementById("chk-xyz").addEventListener("change", e => {
-    state.filterXyzOnly = e.target.checked;
-    renderLayers();
-  });
+  const chkDrift = document.getElementById("chk-drift");
+  if (chkDrift) {
+    chkDrift.addEventListener("change", e => {
+      state.filterNoDrift = e.target.checked;
+      if (state.filterNoDrift) state.filterDriftOnly = false;
+      syncMobileFilterDropdown();
+      renderLayers();
+    });
+  }
+
+  const chkXyz = document.getElementById("chk-xyz");
+  if (chkXyz) {
+    chkXyz.addEventListener("change", e => {
+      state.filterXyzOnly = e.target.checked;
+      syncMobileFilterDropdown();
+      renderLayers();
+    });
+  }
 
   // 购物车抽屉按钮
   document.getElementById("header-cart-btn").addEventListener("click", openCart);
@@ -3251,14 +3768,17 @@ function initEventListeners() {
   }
 
   if (wmsCloseBtn && wmsDock) {
-    wmsCloseBtn.addEventListener("click", e => {
+    const handleClose = e => {
       e.stopPropagation();
+      e.preventDefault();
       wmsDock.classList.remove("expanded");
       if (wmsToggleBtn) wmsToggleBtn.setAttribute("aria-expanded", "false");
-    });
+    };
+    wmsCloseBtn.addEventListener("click", handleClose);
+    wmsCloseBtn.addEventListener("touchend", handleClose);
   }
 
-  // 点击地图画布或弹窗空白处自动收起子图层下拉
+  // 点击地图画布或弹窗空白处、触摸外部区域自动收起子图层悬浮下拉
   const previewMapWrap = document.getElementById("leaflet-map");
   if (previewMapWrap && wmsDock) {
     previewMapWrap.addEventListener("click", () => {
@@ -3268,6 +3788,16 @@ function initEventListeners() {
       }
     });
   }
+
+  // 移动端全局监听：展开子图层悬浮窗后，轻触弹窗内地图或任意外部区域立即收起折叠
+  document.addEventListener("pointerdown", e => {
+    if (wmsDock && wmsDock.classList.contains("expanded")) {
+      if (!wmsDock.contains(e.target)) {
+        wmsDock.classList.remove("expanded");
+        if (wmsToggleBtn) wmsToggleBtn.setAttribute("aria-expanded", "false");
+      }
+    }
+  });
 
   // WMS/WMTS 子图层快速切换下拉选择
   const sublayerSelect = document.getElementById("preview-sublayer-select") || document.getElementById("preview-wms-select");

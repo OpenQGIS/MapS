@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <!-- MapLibre GL CSS for Vector Tiles Preview (MVT) -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
-  <link rel="stylesheet" href="./style.css?v=7.9">
+  <link rel="stylesheet" href="./style.css?v=9.7">
 </head>
 <body>
 
@@ -53,7 +53,7 @@
         </div>
       </div>
 
-      <!-- 操作区域：主题切换 + 购物车 -->
+      <!-- 操作区域：主题切换 + 视图切换 + 购物车 -->
       <div class="header-actions">
         <button class="theme-toggle-btn" id="theme-toggle-btn" title="切换浅色/深色主题">
           <span id="theme-icon" class="svg-icon">
@@ -62,14 +62,29 @@
           <span id="theme-text">浅色</span>
         </button>
 
-        <button class="cart-toggle-btn" id="header-cart-btn">
+        <button class="view-toggle-btn" id="mobile-layout-toggle" title="切换单列/双列视图" aria-label="切换单列/双列视图">
+          <span class="svg-icon layout-toggle-icon icon-cols-1" aria-hidden="true" style="display: none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="1"/>
+            </svg>
+          </span>
+          <span class="svg-icon layout-toggle-icon icon-cols-2" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="8" height="16" rx="1"/>
+              <rect x="13" y="4" width="8" height="16" rx="1"/>
+            </svg>
+          </span>
+          <span class="view-toggle-text">双列</span>
+        </button>
+
+        <button class="cart-toggle-btn" id="header-cart-btn" title="查看购物车" aria-label="购物车">
           <span class="svg-icon">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
               <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
             </svg>
           </span>
-          <span>底图配置单</span>
+          <span class="header-cart-text">购物车</span>
           <span class="cart-badge" id="cart-badge-count">0</span>
         </button>
       </div>
@@ -80,13 +95,116 @@
   <main class="main-layout">
     <!-- 控制与筛选悬浮工具栏 (Sticky Floating Bar) -->
     <section class="toolbar-section" id="sticky-toolbar">
-      <!-- 单行全集成悬浮工具栏 (All-in-One Single Line Toolbar) -->
-      <div class="toolbar-single-row">
-        <!-- 移动端成熟下拉选择器 (< 768px 显示) -->
-        <div class="mobile-category-wrap">
-          <select id="mobile-category-select" class="mobile-category-select" aria-label="选择底图分类"></select>
+      <!-- 移动端专属 4 模块集成悬浮控制栏 (< 768px 显示，单行四模块纯图标紧凑布局) -->
+      <div class="mobile-toolbar-deck" id="mobile-toolbar-deck">
+        <!-- 模块 1：【标签】下拉 -->
+        <div class="mobile-mod-card has-dropdown" id="mobile-mod-tag" data-dropdown="tag" title="底图分类">
+          <span class="mobile-mod-icon" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+              <line x1="7" y1="7" x2="7.01" y2="7"></line>
+            </svg>
+          </span>
+          <div class="mobile-mod-trigger" id="mobile-tag-trigger">
+            <span class="mobile-mod-label" id="mobile-tag-label">全部</span>
+            <span class="mobile-mod-arrow">▾</span>
+          </div>
+          <div class="mobile-custom-dropdown" id="mobile-tag-dropdown" style="display: none;">
+            <!-- 动态分类选项由 JS 渲染 -->
+          </div>
+          <select id="mobile-category-select" class="mobile-mod-native-select" aria-hidden="true" tabindex="-1"></select>
         </div>
 
+        <!-- 模块 2：【搜索】输入框 -->
+        <div class="mobile-mod-card" id="mobile-mod-search" title="搜索底图">
+          <span class="mobile-mod-icon" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <div class="mobile-mod-search-input-wrap">
+            <input type="text" id="mobile-search-input" class="mobile-mod-input" placeholder="搜索底图..." autocomplete="off">
+          </div>
+        </div>
+
+        <!-- 模块 3：【筛选】特性多选下拉 -->
+        <div class="mobile-mod-card has-dropdown" id="mobile-mod-filter" data-dropdown="filter" title="特性多选筛选">
+          <span class="mobile-mod-icon" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+          </span>
+          <div class="mobile-mod-trigger" id="mobile-filter-trigger">
+            <span class="mobile-mod-label" id="mobile-filter-label">无</span>
+            <span class="mobile-mod-arrow">▾</span>
+          </div>
+          <div class="mobile-custom-dropdown mobile-filter-multiselect" id="mobile-filter-dropdown" style="display: none;">
+            <div class="mobile-filter-header">
+              <span class="filter-header-title">特性多选</span>
+              <button type="button" class="filter-reset-btn" id="mobile-filter-reset-btn">重置</button>
+            </div>
+            <div class="mobile-filter-item" data-filter="direct">
+              <span class="filter-checkbox"></span>
+              <span class="filter-item-name">国内直连</span>
+              <span class="filter-item-badge tag-direct">直连</span>
+            </div>
+            <div class="mobile-filter-item" data-filter="no-boundary">
+              <span class="filter-checkbox"></span>
+              <span class="filter-item-name">无边界争议</span>
+              <span class="filter-item-badge tag-boundary-safe">合规</span>
+            </div>
+            <div class="mobile-filter-item" data-filter="no-drift">
+              <span class="filter-checkbox"></span>
+              <span class="filter-item-name">无坐标偏移</span>
+              <span class="filter-item-badge tag-drift-safe">WGS84</span>
+            </div>
+            <div class="mobile-filter-item" data-filter="xyz">
+              <span class="filter-checkbox"></span>
+              <span class="filter-item-name">仅XYZ瓦片</span>
+              <span class="filter-item-badge tag-format">XYZ</span>
+            </div>
+          </div>
+          <select id="mobile-filter-select" class="mobile-mod-native-select" aria-hidden="true" tabindex="-1">
+            <option value="all">无</option>
+            <option value="direct">直连</option>
+            <option value="compliant">合规</option>
+            <option value="no-boundary">无争议</option>
+            <option value="no-drift">无偏移</option>
+            <option value="xyz">仅XYZ</option>
+          </select>
+        </div>
+
+        <!-- 模块 4：【排序】下拉 -->
+        <div class="mobile-mod-card has-dropdown" id="mobile-mod-sort" data-dropdown="sort" title="排序规则">
+          <span class="mobile-mod-icon" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="4" y1="12" x2="14" y2="12"></line>
+              <line x1="4" y1="18" x2="8" y2="18"></line>
+            </svg>
+          </span>
+          <div class="mobile-mod-trigger" id="mobile-sort-trigger">
+            <span class="mobile-mod-label" id="mobile-sort-label">综合</span>
+            <span class="mobile-mod-arrow">▾</span>
+          </div>
+          <div class="mobile-custom-dropdown" id="mobile-sort-dropdown" style="display: none;">
+            <div class="mobile-dropdown-item active" data-value="heat">综合推荐</div>
+            <div class="mobile-dropdown-item" data-value="likes">点赞最多</div>
+            <div class="mobile-dropdown-item" data-value="downloads">导出最多</div>
+            <div class="mobile-dropdown-item" data-value="name">名称排序</div>
+          </div>
+          <select id="mobile-sort-select" class="mobile-mod-native-select" aria-hidden="true" tabindex="-1">
+            <option value="heat">综合</option>
+            <option value="likes">点赞</option>
+            <option value="downloads">导出</option>
+            <option value="name">名称</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 桌面端全集成单行工具栏 (>= 768px 显示) -->
+      <div class="toolbar-single-row desktop-toolbar-row">
         <!-- 桌面端分类胶囊标签 (>= 768px 显示) -->
         <div class="category-pills-wrap">
           <button type="button" class="pills-scroll-btn pills-scroll-left" id="pills-scroll-left" aria-label="向左滚动分类" style="display: none;">‹</button>
@@ -105,28 +223,6 @@
           </span>
           <input type="text" id="search-input" class="search-input compact-search-input" placeholder="搜索底图..." autocomplete="off">
         </div>
-
-        <!-- 移动端视图切换：单列/双列切换按钮 (≤767px 显示) -->
-        <button type="button" class="mobile-layout-toggle" id="mobile-layout-toggle" title="切换单列/双列瀑布流" aria-label="切换单列/双列视图">
-          <span class="layout-toggle-icon icon-cols-1" aria-hidden="true" style="display: none;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="16" rx="0"/>
-            </svg>
-          </span>
-          <span class="layout-toggle-icon icon-cols-2" aria-hidden="true">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="8" height="16" rx="0"/>
-              <rect x="13" y="4" width="8" height="16" rx="0"/>
-            </svg>
-          </span>
-          <span class="mobile-layout-text">双列</span>
-        </button>
-
-        <!-- 移动端工具栏折叠开关 (≤767px 显示)：折叠时仅保留搜索框，释放屏幕空间 -->
-        <button type="button" class="toolbar-collapse-toggle" id="toolbar-collapse-toggle" aria-expanded="false" aria-controls="sticky-toolbar" title="展开/收起筛选工具栏">
-          <span class="collapse-toggle-text">筛选</span>
-          <span class="collapse-toggle-icon">▾</span>
-        </button>
 
         <!-- 快捷过滤开关组（紧凑单行型） -->
         <div class="toggle-group compact-toggle-group">
@@ -184,14 +280,24 @@
 
   <!-- 浮动购物车图标按钮 -->
   <div class="floating-cart-container" id="floating-cart-container">
-    <button id="floating-cart-btn" class="cart-toggle-btn" style="box-shadow: 0 6px 20px rgba(0,0,0,0.5); padding: 0.75rem 1.2rem; background: var(--bg-card); border-color: var(--accent-lime-border);">
+    <!-- 全选当前结果按钮（上方辅助） -->
+    <button id="floating-addall-btn" class="floating-addall-btn" onclick="toggleAddAllFiltered()" title="全选当前显示的底图">
+      <span class="addall-icon" id="addall-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </span>
+      <span class="addall-label" id="addall-label">全选当前</span>
+      <span class="addall-count" id="addall-count"></span>
+    </button>
+    <button id="floating-cart-btn" class="cart-toggle-btn" title="查看购物车" aria-label="购物车">
       <span class="svg-icon">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
           <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
         </svg>
       </span>
-      <span style="font-weight: 600;">配置单</span>
+      <span class="floating-cart-text">购物车</span>
       <span class="cart-badge" id="floating-cart-badge">0</span>
     </button>
   </div>
@@ -285,12 +391,12 @@
 
   <!-- 在线交互式底图预览弹窗 (Leaflet 实时调用在线瓦片 + 中国全图视野 + GeoJSON 标注) -->
   <div class="modal-backdrop" id="preview-modal">
-    <div class="modal-window" style="width: 960px;">
+    <div class="modal-window">
       <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span id="preview-modal-title" style="font-weight: 600; color: var(--text-main);">底图预览</span>
+        <div style="display: flex; align-items: center; gap: 0.5rem; min-width: 0; flex: 1; margin-right: 0.5rem;">
+          <span id="preview-modal-title" style="font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><span class="preview-title-prefix">底图预览 · </span><span class="preview-title-name">底图预览</span></span>
         </div>
-        <button class="close-btn" onclick="closeModal('preview-modal')" title="关闭窗口 (Esc)">✕ 关闭</button>
+        <button class="close-btn" onclick="closeModal('preview-modal')" title="关闭窗口 (Esc)">✕<span class="close-btn-text"> 关闭</span></button>
       </div>
 
       <div class="preview-modal-body">
@@ -421,7 +527,7 @@
                     </svg>
                     <span>复制图层名</span>
                   </button>
-                  <button type="button" id="wms-dock-close-btn" class="wms-dock-close-btn" title="收起列表">✕</button>
+                  <button type="button" id="wms-dock-close-btn" class="wms-dock-close-btn" title="收起列表">✕ 收起</button>
                 </div>
               </div>
               <select id="preview-sublayer-select" class="preview-sublayer-select wms-dock-select" title="选择并快速切换服务配置的子图层"></select>
@@ -526,6 +632,6 @@
   <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js"></script>
   <!-- Lottie Web Animation -->
   <script src="./lottie.min.js"></script>
-  <script src="./app.js?v=10.1"></script>
+  <script src="./app.js?v=11.7"></script>
 </body>
 </html>
