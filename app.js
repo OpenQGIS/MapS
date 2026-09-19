@@ -798,9 +798,13 @@ async function syncGlobalLikes() {
             if (typeof remote.likes === 'number') {
               const baseLikes = typeof layer._baseLikes === 'number' ? layer._baseLikes : 0;
               layer.likes = Math.max(baseLikes, remote.likes);
-              layer.heat = layer.likes * 2 + (layer.downloads || 0) * 3;
               cachedLikes[layer.id] = layer.likes;
             }
+            // 同步全网真实导出次数（Worker KV 权威值，只增不减）
+            if (typeof remote.downloads === 'number' && remote.downloads > 0) {
+              layer.downloads = Math.max(layer.downloads || 0, remote.downloads);
+            }
+            layer.heat = layer.likes * 2 + (layer.downloads || 0) * 3;
             if (remote.liked) {
               state.liked.add(layer.id);
             }
@@ -1941,6 +1945,32 @@ async function handleCheckout() {
         count: selectedLayers.length,
         script: clientScript
       };
+      // 调用 Cloudflare Worker 追踪各图层导出次数，并取回全网真实热度统计
+      try {
+        const wRes = await fetch(`${WORKER_BASE_URL}/export`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ layer_ids: layerIds, vid }),
+          cache: "no-store"
+        });
+        if (wRes.ok) {
+          const wJson = await wRes.json();
+          if (wJson.code === 0 && wJson.data) {
+            // 用 Worker 返回的全网统计覆盖本地 layer_stats
+            if (wJson.data.layer_stats && Object.keys(wJson.data.layer_stats).length > 0) {
+              data.layer_stats = wJson.data.layer_stats;
+            }
+            // 同步顶部全站累计导出数展示
+            const globalDl = wJson.data.downloads;
+            if (typeof globalDl === "number") {
+              localStorage.setItem("qgis_site_downloads", globalDl);
+              updateCachedStat("downloads", globalDl);
+              const dlEl = document.getElementById("stat-downloads");
+              if (dlEl) animateCountUp(dlEl, globalDl, 500);
+            }
+          }
+        }
+      } catch (e) {}
     }
 
     if (data) {
@@ -3933,38 +3963,13 @@ let lastTrackedExportTime = 0;
 async function syncGlobalDownloads() {}
 
 async function incrementLocalDownloads() {
-  const vid = getVisitorId();
-
-  // 1. 本地即时响应 +1（保证无延迟反馈）
+  // 本地即时响应 +1（保证下载/复制动作有即时视觉反馈）
+  // 注：全站 Worker 计数已在 handleCheckout 生成脚本时统一上报，此处不再重复
   let localDl = parseInt(localStorage.getItem("qgis_site_downloads") || "28", 10) + 1;
   localStorage.setItem("qgis_site_downloads", localDl);
   updateCachedStat("downloads", localDl);
   const dlEl = document.getElementById("stat-downloads");
   if (dlEl) animateCountUp(dlEl, localDl, 500);
-
-  // 2. 节流防连点刷量（同会话 10 秒内不重复向云端上报）
-  const now = Date.now();
-  if (now - lastTrackedExportTime < 10000) return;
-  lastTrackedExportTime = now;
-
-  // 3. 异步提交至 Cloudflare Worker 公共计数器
-  try {
-    const res = await fetch(`${WORKER_BASE_URL}/export`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ vid }),
-      cache: "no-store"
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.code === 0 && json.data) {
-        const globalVal = json.data.downloads;
-        localStorage.setItem("qgis_site_downloads", globalVal);
-        updateCachedStat("downloads", globalVal);
-        if (dlEl) animateCountUp(dlEl, globalVal, 500);
-      }
-    }
-  } catch (e) {}
 }
 
 // ==========================================================================
