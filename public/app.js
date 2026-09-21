@@ -3231,6 +3231,73 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
     };
   }
 
+  // 1.8 AWS Mapzen Terrarium RGB 高程解码渲染器 (HTML5 Canvas 实时解码真实地形)
+  if (layer.interpretation === 'terrariumterrain') {
+    const TerrariumDecodedLayer = L.GridLayer.extend({
+      createTile: function(coords, done) {
+        const tile = document.createElement('canvas');
+        tile.width = 256;
+        tile.height = 256;
+        const ctx = tile.getContext('2d');
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function() {
+          ctx.drawImage(img, 0, 0);
+          try {
+            const imgData = ctx.getImageData(0, 0, 256, 256);
+            const d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+              const r = d[i];
+              const g = d[i+1];
+              const b = d[i+2];
+              // Terrarium 解码公式: (R * 256 + G + B / 256) - 32768
+              const elev = (r * 256 + g + b / 256.0) - 32768.0;
+              // 归一化映射 (针对地表 0m ~ 5500m 经典高程色阶)
+              let norm = (elev - 0) / 5500.0;
+              if (norm < 0) norm = 0;
+              if (norm > 1) norm = 1;
+              // 经典地形渐变: 0~0.25 绿, 0.25~0.55 黄绿, 0.55~0.8 棕褐, 0.8~1.0 皑皑白雪
+              if (norm < 0.25) {
+                const t = norm / 0.25;
+                d[i] = 34 + t * (139 - 34);
+                d[i+1] = 139 + t * (195 - 139);
+                d[i+2] = 34 + t * (74 - 34);
+              } else if (norm < 0.55) {
+                const t = (norm - 0.25) / 0.30;
+                d[i] = 139 + t * (240 - 139);
+                d[i+1] = 195 + t * (230 - 195);
+                d[i+2] = 74 + t * (140 - 74);
+              } else if (norm < 0.8) {
+                const t = (norm - 0.55) / 0.25;
+                d[i] = 240 + t * (160 - 240);
+                d[i+1] = 230 + t * (82 - 230);
+                d[i+2] = 140 + t * (45 - 140);
+              } else {
+                const t = (norm - 0.8) / 0.20;
+                d[i] = 160 + t * (255 - 160);
+                d[i+1] = 82 + t * (255 - 82);
+                d[i+2] = 45 + t * (255 - 45);
+              }
+            }
+            ctx.putImageData(imgData, 0, 0);
+          } catch(e) {}
+          done(null, tile);
+        };
+        img.onerror = function(err) {
+          done(err, tile);
+        };
+        img.src = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${coords.z}/${coords.x}/${coords.y}.png`;
+        return tile;
+      }
+    });
+
+    return {
+      layer: new TerrariumDecodedLayer({ minZoom: 0, maxZoom: 15, attribution: 'AWS Mapzen Terrarium' }),
+      status: 'ok',
+      statusText: 'DEM 实时解码高程着色'
+    };
+  }
+
   // 2. 针对已知 WMS/WMTS 标准服务适配为高清切片或 WMS 请求
   if (layer.format === 'WMS/WMTS' || (layer.url && (layer.url.includes('service=WMS') || layer.url.includes('WMTS') || layer.url.includes('service')))) {
     const cap = state.wmsCapabilities[layer.id];
