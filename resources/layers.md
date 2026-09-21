@@ -559,7 +559,7 @@ https://server.arcgisonline.com/arcgis/rest/services/Ocean/World_Ocean_Reference
 - **序号**: 59
 - **服务链接**:
 ```text
-https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer
+https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/tile/{z}/{y}/{x}.pbf
 https://www.arcgis.com/sharing/rest/content/items/5a0e14f7287b4aa5973f6a35638e4b9a/resources/styles/root.json?f=pjson
 ```
 - **描述**: 无标签的地形标注图层
