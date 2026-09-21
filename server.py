@@ -530,10 +530,14 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
             if add_to_canvas:
                 script_lines.append("    # 实例化 QgsRasterLayer (WMS 驱动) 载入画布")
                 script_lines.append("    safe_wms = urllib.parse.quote(wms_url, safe=':/?=&')")
-                script_lines.append("    if 'capabilities' in wms_url.lower():")
-                script_lines.append("        wms_uri = f'crs=EPSG:3857&format=image/png&url={safe_wms}'")
-                script_lines.append("    else:")
-                script_lines.append("        wms_uri = f'url={safe_wms}'")
+                if layer.get("qgis_uri"):
+                    qgis_uri_str = _py_sq(layer["qgis_uri"])
+                    script_lines.append(f"    wms_uri = '{qgis_uri_str}'")
+                else:
+                    script_lines.append("    if 'capabilities' in wms_url.lower():")
+                    script_lines.append("        wms_uri = f'crs=EPSG:3857&format=image/png&url={safe_wms}'")
+                    script_lines.append("    else:")
+                    script_lines.append("        wms_uri = f'url={safe_wms}'")
                 script_lines.append("    wms_layer = QgsRasterLayer(wms_uri, layer_name, 'wms')")
                 script_lines.append("    if wms_layer.isValid():")
                 script_lines.append("        QgsProject.instance().addMapLayer(wms_layer)")

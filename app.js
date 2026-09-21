@@ -1316,7 +1316,7 @@ async function loadLayers() {
 
     // 静态降级：若后端 API 不可用（如 GitHub Pages 托管环境），无缝读取本地静态 layers.json
     if (!rawData) {
-      const sRes = await fetch("./data/layers.json?v=8.3");
+      const sRes = await fetch("./data/layers.json?v=8.4");
       const sData = await sRes.json();
       rawData = Array.isArray(sData) ? sData : (sData.data || []);
     }
@@ -1600,7 +1600,7 @@ async function loadWmsCapabilities() {
 function getFilteredLayers() {
   return state.layers.filter(layer => {
     // 排除插件类（仅展示可直接在线加载的底图）
-    if (layer.format === "插件类" || !layer.url || !layer.url.trim().startsWith("http")) return false;
+    if (layer.format === "插件类" || !layer.url || (!layer.url.trim().startsWith("http") && !layer.url.includes("url=http"))) return false;
     if (state.searchQuery) {
       const q = state.searchQuery.toLowerCase();
       const matchName = layer.name.toLowerCase().includes(q);
@@ -2688,7 +2688,8 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
       lines.push("    settings.setValue(f'connections/ows/items/wms/connections/items/{layer_name}/feature-count', 10)");
       lines.push("    settings.setValue(f'qgis/connections-wms/{layer_name}/url', wms_url)");
       if (addToCanvas) {
-        lines.push("    rl = QgsRasterLayer(wms_url, layer_name, 'wms')");
+        const loadUri = layer.qgis_uri ? pySq(layer.qgis_uri) : cleanUrl;
+        lines.push(`    rl = QgsRasterLayer('${loadUri}', layer_name, 'wms')`);
         lines.push("    if rl.isValid():");
         lines.push("        QgsProject.instance().addMapLayer(rl)");
         lines.push("        loaded_layers += 1");
@@ -3337,6 +3338,20 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
   if (layer.format === 'WMS/WMTS' || (layer.url && (layer.url.includes('service=WMS') || layer.url.includes('WMTS') || layer.url.includes('service')))) {
     const cap = state.wmsCapabilities[layer.id];
     const sublayerId = targetSublayerId || state.activeSublayerId || (cap && cap.layers && cap.layers[0] ? cap.layers[0].id : null);
+
+    if (url.includes('gebco.net')) {
+      return {
+        layer: L.tileLayer.wms('https://wms.gebco.net/mapserv?', {
+          layers: 'GEBCO_LATEST_2',
+          format: 'image/png',
+          transparent: false,
+          attribution: 'GEBCO Bathymetry',
+          maxZoom: 14
+        }),
+        status: 'ok',
+        statusText: 'GEBCO 全球海陆水深与高程 WMS 已连接'
+      };
+    }
 
     if (url.includes('tiles.maps.eox.at')) {
       const sId = sublayerId || 's2cloudless-2020_3857';

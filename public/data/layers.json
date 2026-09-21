@@ -924,5 +924,82 @@
     "has_coordinate_drift": false,
     "thumbnail": "/thumbnails/thumb_60.png",
     "likes": 1
+  },
+  {
+    "id": "layer_61",
+    "row_index": 61,
+    "name": "AWS Mapzen Terrarium (RGB编码高程)",
+    "format": "XYZ Tiles",
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
+    "interpretation": "terrariumterrain",
+    "zmin": 0,
+    "zmax": 15,
+    "categories": [
+      "地形图"
+    ],
+    "description": "AWS 全球数字高程瓦片(0-15级)。RGB编码高程，QGIS 可通过 interpretation=terrariumterrain 实时解算为 32位 Float 单波段 DEM (像元值=真实海拔米数)，支持单波段伪彩色与山体阴影分析",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "需配置 interpretation=terrariumterrain 解码",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_61.png"
+  },
+  {
+    "id": "layer_62",
+    "row_index": 62,
+    "name": "AWS Mapzen GeoTIFF (浮点真高程)",
+    "format": "XYZ Tiles",
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/geotiff/{z}/{x}/{y}.tif",
+    "zmin": 0,
+    "zmax": 14,
+    "categories": [
+      "地形图"
+    ],
+    "description": "AWS Mapzen 原生 Int16 GeoTIFF 真实高程切片(0-14级)",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "zmax=14",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_62.png"
+  },
+  {
+    "id": "layer_63",
+    "row_index": 63,
+    "name": "AWS Mapzen Normal (三维法线光影)",
+    "format": "XYZ Tiles",
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/normal/{z}/{x}/{y}.png",
+    "zmin": 0,
+    "zmax": 15,
+    "categories": [
+      "地形图"
+    ],
+    "description": "基于真实坡度法向量计算的 3 通道 Normal 贴图(0-15级)，呈现极高对比度的山脊断裂与地貌立体光影",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "zmax=15",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_63.png"
+  },
+  {
+    "id": "layer_64",
+    "row_index": 64,
+    "name": "GEBCO 全球海陆水深与高程 (WMS)",
+    "format": "WMS/WMTS",
+    "url": "https://wms.gebco.net/mapserv?",
+    "categories": [
+      "地形图",
+      "海床图"
+    ],
+    "description": "GEBCO 官方全球海陆一体最新高程与海底水深彩色立体晕渲图",
+    "needs_vpn": false,
+    "vpn_raw": "否",
+    "notes": "OGC WMS 1.3.0 (图层: GEBCO_LATEST_2)",
+    "has_boundary_issue": false,
+    "has_coordinate_drift": false,
+    "thumbnail": "/thumbnails/thumb_64.png",
+    "qgis_uri": "contextualWMSLegend=0&crs=EPSG:4326&dpiMode=7&featureCount=10&format=image/png&layers=GEBCO_LATEST_2&styles=default&url=https://wms.gebco.net/mapserv?"
   }
 ]
