@@ -2894,6 +2894,21 @@ async function getNormalizedArcgisStyle(styleUrl) {
     json.glyphs = 'https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/resources/fonts/{fontstack}/{range}.pbf';
   }
 
+  // 4. 去除/重命名重复图层 ID（修复 Mapbox/MapLibre GL 遇到 duplicate layer id 时完全中断渲染的致命规范限制）
+  const idCounts = {};
+  if (json.layers && Array.isArray(json.layers)) {
+    for (let i = 0; i < json.layers.length; i++) {
+      const l = json.layers[i];
+      if (!l || !l.id) continue;
+      if (idCounts[l.id]) {
+        idCounts[l.id]++;
+        l.id = `${l.id}_${idCounts[l.id]}`;
+      } else {
+        idCounts[l.id] = 1;
+      }
+    }
+  }
+
   arcgisStyleCache.set(styleUrl, json);
   return json;
 }
@@ -2956,6 +2971,20 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
           }
         };
 
+        const hookGlEvents = (glLayerInstance) => {
+          const glMap = typeof glLayerInstance.getMaplibreMap === 'function' ? glLayerInstance.getMaplibreMap() : null;
+          if (glMap) {
+            glMap.once('render', onGlSuccess);
+            glMap.once('idle', onGlSuccess);
+            glMap.once('load', onGlSuccess);
+            if (typeof glMap.loaded === 'function' && glMap.loaded()) {
+              onGlSuccess();
+            }
+          } else {
+            setTimeout(onGlSuccess, 300);
+          }
+        };
+
         if (arcgisStyleCache.has(styleUrl)) {
           try {
             const glLayer = L.maplibreGL({
@@ -2964,7 +2993,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
               transformRequest: transformFn
             });
             group.addLayer(glLayer);
-            setTimeout(onGlSuccess, 100);
+            hookGlEvents(glLayer);
             return {
               layer: group,
               status: 'ok',
@@ -2985,7 +3014,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
           if (state.previewMap) {
             state.previewMap.invalidateSize();
           }
-          onGlSuccess();
+          hookGlEvents(glLayer);
         }).catch(err => {
           console.warn('ArcGIS 矢量切片加载异常，降级显示参考地形基底:', err);
           const fallbackTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
@@ -4808,31 +4837,10 @@ function initDraggableCartBtn() {
     };
   };
 
-  // 恢复上次拖动记忆的位置
-  const restorePosition = () => {
-    try {
-      const saved = localStorage.getItem("qgis_cart_btn_pos");
-      if (!saved) return;
-      const pos = JSON.parse(saved);
-      if (!pos || typeof pos.topRatio !== "number") return;
-
-      const bounds = getBounds();
-      const left = pos.side === "left" ? bounds.minX : bounds.maxX;
-      const top = Math.min(Math.max(bounds.minY, pos.topRatio * window.innerHeight), bounds.maxY);
-
-      container.style.bottom = "auto";
-      container.style.right = "auto";
-      container.style.left = `${left}px`;
-      container.style.top = `${top}px`;
-      container.classList.toggle("snapped-left", pos.side === "left");
-      container.classList.toggle("snapped-right", pos.side !== "left");
-    } catch (e) {
-      console.warn("恢复配置单按钮位置失败:", e);
-    }
-  };
-
-  // 延迟微量时间等待 DOM 布局稳定后恢复位置
-  setTimeout(restorePosition, 60);
+  // 确保每次打开页面始终默认出现在右下角，清除历史残留的记忆位置，不记录悬浮窗口位置
+  try {
+    localStorage.removeItem("qgis_cart_btn_pos");
+  } catch (e) {}
 
   // 视口尺寸变化时调整，防越界
   window.addEventListener("resize", () => {
@@ -4935,14 +4943,7 @@ function initDraggableCartBtn() {
       container.classList.toggle("snapped-left", isLeft);
       container.classList.toggle("snapped-right", !isLeft);
 
-      // 保存位置到 localStorage，下次打开记忆位置
-      try {
-        localStorage.setItem("qgis_cart_btn_pos", JSON.stringify({
-          side: isLeft ? "left" : "right",
-          topRatio: targetTop / window.innerHeight
-        }));
-      } catch (err) {}
-
+      // 不记录悬浮窗口位置：当次拖拽吸附仅作临时避让，不持久化，重新加载或下次打开页面始终重置在右下角
       setTimeout(() => {
         container.style.transition = "";
       }, 320);
