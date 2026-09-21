@@ -3233,13 +3233,16 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
     };
   }
 
-  // 1.8 AWS Mapzen Terrarium & GeoTIFF 高程解码渲染器 (HTML5 Canvas 实时解码真实地形)
+  // 1.8 AWS Mapzen Terrarium & GeoTIFF & Normal 高程与山体阴影渲染器 (HTML5 Canvas 实时解码真实地形)
   const isGeoTiff = (url.includes('/geotiff/') || url.endsWith('.tif'));
   const isTerrarium = (layer.interpretation === 'terrariumterrain' || url.includes('/terrarium/'));
+  const isNormal = url.includes('/normal/');
 
-  if (isTerrarium || isGeoTiff) {
-    const defaultMode = isGeoTiff ? 'gray' : 'color';
+  if (isTerrarium || isGeoTiff || isNormal) {
+    const defaultMode = isNormal ? 'hillshade' : (isGeoTiff ? 'gray' : 'color');
     const renderMode = state.demRenderMode || defaultMode;
+    const tileSubpath = (renderMode === 'hillshade') ? 'normal' : 'terrarium';
+
     const TerrariumDecodedLayer = L.GridLayer.extend({
       createTile: function(coords, done) {
         const tile = document.createElement('canvas');
@@ -3250,15 +3253,30 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
         img.crossOrigin = 'anonymous';
         img.onload = function() {
           ctx.drawImage(img, 0, 0);
-          if (renderMode !== 'raw') {
-            try {
-              const imgData = ctx.getImageData(0, 0, 256, 256);
-              const d = imgData.data;
+          try {
+            const imgData = ctx.getImageData(0, 0, 256, 256);
+            const d = imgData.data;
+
+            if (renderMode === 'hillshade') {
+              // Normal 法线切片: R=X(-1..1), G=Y(南..北), B=Z(下..上)
+              // 经典制图西北日照 (Azimuth 315°, Altitude 45°): L = (-0.5, 0.5, 0.7071)
+              for (let i = 0; i < d.length; i += 4) {
+                const nx = (d[i] - 128.0) / 127.0;
+                const ny = (d[i+1] - 128.0) / 127.0;
+                const nz = (d[i+2] - 128.0) / 127.0;
+                const dot = nx * -0.5 + ny * 0.5 + nz * 0.7071;
+                const intensity = Math.min(Math.max(0.18 + 0.82 * Math.max(0, dot), 0), 1);
+                const v = Math.round(intensity * 255);
+                d[i] = v;
+                d[i+1] = v;
+                d[i+2] = v;
+              }
+            } else {
+              // Terrarium 高程切片解码: (R * 256 + G + B / 256) - 32768
               for (let i = 0; i < d.length; i += 4) {
                 const r = d[i];
                 const g = d[i+1];
                 const b = d[i+2];
-                // Terrarium 解码公式: (R * 256 + G + B / 256) - 32768
                 const elev = (r * 256 + g + b / 256.0) - 32768.0;
 
                 if (renderMode === 'gray') {
@@ -3308,29 +3326,29 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
                   }
                 }
               }
-              ctx.putImageData(imgData, 0, 0);
-            } catch(e) {}
-          }
+            }
+            ctx.putImageData(imgData, 0, 0);
+          } catch(e) {}
           done(null, tile);
         };
         img.onerror = function(err) {
           done(err, tile);
         };
-        img.src = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${coords.z}/${coords.x}/${coords.y}.png`;
+        img.src = `https://s3.amazonaws.com/elevation-tiles-prod/${tileSubpath}/${coords.z}/${coords.x}/${coords.y}.png`;
         return tile;
       }
     });
 
     const modeLabels = {
-      color: 'DEM 实时解码高程着色',
-      gray: 'DEM 实时解码灰度高程',
-      raw: 'DEM 原始未解码 RGB 切片'
+      color: 'DEM 实时高程彩色地貌',
+      gray: 'DEM 实时单波段灰度高程',
+      hillshade: 'DEM 实时立体山体阴影'
     };
 
     return {
-      layer: new TerrariumDecodedLayer({ minZoom: 0, maxZoom: 15, attribution: 'AWS Mapzen Terrarium' }),
+      layer: new TerrariumDecodedLayer({ minZoom: 0, maxZoom: 15, attribution: 'AWS Mapzen Terrain' }),
       status: 'ok',
-      statusText: modeLabels[renderMode] || 'DEM 实时解码高程着色'
+      statusText: modeLabels[renderMode] || 'DEM 实时高程彩色地貌'
     };
   }
 
@@ -4186,22 +4204,30 @@ function initOrUpdatePreviewMap(layer, sublayerId = null) {
     }
   }, 180);
 
-  // 处理 DEM 渲染模式切换按钮（对支持高程解码的 Terrarium 与 GeoTIFF 图源显示）
-  const isDem = (layer.interpretation === 'terrariumterrain' || (layer.url && (layer.url.includes('/geotiff/') || layer.url.includes('/terrarium/'))));
+  // 处理 DEM 渲染模式切换按钮（对支持高程与山体阴影的 Terrarium、GeoTIFF 与 Normal 图源显示）
+  const isDem = (layer.interpretation === 'terrariumterrain' || (layer.url && (layer.url.includes('/geotiff/') || layer.url.includes('/terrarium/') || layer.url.includes('/normal/'))));
   const demModeWrap = document.getElementById("preview-dem-mode-wrap");
   if (demModeWrap) {
     demModeWrap.style.display = isDem ? "inline-flex" : "none";
     if (isDem && !state.demRenderMode) {
-      state.demRenderMode = (layer.url && layer.url.includes('/geotiff/')) ? 'gray' : 'color';
+      if (layer.url && layer.url.includes('/normal/')) {
+        state.demRenderMode = 'hillshade';
+      } else if (layer.url && layer.url.includes('/geotiff/')) {
+        state.demRenderMode = 'gray';
+      } else {
+        state.demRenderMode = 'color';
+      }
     }
     updateDemModeButtonsUI();
   }
 }
 
 function updateDemModeButtonsUI() {
+  const isNorm = state.activePreviewLayer && state.activePreviewLayer.url && state.activePreviewLayer.url.includes('/normal/');
   const isGeo = state.activePreviewLayer && state.activePreviewLayer.url && state.activePreviewLayer.url.includes('/geotiff/');
-  const mode = state.demRenderMode || (isGeo ? 'gray' : 'color');
-  ['color', 'gray', 'raw'].forEach(m => {
+  const defaultMode = isNorm ? 'hillshade' : (isGeo ? 'gray' : 'color');
+  const mode = state.demRenderMode || defaultMode;
+  ['color', 'gray', 'hillshade'].forEach(m => {
     const btn = document.getElementById(`btn-dem-${m}`);
     if (btn) {
       if (m === mode) {

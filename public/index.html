@@ -419,7 +419,7 @@
               <div class="dem-mode-btn-group" style="display: inline-flex; border: 1px solid var(--border-subtle); border-radius: 4px; overflow: hidden; font-size: 0.72rem;">
                 <button type="button" class="btn-dem-mode active" id="btn-dem-color" onclick="switchDemRenderMode('color')" style="padding: 2px 8px; border: none; cursor: pointer; background: var(--accent-green); color: #fff;">彩色地貌</button>
                 <button type="button" class="btn-dem-mode" id="btn-dem-gray" onclick="switchDemRenderMode('gray')" style="padding: 2px 8px; border: none; cursor: pointer; background: var(--bg-card); color: var(--text-main);">灰度DEM</button>
-                <button type="button" class="btn-dem-mode" id="btn-dem-raw" onclick="switchDemRenderMode('raw')" style="padding: 2px 8px; border: none; cursor: pointer; background: var(--bg-card); color: var(--text-main);">原始切片</button>
+                <button type="button" class="btn-dem-mode" id="btn-dem-hillshade" onclick="switchDemRenderMode('hillshade')" style="padding: 2px 8px; border: none; cursor: pointer; background: var(--bg-card); color: var(--text-main);">山体阴影</button>
               </div>
             </div>
             <button type="button" class="btn-map-control" id="btn-reset-china-view" onclick="resetToChinaView()" title="切换至中国视野">
@@ -640,6 +640,6 @@
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js'"></script>
   <!-- Lottie Web Animation -->
   <script src="./lottie.min.js"></script>
-  <script src="./app.js?v=11.26"></script>
+  <script src="./app.js?v=11.27"></script>
 </body>
 </html>
