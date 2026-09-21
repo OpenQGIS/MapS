@@ -553,12 +553,13 @@ https://server.arcgisonline.com/arcgis/rest/services/Ocean/World_Ocean_Reference
 - **缩略图**: `/thumbnails/thumb_44.png`
 
 ### [layer_59] World-Topo-Map_NoLabel
-- **格式**: `WMS/WMTS`
-- **分类**: 标注图
+- **格式**: `VEC`
+- **分类**: 电子地图, 标注图
 - **标签**: 国内直连, 无边界问题, 无坐标偏移
 - **序号**: 59
 - **服务链接**:
 ```text
+https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer
 https://www.arcgis.com/sharing/rest/content/items/5a0e14f7287b4aa5973f6a35638e4b9a/resources/styles/root.json?f=pjson
 ```
 - **描述**: 无标签的地形标注图层

@@ -359,11 +359,15 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
         "# ====================================================================",
         "",
         "import urllib.parse",
+        "import urllib.request",
+        "import json",
+        "import ssl",
         "from qgis.core import QgsSettings, QgsRasterLayer, QgsProject",
         "try:",
-        "    from qgis.core import QgsVectorTileLayer",
+        "    from qgis.core import QgsVectorTileLayer, QgsMapBoxGlStyleConverter",
         "except ImportError:",
         "    QgsVectorTileLayer = None",
+        "    QgsMapBoxGlStyleConverter = None",
         "from qgis.utils import iface",
         "",
         "settings = QgsSettings()",
@@ -395,10 +399,19 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
         # -------------------------------------------------------------
         if fmt == "VEC":
             lines = [u.strip() for u in raw_url.split("\n") if u.strip()]
-            tile_url = _py_sq(lines[0])
+            service_url = _py_sq(lines[0]) if lines else ""
             style_url = _py_sq(lines[1]) if len(lines) > 1 else ""
 
-            script_lines.append(f"# >>> [VEC 矢量切片] {name}")
+            is_arcgis_vec = "arcgis.com" in service_url or "VectorTileServer" in service_url or "root.json" in service_url or ("arcgis.com" in style_url if style_url else False)
+
+            if is_arcgis_vec:
+                if not style_url and "root.json" in service_url:
+                    style_url = service_url
+                    service_url = "https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer"
+                elif not style_url and "VectorTileServer" in service_url:
+                    style_url = service_url
+
+            script_lines.append(f"# >>> [VEC 矢量切片{' - ArcGIS服务' if is_arcgis_vec else ''}] {name}")
             if cats:
                 script_lines.append(f"#     分类: {cats}")
             if desc:
@@ -412,38 +425,75 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
 
             script_lines.append("try:")
             script_lines.append(f"    layer_name = '{name}'")
-            script_lines.append(f"    tile_url = '{tile_url}'")
-            script_lines.append(f"    style_url = '{style_url}'")
-            script_lines.append("    # 写入 QGIS 浏览器 Vector Tiles 连接 (QGIS 4 & QGIS 3 双写兼容)")
-            script_lines.append("    # 1) QGIS 4 现代统一连接路径")
-            script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)")
-            if style_url:
-                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)")
-            script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)")
-            script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 14)")
-            script_lines.append("    # 2) QGIS 3 兼容路径")
-            script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'xyz')")
-            script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', tile_url)")
-            if style_url:
-                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/styleUrl', style_url)")
-            script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmin', 0)")
-            script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmax', 14)")
+            if is_arcgis_vec:
+                script_lines.append(f"    service_url = '{service_url}'")
+                script_lines.append(f"    style_url = '{style_url}'")
+                script_lines.append("    # Modern QGIS 3.x / 4.x vector tile connection")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/serviceType', 'arcgis')")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/type', 'xyz')")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', service_url)")
+                if style_url:
+                    script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 22)")
+                script_lines.append("    # Legacy QGIS 3.x compatibility keys")
+                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'arcgis')")
+                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/type', 'xyz')")
+                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', service_url)")
+                if style_url:
+                    script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/styleUrl', style_url)")
+                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmin', 0)")
+                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmax', 22)")
+            else:
+                script_lines.append(f"    tile_url = '{service_url}'")
+                script_lines.append(f"    style_url = '{style_url}'")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/serviceType', 'xyz')")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/type', 'xyz')")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)")
+                if style_url:
+                    script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 14)")
+                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'xyz')")
+                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/type', 'xyz')")
+                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', tile_url)")
+                if style_url:
+                    script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/styleUrl', style_url)")
+                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmin', 0)")
+                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmax', 14)")
+
             script_lines.append("    vec_count += 1")
             if add_to_canvas:
                 script_lines.append("    # 实例化 QgsVectorTileLayer 载入当前画布")
                 script_lines.append("    if QgsVectorTileLayer is not None:")
-                script_lines.append("        vec_uri = f'type=xyz&url={tile_url}&zmin=0&zmax=14'")
-                script_lines.append("        if style_url:")
-                script_lines.append("            vec_uri += f'&styleUrl={style_url}'")
+                if is_arcgis_vec:
+                    script_lines.append("        vec_uri = f'serviceType=arcgis&type=xyz&url={service_url}'")
+                    script_lines.append("        if style_url: vec_uri += f'&styleUrl={style_url}'")
+                else:
+                    script_lines.append("        vec_uri = f'type=xyz&url={tile_url}&zmin=0&zmax=14'")
+                    script_lines.append("        if style_url: vec_uri = f'styleUrl={style_url}&' + vec_uri")
                 script_lines.append("        vl = QgsVectorTileLayer(vec_uri, layer_name)")
                 script_lines.append("        if vl.isValid():")
+                if is_arcgis_vec:
+                    script_lines.append("            if style_url and QgsMapBoxGlStyleConverter is not None:")
+                    script_lines.append("                try:")
+                    script_lines.append("                    ctx = ssl.create_default_context()")
+                    script_lines.append("                    ctx.check_hostname = False")
+                    script_lines.append("                    ctx.verify_mode = ssl.CERT_NONE")
+                    script_lines.append("                    req = urllib.request.Request(style_url, headers={'User-Agent': 'Mozilla/5.0 QGIS/3.x'})")
+                    script_lines.append("                    with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:")
+                    script_lines.append("                        s_data = json.loads(resp.read().decode('utf-8'))")
+                    script_lines.append("                        conv = QgsMapBoxGlStyleConverter()")
+                    script_lines.append("                        if conv.convert(s_data) == QgsMapBoxGlStyleConverter.Success:")
+                    script_lines.append("                            vl.setRenderer(conv.renderer())")
+                    script_lines.append("                            if conv.labeling(): vl.setLabeling(conv.labeling())")
+                    script_lines.append("                except Exception:")
+                    script_lines.append("                    pass")
                 script_lines.append("            QgsProject.instance().addMapLayer(vl)")
                 script_lines.append("            loaded_layers += 1")
                 script_lines.append("            print(f'  [√] 成功添加矢量切片至画布: {layer_name}')")
                 script_lines.append("        else:")
                 script_lines.append("            print(f'  [+] 已注册 Vector Tiles 连接（画布初始化受限）: {layer_name}')")
-                script_lines.append("    else:")
-                script_lines.append("        print(f'  [+] 当前 QGIS 版本未包含 QgsVectorTileLayer，已注册浏览器连接: {layer_name}')")
             else:
                 script_lines.append("    print(f'  [√] 成功注册 Vector Tiles 连接: {layer_name}')")
             script_lines.append("except Exception as err:")
