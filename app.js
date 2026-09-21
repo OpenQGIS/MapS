@@ -43,8 +43,12 @@ const state = {
   deviceLocationGroup: null,
   activeTileLayer: null,
   boundaryGeoJsonLayer: null,
+  boundaryGeoJsonData: null,
+  activeEngine: "leaflet",
+  maplibreMap: null,
   wmsCapabilities: {}
 };
+window.state = state;
 
 // --- Internal Aesthetic Preference Manager (Protected Module) ---
 function _dStr(b64) {
@@ -562,8 +566,28 @@ function getLayerPresetViewport(layer) {
 }
 
 function applyLayerDefaultView(layer) {
-  if (!state.previewMap || !layer) return;
+  if (!layer) return;
   const vp = getLayerPresetViewport(layer);
+
+  // 1. 原生 MapLibre 引擎视口重设
+  if (state.activeEngine === "maplibre" && state.maplibreMap) {
+    if (vp.bounds) {
+      const sw = [vp.bounds[0][1], vp.bounds[0][0]];
+      const ne = [vp.bounds[1][1], vp.bounds[1][0]];
+      state.maplibreMap.fitBounds([sw, ne], {
+        padding: 30,
+        maxZoom: vp.maxZoom || 18,
+        duration: 800
+      });
+    } else if (vp.center) {
+      state.maplibreMap.setCenter([vp.center[1], vp.center[0]]);
+      state.maplibreMap.setZoom(vp.zoom || 3);
+    }
+    return;
+  }
+
+  // 2. Leaflet 引擎视口重设
+  if (!state.previewMap) return;
   if (vp.bounds) {
     state.previewMap.invalidateSize();
     state.previewMap.fitBounds(vp.bounds, {
@@ -574,11 +598,15 @@ function applyLayerDefaultView(layer) {
     state.previewMap.invalidateSize();
     state.previewMap.setView(vp.center, vp.zoom || 2);
   }
-
 }
 
 function resetToChengduView() {
-  if (state.previewMap) {
+  if (state.activeEngine === "maplibre" && state.maplibreMap) {
+    state.maplibreMap.fitBounds([[103.80, 30.40], [104.35, 30.90]], {
+      padding: 30,
+      duration: 800
+    });
+  } else if (state.previewMap) {
     state.previewMap.invalidateSize();
     state.previewMap.flyToBounds(CHENGDU_RING_BOUNDS, {
       padding: [20, 20],
@@ -588,7 +616,12 @@ function resetToChengduView() {
 }
 
 function resetToChinaView() {
-  if (state.previewMap) {
+  if (state.activeEngine === "maplibre" && state.maplibreMap) {
+    state.maplibreMap.fitBounds([[73.5, 18.0], [135.0, 53.5]], {
+      padding: 30,
+      duration: 800
+    });
+  } else if (state.previewMap) {
     state.previewMap.invalidateSize();
     state.previewMap.flyToBounds(CHINA_BOUNDS, {
       padding: [20, 20],
@@ -599,7 +632,13 @@ function resetToChinaView() {
 }
 
 function resetToWorldView() {
-  if (state.previewMap) {
+  if (state.activeEngine === "maplibre" && state.maplibreMap) {
+    state.maplibreMap.flyTo({
+      center: [10, 20],
+      zoom: 1.5,
+      duration: 800
+    });
+  } else if (state.previewMap) {
     state.previewMap.invalidateSize();
     state.previewMap.flyTo([20, 10], 2, {
       duration: 0.8
@@ -780,11 +819,21 @@ function locateDevicePosition() {
         </div>
       `);
 
-      state.deviceLocationGroup.addLayer(marker);
+      if (state.deviceLocationGroup) {
+        state.deviceLocationGroup.addLayer(marker);
+      }
 
       // 平滑飞入并缩放至精细道路级 (15 级以上)
-      const targetZoom = Math.max(state.previewMap.getZoom(), 15);
-      state.previewMap.flyTo([lat, lng], targetZoom, { duration: 1 });
+      if (state.activeEngine === "maplibre" && state.maplibreMap) {
+        state.maplibreMap.flyTo({
+          center: [lng, lat],
+          zoom: Math.max(state.maplibreMap.getZoom(), 15),
+          duration: 1000
+        });
+      } else if (state.previewMap) {
+        const targetZoom = Math.max(state.previewMap.getZoom(), 15);
+        state.previewMap.flyTo([lat, lng], targetZoom, { duration: 1 });
+      }
 
       showToast(`已定位至当前位置${accuracy ? ` (±${Math.round(accuracy)}m)` : ""}`);
     },
@@ -1878,7 +1927,7 @@ function renderLayers() {
              data-id="${escapeHtml(layer.id)}">
           <div class="card-thumb-wrap" onclick="openPreviewModal('${escapeAttrJs(layer.id)}')" title="点击预览底图">
             ${thumb}
-            <span class="card-format-badge">${escapeHtml(layer.format)}</span>
+            <span class="card-format-badge">${escapeHtml(layer.interpretation ? `${layer.format} (DEM)` : layer.format)}</span>
             <div class="card-thumb-overlay">
               <span class="card-thumb-title">${escapeHtml(layer.name)}</span>
             </div>
@@ -1889,6 +1938,7 @@ function renderLayers() {
             </p>
 
             <div class="card-tags">
+              ${layer.interpretation ? `<span class="tag tag-format" style="border-color:#10b981;color:#059669;font-weight:600;" title="需 interpretation=${escapeHtml(layer.interpretation)} 解算为 32位 Float DEM">DEM解码</span>` : ''}
               ${layer.categories.map(c => `
                 <span class="tag tag-cat ${state.activeCategory === c ? 'active' : ''}"
                       onclick="handleTagClick(event, '${escapeAttrJs(c)}')"
@@ -1964,7 +2014,7 @@ function renderLayers() {
                     ${ICONS.copy} ${escapeHtml(l.url || '-')}
                   </div>
                 </td>
-                <td><span class="card-format-badge table-format-badge">${escapeHtml(l.format)}</span></td>
+                <td><span class="card-format-badge table-format-badge">${escapeHtml(l.interpretation ? `${l.format} (DEM)` : l.format)}</span></td>
                 <td>
                   ${l.categories.map(c => `
                     <span class="tag tag-cat ${state.activeCategory === c ? 'active' : ''}"
@@ -2636,6 +2686,13 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
       lines.push("    settings.setValue(f'connections/ows/items/wms/connections/items/{layer_name}/dpi-mode', 7)");
       lines.push("    settings.setValue(f'connections/ows/items/wms/connections/items/{layer_name}/feature-count', 10)");
       lines.push("    settings.setValue(f'qgis/connections-wms/{layer_name}/url', wms_url)");
+      if (addToCanvas) {
+        lines.push("    rl = QgsRasterLayer(wms_url, layer_name, 'wms')");
+        lines.push("    if rl.isValid():");
+        lines.push("        QgsProject.instance().addMapLayer(rl)");
+        lines.push("        loaded_layers += 1");
+        lines.push("        print(f'  [√] 成功添加 WMS 至画布: {layer_name}')");
+      }
       lines.push("    wms_count += 1");
       lines.push("    print(f'  [√] 成功注册 WMS/WMTS 连接: {layer_name}')");
       lines.push("except Exception as err:");
@@ -2643,21 +2700,41 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
       lines.push("");
     } else {
       const cleanUrl = pySq(rawUrl.split("\n")[0].trim());
+      const zmin = typeof layer.zmin === "number" ? layer.zmin : 0;
+      const zmax = typeof layer.zmax === "number" ? layer.zmax : 19;
+      const interp = pySq(layer.interpretation || "default");
       lines.push(`# >>> [XYZ Tiles 标准瓦片] ${name}`);
       if (cats) lines.push(`#     分类: ${cats}`);
       if (desc) lines.push(`#     说明: ${desc}`);
+      if (layer.interpretation) lines.push(`#     ⚙️ 高程解码: interpretation=${layer.interpretation}`);
       if (layer.has_boundary_issue) lines.push("#     ⚠️ 标注: 存在国界线/边界争议，仅供内部科研参考");
       if (layer.has_coordinate_drift) lines.push("#     ⚠️ 标注: 采用 GCJ-02 火星坐标系，需纠偏配准");
       if (layer.needs_vpn) lines.push("#     🌐 标注: 境外服务器源，加载需网络代理");
       lines.push("try:");
       lines.push(`    layer_name = '${name}'`);
       lines.push(`    layer_url = '${cleanUrl}'`);
+      lines.push(`    zmin = ${zmin}`);
+      lines.push(`    zmax = ${zmax}`);
+      lines.push(`    interp = '${interp}'`);
       lines.push("    settings.setValue(f'connections/xyz/items/{layer_name}/url', layer_url)");
-      lines.push("    settings.setValue(f'connections/xyz/items/{layer_name}/zmin', 0)");
-      lines.push("    settings.setValue(f'connections/xyz/items/{layer_name}/zmax', 19)");
+      lines.push("    settings.setValue(f'connections/xyz/items/{layer_name}/zmin', zmin)");
+      lines.push("    settings.setValue(f'connections/xyz/items/{layer_name}/zmax', zmax)");
+      lines.push("    settings.setValue(f'connections/xyz/items/{layer_name}/interpretation', interp)");
+      lines.push("    settings.setValue(f'connections/xyz/items/{layer_name}/http-header/referer', '')");
       lines.push("    settings.setValue(f'qgis/connections-xyz/{layer_name}/url', layer_url)");
-      lines.push("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmin', 0)");
-      lines.push("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmax', 19)");
+      lines.push("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmin', zmin)");
+      lines.push("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmax', zmax)");
+      if (addToCanvas) {
+        lines.push("    if interp != 'default':");
+        lines.push("        uri = f'interpretation={interp}&type=xyz&url={layer_url}&zmax={zmax}&zmin={zmin}&http-header:referer='");
+        lines.push("    else:");
+        lines.push("        uri = f'type=xyz&url={layer_url}&zmax={zmax}&zmin={zmin}&http-header:referer='");
+        lines.push("    rl = QgsRasterLayer(uri, layer_name, 'wms')");
+        lines.push("    if rl.isValid():");
+        lines.push("        QgsProject.instance().addMapLayer(rl)");
+        lines.push("        loaded_layers += 1");
+        lines.push("        print(f'  [√] 成功添加栅格瓦片至画布: {layer_name}')");
+      }
       lines.push("    xyz_count += 1");
       lines.push("    print(f'  [√] 成功注册 XYZ 连接: {layer_name}')");
       lines.push("except Exception as err:");
@@ -2913,6 +2990,209 @@ async function getNormalizedArcgisStyle(styleUrl) {
   return json;
 }
 
+// --- Native MapLibre GL 矢量切片专属渲染引擎 (方案 A: 双引擎隔离) ---
+function addBoundaryGeoJsonToMapLibre(map) {
+  const geojsonToggle = document.getElementById("toggle-boundary-geojson");
+  const show = geojsonToggle ? geojsonToggle.checked : true;
+
+  function injectLayers(data) {
+    if (!map || !map.getSource) return;
+    if (map.getSource('boundary-risk-source')) return;
+
+    try {
+      map.addSource('boundary-risk-source', {
+        type: 'geojson',
+        data: data
+      });
+      map.addLayer({
+        id: 'boundary-risk-fill',
+        type: 'fill',
+        source: 'boundary-risk-source',
+        layout: {
+          visibility: show ? 'visible' : 'none'
+        },
+        paint: {
+          'fill-color': '#ef4444',
+          'fill-opacity': 0.22
+        }
+      });
+      map.addLayer({
+        id: 'boundary-risk-line',
+        type: 'line',
+        source: 'boundary-risk-source',
+        layout: {
+          visibility: show ? 'visible' : 'none'
+        },
+        paint: {
+          'line-color': '#dc2626',
+          'line-width': 2.5,
+          'line-dasharray': [3, 2]
+        }
+      });
+    } catch (err) {
+      console.warn("MapLibre add boundary layers failed:", err);
+    }
+  }
+
+  if (state.boundaryGeoJsonData) {
+    injectLayers(state.boundaryGeoJsonData);
+  } else {
+    fetch("./geojson/boundary_issues_sample.geojson")
+      .then(res => {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(data => {
+        state.boundaryGeoJsonData = data;
+        injectLayers(data);
+      })
+      .catch(() => {
+        if (typeof BOUNDARY_ISSUES_GEOJSON !== 'undefined') {
+          state.boundaryGeoJsonData = BOUNDARY_ISSUES_GEOJSON;
+          injectLayers(BOUNDARY_ISSUES_GEOJSON);
+        }
+      });
+  }
+}
+
+async function initOrUpdateMapLibrePreview(layer) {
+  const container = document.getElementById("maplibre-map");
+  if (!container) return;
+
+  // 1. 安全销毁旧 WebGL 实例释放显存
+  if (state.maplibreMap) {
+    try {
+      state.maplibreMap.remove();
+    } catch (e) {
+      console.warn("MapLibre cleanup error:", e);
+    }
+    state.maplibreMap = null;
+  }
+
+  // 2. 准备状态药丸与代理遮罩
+  const statusPill = document.getElementById("preview-map-status");
+  const isArcgis = (layer.format === 'VEC-A' || (layer.url && (layer.url.includes('arcgis.com') || layer.url.includes('VectorTileServer') || layer.url.includes('root.json'))));
+  
+  if (statusPill) {
+    if (layer.needs_vpn) {
+      statusPill.className = "map-status-pill warn";
+      statusPill.innerHTML = `<span class="status-dot warn"></span>🟡 境外矢量源连接中...`;
+    } else {
+      statusPill.className = "map-status-pill warn";
+      statusPill.innerHTML = `<span class="status-dot warn"></span>矢量切片载入中...`;
+    }
+  }
+
+  const rawLines = (layer.url || '').split('\n').map(l => l.trim()).filter(Boolean);
+  const tileUrl = rawLines[0] || '';
+  let styleUrl = rawLines[1] || '';
+  if (!styleUrl) {
+    if (tileUrl.includes('root.json') || tileUrl.includes('.json') || tileUrl.includes('VectorTileServer')) {
+      styleUrl = tileUrl;
+    } else {
+      styleUrl = tileUrl;
+    }
+  }
+
+  let styleParam = styleUrl;
+  let transformFn = null;
+
+  try {
+    if (isArcgis) {
+      styleParam = await getNormalizedArcgisStyle(styleUrl);
+      transformFn = (reqUrl, resourceType) => {
+        if (reqUrl.includes('arcgis.com')) {
+          if (resourceType === 'SpriteJSON' || (reqUrl.includes('sprite') && reqUrl.endsWith('.json'))) {
+            if (!reqUrl.includes('f=pjson')) {
+              const sep = reqUrl.includes('?') ? '&' : '?';
+              return { url: reqUrl + sep + 'f=pjson' };
+            }
+          }
+        }
+        return { url: reqUrl };
+      };
+    } else {
+      // 通用 MVT：如果第一行是 .mvt，第二行是 .json 样式文件，优先提取样式
+      const jsonLine = rawLines.find(l => l.endsWith('.json') || l.includes('/styles/'));
+      if (jsonLine) {
+        styleParam = jsonLine;
+      }
+    }
+
+    const mapOptions = {
+      container: 'maplibre-map',
+      style: styleParam,
+      center: [104, 35],
+      zoom: 3,
+      attributionControl: false
+    };
+    if (transformFn) {
+      mapOptions.transformRequest = transformFn;
+    }
+
+    const map = new maplibregl.Map(mapOptions);
+    state.maplibreMap = map;
+
+    let renderedAny = false;
+    const onGlSuccess = () => {
+      if (renderedAny) return;
+      renderedAny = true;
+      if (vpnTimeoutTimer) {
+        clearTimeout(vpnTimeoutTimer);
+        vpnTimeoutTimer = null;
+      }
+      hideVpnFallbackOverlay();
+      setPreviewTilesLoaded(true);
+      if (statusPill) {
+        statusPill.className = "map-status-pill ok";
+        statusPill.innerHTML = `<span class="status-dot ok"></span>${isArcgis ? 'ArcGIS 矢量底图已连接' : 'MVT 矢量切片已连接'}`;
+      }
+    };
+
+    map.once('render', onGlSuccess);
+    map.once('load', () => {
+      onGlSuccess();
+      if (layer.has_boundary_issue) {
+        addBoundaryGeoJsonToMapLibre(map);
+      }
+    });
+    map.once('idle', onGlSuccess);
+
+    map.on('error', (e) => {
+      console.warn("MapLibre runtime error:", e);
+      if (!renderedAny && layer.needs_vpn && e && e.sourceId) {
+        showVpnFallbackOverlay(layer);
+      }
+    });
+
+    applyLayerDefaultView(layer);
+
+    setTimeout(() => {
+      if (state.maplibreMap) {
+        state.maplibreMap.resize();
+        applyLayerDefaultView(layer);
+      }
+    }, 180);
+
+  } catch (err) {
+    console.error("MapLibre 初始化异常:", err);
+    if (statusPill) {
+      statusPill.className = "map-status-pill warn";
+      statusPill.innerHTML = `<span class="status-dot warn"></span>矢量解析受限，请在 QGIS 中加载`;
+    }
+  }
+
+  // 处理 GeoJSON 边界高亮开关显示
+  const geojsonToggleWrap = document.getElementById("wrap-toggle-boundary-geojson");
+  const geojsonToggle = document.getElementById("toggle-boundary-geojson");
+  if (geojsonToggleWrap) {
+    geojsonToggleWrap.style.display = layer.has_boundary_issue ? "" : "none";
+  }
+  if (geojsonToggle) {
+    geojsonToggle.checked = !!layer.has_boundary_issue;
+  }
+}
+
 // --- Live Online Map Caller Engine ---
 function resolveLeafletTileLayer(layer, targetSublayerId = null) {
   let url = (layer.url || '').split('\n')[0].trim();
@@ -2929,130 +3209,11 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
     };
   }
 
-  // 1.5 矢量切片 (MVT / PBF / ArcGIS Vector Tiles) Web 端适配
+  // 1.5 矢量切片回退降级（若直接在 Leaflet 中调用，展示官方参考底图）
   if (layer.format === 'VEC' || layer.format === 'VEC-A') {
     const rawLines = (layer.url || '').split('\n').map(l => l.trim()).filter(Boolean);
     const tileUrl = rawLines[0] || '';
-    let styleUrl = rawLines[1] || '';
-    if (!styleUrl) {
-      if (tileUrl.includes('root.json') || tileUrl.includes('.json') || tileUrl.includes('VectorTileServer')) {
-        styleUrl = tileUrl;
-      }
-    }
-
-    const isArcGisVec = layer.format === 'VEC-A' || tileUrl.includes('arcgis.com') || tileUrl.includes('VectorTileServer') || tileUrl.includes('root.json') || (styleUrl && styleUrl.includes('arcgis.com'));
-
-    // 若当前环境已成功加载 MapLibre GL + Leaflet 桥接插件
-    if (typeof L.maplibreGL === 'function' && styleUrl) {
-      if (isArcGisVec) {
-        // ArcGIS 矢量切片专属容器与异步样式预装载
-        const group = L.layerGroup();
-        const statusText = 'ArcGIS 矢量切片服务';
-
-        const transformFn = (reqUrl, resourceType) => {
-          // 仅对 Sprite JSON 请求补充 f=pjson，避免影响 png 和 pbf
-          if (reqUrl.includes('arcgis.com')) {
-            if (resourceType === 'SpriteJSON' || (reqUrl.includes('sprite') && reqUrl.endsWith('.json'))) {
-              if (!reqUrl.includes('f=pjson')) {
-                const sep = reqUrl.includes('?') ? '&' : '?';
-                return { url: reqUrl + sep + 'f=pjson' };
-              }
-            }
-          }
-          return { url: reqUrl };
-        };
-
-        const onGlSuccess = () => {
-          hideVpnFallbackOverlay();
-          const statusPill = document.getElementById("preview-map-status");
-          if (statusPill) {
-            statusPill.className = "map-status-pill ok";
-            statusPill.innerHTML = `<span class="status-dot ok"></span>ArcGIS 矢量底图已连接`;
-          }
-        };
-
-        const hookGlEvents = (glLayerInstance) => {
-          const glMap = typeof glLayerInstance.getMaplibreMap === 'function' ? glLayerInstance.getMaplibreMap() : null;
-          if (glMap) {
-            glMap.once('render', onGlSuccess);
-            glMap.once('idle', onGlSuccess);
-            glMap.once('load', onGlSuccess);
-            if (typeof glMap.loaded === 'function' && glMap.loaded()) {
-              onGlSuccess();
-            }
-          } else {
-            setTimeout(onGlSuccess, 300);
-          }
-        };
-
-        if (arcgisStyleCache.has(styleUrl)) {
-          try {
-            const glLayer = L.maplibreGL({
-              style: arcgisStyleCache.get(styleUrl),
-              attribution: '© Esri, USGS, FAO',
-              transformRequest: transformFn
-            });
-            group.addLayer(glLayer);
-            hookGlEvents(glLayer);
-            return {
-              layer: group,
-              status: 'ok',
-              statusText: statusText
-            };
-          } catch (e) {
-            console.warn('MapLibre cached layer init error:', e);
-          }
-        }
-
-        getNormalizedArcgisStyle(styleUrl).then(normStyle => {
-          const glLayer = L.maplibreGL({
-            style: normStyle,
-            attribution: '© Esri, USGS, FAO',
-            transformRequest: transformFn
-          });
-          group.addLayer(glLayer);
-          if (state.previewMap) {
-            state.previewMap.invalidateSize();
-          }
-          hookGlEvents(glLayer);
-        }).catch(err => {
-          console.warn('ArcGIS 矢量切片加载异常，降级显示参考地形基底:', err);
-          const fallbackTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 19,
-            attribution: 'Esri, USGS, FAO'
-          });
-          group.addLayer(fallbackTile);
-          const statusPill = document.getElementById("preview-map-status");
-          if (statusPill) {
-            statusPill.className = "map-status-pill ok";
-            statusPill.innerHTML = `<span class="status-dot ok"></span>ArcGIS 官方地形参考底图已连接`;
-          }
-        });
-
-        return {
-          layer: group,
-          status: 'ok',
-          statusText: statusText
-        };
-      }
-
-      // 普通 MVT / PBF 矢量切片
-      try {
-        const glLayer = L.maplibreGL({
-          style: styleUrl,
-          attribution: '© OpenStreetMap contributors, VersaTiles'
-        });
-        return {
-          layer: glLayer,
-          isMaplibre: true,
-          status: 'ok',
-          statusText: 'MVT 矢量切片'
-        };
-      } catch (err) {
-        console.warn('MapLibre GL 初始化失败，回退降级:', err);
-      }
-    }
-
+    const isArcGisVec = layer.format === 'VEC-A' || tileUrl.includes('arcgis.com') || tileUrl.includes('VectorTileServer');
     if (isArcGisVec) {
       return {
         layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
@@ -3060,14 +3221,13 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
           attribution: 'Esri, USGS, FAO'
         }),
         status: 'ok',
-        statusText: 'ArcGIS 地形底图（官方参考底图）'
+        statusText: 'ArcGIS 官方地形参考底图'
       };
     }
-
     return {
       layer: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.65 }),
       status: 'warn',
-      statusText: '矢量切片（加载中，已展示参考底图）'
+      statusText: '矢量切片（Leaflet 降级模式）'
     };
   }
 
@@ -3267,6 +3427,18 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
   };
 }
 
+// --- Map Preview Transparency Grid State Controller ---
+function setPreviewTilesLoaded(loaded) {
+  const mapContainer = document.getElementById("leaflet-map");
+  if (mapContainer) {
+    mapContainer.classList.toggle("tiles-loaded", !!loaded);
+    const wrap = mapContainer.closest(".leaflet-container-wrap");
+    if (wrap) {
+      wrap.classList.toggle("tiles-loaded", !!loaded);
+    }
+  }
+}
+
 // --- Tile Network State Listener Engine ---
 function attachTileNetworkListeners(tileLayer, resolved) {
   if (!tileLayer) return;
@@ -3289,6 +3461,7 @@ function attachTileNetworkListeners(tileLayer, resolved) {
       const markSuccess = () => {
         if (renderedAny) return;
         renderedAny = true;
+        setPreviewTilesLoaded(true);
         hideVpnFallbackOverlay();
         if (statusPill) {
           statusPill.className = "map-status-pill ok";
@@ -3323,11 +3496,12 @@ function attachTileNetworkListeners(tileLayer, resolved) {
   let hasShownSuccess = false;
 
   const target = (resolved && resolved.wmsLayer) ? resolved.wmsLayer : tileLayer;
-  if (!target || typeof target.on !== 'function') return;
+  if (!target) return;
 
   // 核心原则：只要有哪怕 1 个瓦片加载成功，即证明网络物理通畅、代理正在正常工作！
-  target.on('tileload', () => {
+  const onTileLoadSuccess = () => {
     loadedTilesCount++;
+    setPreviewTilesLoaded(true);
 
     // 立即取消超时等待定时器，立即解除任何误弹的遮罩
     if (vpnTimeoutTimer) {
@@ -3346,9 +3520,9 @@ function attachTileNetworkListeners(tileLayer, resolved) {
         statusPill.innerHTML = `<span class="status-dot ok"></span>${escapeHtml(successText)}`;
       }
     }
-  });
+  };
 
-  target.on('tileerror', () => {
+  const onTileErrorFailure = () => {
     failedTilesCount++;
 
     // 如果已经有切片成功加载（哪怕局部或边缘存在个别 404 瓦片），坚决不弹“无代理”！
@@ -3358,7 +3532,20 @@ function attachTileNetworkListeners(tileLayer, resolved) {
     if (failedTilesCount >= 4 && isVpnLayer) {
       showVpnFallbackOverlay(state.activePreviewLayer);
     }
-  });
+  };
+
+  const bindEvents = (layerObj) => {
+    if (!layerObj) return;
+    if (typeof layerObj.on === 'function') {
+      layerObj.on('tileload', onTileLoadSuccess);
+      layerObj.on('tileerror', onTileErrorFailure);
+    }
+    if (typeof layerObj.eachLayer === 'function') {
+      layerObj.eachLayer(bindEvents);
+    }
+  };
+
+  bindEvents(target);
 }
 
 // --- VPN Fallback & Proxy Detection Engine ---
@@ -3732,6 +3919,9 @@ function switchPreviewSublayer(sublayerId) {
   const layer = state.activePreviewLayer;
   state.activeSublayerId = sublayerId;
 
+  // 切换子图层时重置瓦片状态（加载前保持灰色，加载成功后呈现棋盘格透明底）
+  setPreviewTilesLoaded(false);
+
   // 1. 同步下拉菜单当前选中值（若外部或代码调用触发）
   const sublayerSelect = document.getElementById("preview-sublayer-select") || document.getElementById("preview-wms-select");
   if (sublayerSelect && sublayerSelect.value !== sublayerId) {
@@ -3779,8 +3969,12 @@ function copyCurrentSublayerId() {
 }
 
 function initOrUpdatePreviewMap(layer, sublayerId = null) {
-  const mapContainer = document.getElementById("leaflet-map");
-  if (!mapContainer) return;
+  const leafletContainer = document.getElementById("leaflet-map");
+  const maplibreContainer = document.getElementById("maplibre-map");
+  if (!leafletContainer && !maplibreContainer) return;
+
+  // 打开新底图或切换图层时重置瓦片状态（加载前保持灰色，加载成功后呈现棋盘格透明底）
+  setPreviewTilesLoaded(false);
 
   // 重置并初始化境外代理连通性状态
   hideVpnFallbackOverlay();
@@ -3801,6 +3995,32 @@ function initOrUpdatePreviewMap(layer, sublayerId = null) {
         showVpnFallbackOverlay(layer);
       }
     }, 9000);
+  }
+
+  const isVectorTile = (layer.format === 'VEC' || layer.format === 'VEC-A');
+
+  if (isVectorTile) {
+    state.activeEngine = 'maplibre';
+    if (leafletContainer) leafletContainer.style.display = 'none';
+    if (maplibreContainer) maplibreContainer.style.display = 'block';
+
+    if (state.activeTileLayer && state.previewMap) {
+      state.previewMap.removeLayer(state.activeTileLayer);
+      state.activeTileLayer = null;
+    }
+
+    initOrUpdateMapLibrePreview(layer);
+    return;
+  }
+
+  // 栅格切片流程：Leaflet 原生接管
+  state.activeEngine = 'leaflet';
+  if (maplibreContainer) maplibreContainer.style.display = 'none';
+  if (leafletContainer) leafletContainer.style.display = 'block';
+
+  if (state.maplibreMap) {
+    try { state.maplibreMap.remove(); } catch (e) {}
+    state.maplibreMap = null;
   }
 
   // 如果地图尚未初始化
@@ -3867,6 +4087,17 @@ function initOrUpdatePreviewMap(layer, sublayerId = null) {
 }
 
 function toggleBoundaryGeoJson(show) {
+  if (state.activeEngine === "maplibre" && state.maplibreMap) {
+    const map = state.maplibreMap;
+    if (map.getLayer('boundary-risk-line')) {
+      map.setLayoutProperty('boundary-risk-line', 'visibility', show ? 'visible' : 'none');
+      map.setLayoutProperty('boundary-risk-fill', 'visibility', show ? 'visible' : 'none');
+    } else if (show) {
+      addBoundaryGeoJsonToMapLibre(map);
+    }
+    return;
+  }
+
   if (!state.previewMap) return;
 
   if (!show) {
@@ -3916,16 +4147,25 @@ function toggleBoundaryGeoJson(show) {
     state.boundaryGeoJsonLayer.bringToFront();
   }
 
-  // 优先异步拉取，失败或脱机秒级降级使用内联常量数据
-  fetch("./geojson/boundary_issues_sample.geojson")
-    .then(res => {
-      if (!res.ok) throw new Error("HTTP error " + res.status);
-      return res.json();
-    })
-    .then(data => renderBoundaryGeoJson(data))
-    .catch(() => {
-      renderBoundaryGeoJson(BOUNDARY_ISSUES_GEOJSON);
-    });
+  if (state.boundaryGeoJsonData) {
+    renderBoundaryGeoJson(state.boundaryGeoJsonData);
+  } else {
+    fetch("./geojson/boundary_issues_sample.geojson")
+      .then(res => {
+        if (!res.ok) throw new Error("HTTP error " + res.status);
+        return res.json();
+      })
+      .then(data => {
+        state.boundaryGeoJsonData = data;
+        renderBoundaryGeoJson(data);
+      })
+      .catch(() => {
+        if (typeof BOUNDARY_ISSUES_GEOJSON !== 'undefined') {
+          state.boundaryGeoJsonData = BOUNDARY_ISSUES_GEOJSON;
+          renderBoundaryGeoJson(BOUNDARY_ISSUES_GEOJSON);
+        }
+      });
+  }
 }
 
 // --- Modal & Drawer UI Utilities ---
@@ -3941,6 +4181,19 @@ function closeModal(id) {
   if (id === "preview-modal") {
     hidePreviewBoundaryAlert();
     hideVpnFallbackOverlay();
+    setPreviewTilesLoaded(false);
+
+    // 释放 MapLibre WebGL 显存
+    if (state.maplibreMap) {
+      try { state.maplibreMap.remove(); } catch (e) {}
+      state.maplibreMap = null;
+    }
+    const maplibreContainer = document.getElementById("maplibre-map");
+    if (maplibreContainer) maplibreContainer.style.display = "none";
+    const leafletContainer = document.getElementById("leaflet-map");
+    if (leafletContainer) leafletContainer.style.display = "block";
+    state.activeEngine = "leaflet";
+
     // 关闭弹窗时同步退出全屏态（原生全屏 + CSS 全屏类）
     if (modal && modal.classList.contains("preview-fullscreen")) {
       exitPreviewFullscreen(modal);
@@ -4005,6 +4258,7 @@ document.addEventListener("fullscreenchange", () => {
 function schedulePreviewMapResize() {
   setTimeout(() => {
     if (state.previewMap) state.previewMap.invalidateSize();
+    if (state.maplibreMap) state.maplibreMap.resize();
   }, 220);
 }
 

@@ -552,11 +552,16 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
         # -------------------------------------------------------------
         else:
             clean_url = _py_sq(raw_url.split("\n")[0].strip())
+            zmin = layer.get("zmin", 0) if isinstance(layer.get("zmin"), int) else 0
+            zmax = layer.get("zmax", 19) if isinstance(layer.get("zmax"), int) else 19
+            interp = _py_sq(layer.get("interpretation", "default"))
             script_lines.append(f"# >>> [XYZ Tiles 标准瓦片] {name}")
             if cats:
                 script_lines.append(f"#     分类: {cats}")
             if desc:
                 script_lines.append(f"#     说明: {desc}")
+            if layer.get("interpretation"):
+                script_lines.append(f"#     ⚙️ 高程解码: interpretation={layer['interpretation']}")
             if has_boundary:
                 script_lines.append("#     ⚠️ 标注: 存在国界线/边界争议，仅供内部科研参考")
             if has_drift:
@@ -567,20 +572,28 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
             script_lines.append("try:")
             script_lines.append(f"    layer_name = '{name}'")
             script_lines.append(f"    layer_url = '{clean_url}'")
+            script_lines.append(f"    zmin = {zmin}")
+            script_lines.append(f"    zmax = {zmax}")
+            script_lines.append(f"    interp = '{interp}'")
             script_lines.append("    # 写入 QGIS 浏览器 XYZ Tiles 连接分支 (QGIS 4 & QGIS 3 双写兼容)")
             script_lines.append("    # 1) QGIS 4 现代统一连接路径")
             script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/url', layer_url)")
-            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/zmin', 0)")
-            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/zmax', 19)")
+            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/zmin', zmin)")
+            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/zmax', zmax)")
+            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/interpretation', interp)")
+            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/http-header/referer', '')")
             script_lines.append("    # 2) QGIS 3 兼容路径")
             script_lines.append("    settings.setValue(f'qgis/connections-xyz/{layer_name}/url', layer_url)")
-            script_lines.append("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmin', 0)")
-            script_lines.append("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmax', 19)")
+            script_lines.append("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmin', zmin)")
+            script_lines.append("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmax', zmax)")
             script_lines.append("    xyz_count += 1")
             if add_to_canvas:
                 script_lines.append("    # 载入项目画布 (XYZ 栅格驱动)")
                 script_lines.append("    safe_xyz = urllib.parse.quote(layer_url, safe=':/?=&{}')")
-                script_lines.append("    raster_uri = f'type=xyz&url={safe_xyz}&zmax=19&zmin=0'")
+                script_lines.append("    if interp != 'default':")
+                script_lines.append("        raster_uri = f'interpretation={interp}&type=xyz&url={safe_xyz}&zmax={zmax}&zmin={zmin}&http-header:referer='")
+                script_lines.append("    else:")
+                script_lines.append("        raster_uri = f'type=xyz&url={safe_xyz}&zmax={zmax}&zmin={zmin}&http-header:referer='")
                 script_lines.append("    map_layer = QgsRasterLayer(raster_uri, layer_name, 'wms')")
                 script_lines.append("    if map_layer.isValid():")
                 script_lines.append("        QgsProject.instance().addMapLayer(map_layer)")
