@@ -2867,7 +2867,7 @@ async function getNormalizedArcgisStyle(styleUrl) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
 
-  // 关键：展开 sources 中的 VectorTileServer 相对路径为绝对切片模板
+  // 1. 展开 sources 中的 VectorTileServer 相对路径为绝对切片模板
   if (json.sources) {
     for (const [sKey, sVal] of Object.entries(json.sources)) {
       if (sVal && sVal.type === 'vector') {
@@ -2883,9 +2883,17 @@ async function getNormalizedArcgisStyle(styleUrl) {
     }
   }
 
-  // 修复 sprite 地址参数，避开 ArcGIS 403 权限拦截
-  if (json.sprite && json.sprite.includes('arcgis.com') && !json.sprite.includes('f=pjson')) {
-    json.sprite = json.sprite + (json.sprite.includes('?') ? '&f=pjson' : '?f=pjson');
+  // 2. 规范化 sprite 路径（消除相对层级，且不可带 query string，防止拼接出 ?f=pjson.json 400 报错）
+  if (json.sprite) {
+    json.sprite = json.sprite.replace('/styles/../', '/');
+    if (json.sprite.includes('?')) {
+      json.sprite = json.sprite.split('?')[0];
+    }
+  }
+
+  // 3. 补全字体 glyphs 默认源
+  if (!json.glyphs) {
+    json.glyphs = 'https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/resources/fonts/{fontstack}/{range}.pbf';
   }
 
   arcgisStyleCache.set(styleUrl, json);
@@ -2919,7 +2927,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
       }
     }
 
-    const isArcGisVec = tileUrl.includes('arcgis.com') || tileUrl.includes('VectorTileServer') || tileUrl.includes('root.json');
+    const isArcGisVec = tileUrl.includes('arcgis.com') || tileUrl.includes('VectorTileServer') || tileUrl.includes('root.json') || (styleUrl && styleUrl.includes('arcgis.com'));
 
     // 若当前环境已成功加载 MapLibre GL + Leaflet 桥接插件
     if (typeof L.maplibreGL === 'function' && styleUrl) {
@@ -2929,10 +2937,13 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
         const statusText = 'ArcGIS 矢量切片服务';
 
         const transformFn = (reqUrl, resourceType) => {
-          if (reqUrl.includes('arcgis.com') && (resourceType === 'SpriteJSON' || resourceType === 'SpriteImage' || reqUrl.includes('sprite'))) {
-            if (!reqUrl.includes('f=pjson')) {
-              const sep = reqUrl.includes('?') ? '&' : '?';
-              return { url: reqUrl + sep + 'f=pjson' };
+          // 仅对 Sprite JSON 请求补充 f=pjson，避免影响 png 和 pbf
+          if (reqUrl.includes('arcgis.com')) {
+            if (resourceType === 'SpriteJSON' || (reqUrl.includes('sprite') && reqUrl.endsWith('.json'))) {
+              if (!reqUrl.includes('f=pjson')) {
+                const sep = reqUrl.includes('?') ? '&' : '?';
+                return { url: reqUrl + sep + 'f=pjson' };
+              }
             }
           }
           return { url: reqUrl };
@@ -2948,18 +2959,22 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
         };
 
         if (arcgisStyleCache.has(styleUrl)) {
-          const glLayer = L.maplibreGL({
-            style: arcgisStyleCache.get(styleUrl),
-            attribution: '© Esri, USGS, FAO',
-            transformRequest: transformFn
-          });
-          group.addLayer(glLayer);
-          setTimeout(onGlSuccess, 100);
-          return {
-            layer: group,
-            status: 'ok',
-            statusText: statusText
-          };
+          try {
+            const glLayer = L.maplibreGL({
+              style: arcgisStyleCache.get(styleUrl),
+              attribution: '© Esri, USGS, FAO',
+              transformRequest: transformFn
+            });
+            group.addLayer(glLayer);
+            setTimeout(onGlSuccess, 100);
+            return {
+              layer: group,
+              status: 'ok',
+              statusText: statusText
+            };
+          } catch (e) {
+            console.warn('MapLibre cached layer init error:', e);
+          }
         }
 
         getNormalizedArcgisStyle(styleUrl).then(normStyle => {
@@ -2974,9 +2989,17 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
           }
           onGlSuccess();
         }).catch(err => {
-          console.warn('ArcGIS 矢量切片加载异常，降级显示参考基底:', err);
-          const fallbackTile = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.65 });
+          console.warn('ArcGIS 矢量切片加载异常，降级显示参考地形基底:', err);
+          const fallbackTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Esri, USGS, FAO'
+          });
           group.addLayer(fallbackTile);
+          const statusPill = document.getElementById("preview-map-status");
+          if (statusPill) {
+            statusPill.className = "map-status-pill ok";
+            statusPill.innerHTML = `<span class="status-dot ok"></span>ArcGIS 官方地形参考底图已连接`;
+          }
         });
 
         return {
@@ -3001,6 +3024,17 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
       } catch (err) {
         console.warn('MapLibre GL 初始化失败，回退降级:', err);
       }
+    }
+
+    if (isArcGisVec) {
+      return {
+        layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Esri, USGS, FAO'
+        }),
+        status: 'ok',
+        statusText: 'ArcGIS 地形底图（官方参考底图）'
+      };
     }
 
     return {
