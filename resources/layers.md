@@ -7,7 +7,7 @@
 
 | 属性字段 | 允许值 / 标签格式 | 说明 |
 | :--- | :--- | :--- |
-| **格式 (Format)** | `XYZ Tiles`, `WMS/WMTS`, `VEC`, `插件类` | 接入协议类型 |
+| **格式 (Format)** | `XYZ Tiles`, `WMS/WMTS`, `VEC`, `VEC-A`, `插件类` | 接入协议类型（VEC 与 VEC-A 均归属矢量切片大类） |
 | **分类 (Categories)** | `电子地图`, `地形图`, `影像图`, `标注图`, `铁路地图`, `土地利用图`, `海床图` | 可多选，逗号分隔 |
 | **网络标签** | `国内直连` 或 `需VPN` | 网络连通性判定 |
 | **边界标签** | `无边界问题` 或 `边界问题` | 国界线合规性判定（阿克赛钦/藏南/南海诸岛/黑瞎子岛/黄岩岛） |
@@ -553,7 +553,7 @@ https://server.arcgisonline.com/arcgis/rest/services/Ocean/World_Ocean_Reference
 - **缩略图**: `/thumbnails/thumb_44.png`
 
 ### [layer_59] World-Topo-Map_NoLabel
-- **格式**: `VEC`
+- **格式**: `VEC-A`
 - **分类**: 电子地图, 标注图
 - **标签**: 国内直连, 无边界问题, 无坐标偏移
 - **序号**: 59

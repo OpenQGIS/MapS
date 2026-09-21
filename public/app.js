@@ -2486,7 +2486,7 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
     `# 图源核验基准日期: ${checkTime}`,
     `# 脚本导出时间: ${timestamp}`,
     `# 本次选定底图: 共 ${selectedLayers.length} 款`,
-    "# 协议覆盖: XYZ Tiles 标准切片、WMS/WMTS 空间数据服务、VEC 矢量切片 (Vector Tiles)",
+    "# 协议覆盖: XYZ Tiles 标准切片、WMS/WMTS 空间数据服务、VEC / VEC-A 矢量切片 (Vector Tiles)",
     "# 兼容特性: 深度兼容 QGIS 4.x (现代数据连接架构) 与 QGIS 3.x 全版本",
     "# 使用方法:",
     "# 1. 在 QGIS 菜单栏快捷键 Ctrl+Alt+P 打开 Python 控制台",
@@ -2526,11 +2526,11 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
     const cats = layer.categories ? layer.categories.join(" / ") : "";
     if (!rawUrl) continue;
 
-    if (fmt === "VEC") {
+    if (fmt === "VEC" || fmt === "VEC-A") {
       const urlLines = rawUrl.split("\n").map(u => u.trim()).filter(Boolean);
       let serviceUrl = pySq(urlLines[0]);
       let styleUrl = urlLines.length > 1 ? pySq(urlLines[1]) : "";
-      const isArcGisVec = serviceUrl.includes('arcgis.com') || serviceUrl.includes('VectorTileServer') || serviceUrl.includes('root.json') || (styleUrl && styleUrl.includes('arcgis.com'));
+      const isArcGisVec = fmt === "VEC-A" || serviceUrl.includes('arcgis.com') || serviceUrl.includes('VectorTileServer') || serviceUrl.includes('root.json') || (styleUrl && styleUrl.includes('arcgis.com'));
 
       if (isArcGisVec) {
         if (!styleUrl && serviceUrl.includes('root.json')) {
@@ -2541,7 +2541,7 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
         }
       }
 
-      lines.push(`# >>> [VEC 矢量切片${isArcGisVec ? ' - ArcGIS服务' : ''}] ${name}`);
+      lines.push(`# >>> [${isArcGisVec ? 'VEC-A 矢量切片 - ArcGIS服务' : 'VEC 矢量切片'}] ${name}`);
       if (cats) lines.push(`#     分类: ${cats}`);
       if (desc) lines.push(`#     说明: ${desc}`);
       if (layer.has_boundary_issue) lines.push("#     ⚠️ 标注: 存在国界线/边界争议，仅供内部科研参考");
@@ -2551,33 +2551,31 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
       lines.push(`    layer_name = '${name}'`);
 
       if (isArcGisVec) {
-        lines.push(`    service_url = '${serviceUrl}'`);
+        const baseSvc = serviceUrl.replace(/\/+$/, '');
+        const tileUrl = baseSvc.includes('{z}') ? baseSvc : `${baseSvc}/tile/{z}/{y}/{x}.pbf`;
+        lines.push(`    tile_url = '${tileUrl}'`);
         lines.push(`    style_url = '${styleUrl}'`);
-        lines.push("    # Modern QGIS 3.x / 4.x vector tile connection");
-        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/serviceType', 'arcgis')");
+        lines.push("    # Modern QGIS 3.x / 4.x vector tile connection (XYZ/PBF 瓦片模板架构)");
+        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/serviceType', 'xyz')");
         lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/type', 'xyz')");
-        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', service_url)");
+        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)");
         if (styleUrl) lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)");
         lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)");
         lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 22)");
         lines.push("    # Legacy QGIS 3.x compatibility keys");
-        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'arcgis')");
+        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'xyz')");
         lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/type', 'xyz')");
-        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', service_url)");
+        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', tile_url)");
         if (styleUrl) lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/styleUrl', style_url)");
         lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmin', 0)");
         lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmax', 22)");
       } else {
         lines.push(`    tile_url = '${serviceUrl}'`);
         lines.push(`    style_url = '${styleUrl}'`);
-        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/serviceType', 'xyz')");
-        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/type', 'xyz')");
         lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)");
         if (styleUrl) lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)");
         lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)");
         lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 14)");
-        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'xyz')");
-        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/type', 'xyz')");
         lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', tile_url)");
         if (styleUrl) lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/styleUrl', style_url)");
         lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmin', 0)");
@@ -2587,16 +2585,20 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
       if (addToCanvas) {
         lines.push("    if QgsVectorTileLayer:");
         if (isArcGisVec) {
-          lines.push("        uri = f'serviceType=arcgis&type=xyz&url={service_url}'");
-          lines.push("        if style_url: uri += f'&styleUrl={style_url}'");
+          lines.push("        uri = f'type=xyz&url={tile_url}&zmin=0&zmax=22'");
+          if (styleUrl) lines.push("        if style_url: uri = f'styleUrl={style_url}&' + uri");
         } else {
-          lines.push("        uri = f'type=xyz&url={tile_url}'");
-          lines.push("        if style_url: uri = f'styleUrl={style_url}&' + uri");
+          lines.push("        uri = f'type=xyz&url={tile_url}&zmin=0&zmax=14'");
+          if (styleUrl) lines.push("        if style_url: uri = f'styleUrl={style_url}&' + uri");
         }
         lines.push("        vl = QgsVectorTileLayer(uri, layer_name)");
         lines.push("        if vl.isValid():");
         if (isArcGisVec) {
-          lines.push("            if style_url and QgsMapBoxGlStyleConverter:");
+          lines.push("            try:");
+          lines.push("                vl.loadDefaultStyle()");
+          lines.push("            except Exception:");
+          lines.push("                pass");
+          lines.push("            if style_url and QgsMapBoxGlStyleConverter and (not hasattr(vl.renderer(), 'styles') or not vl.renderer().styles()):");
           lines.push("                try:");
           lines.push("                    ctx = ssl.create_default_context()");
           lines.push("                    ctx.check_hostname = False");
@@ -2917,7 +2919,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
   }
 
   // 1.5 矢量切片 (MVT / PBF / ArcGIS Vector Tiles) Web 端适配
-  if (layer.format === 'VEC') {
+  if (layer.format === 'VEC' || layer.format === 'VEC-A') {
     const rawLines = (layer.url || '').split('\n').map(l => l.trim()).filter(Boolean);
     const tileUrl = rawLines[0] || '';
     let styleUrl = rawLines[1] || '';
@@ -2927,7 +2929,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
       }
     }
 
-    const isArcGisVec = tileUrl.includes('arcgis.com') || tileUrl.includes('VectorTileServer') || tileUrl.includes('root.json') || (styleUrl && styleUrl.includes('arcgis.com'));
+    const isArcGisVec = layer.format === 'VEC-A' || tileUrl.includes('arcgis.com') || tileUrl.includes('VectorTileServer') || tileUrl.includes('root.json') || (styleUrl && styleUrl.includes('arcgis.com'));
 
     // 若当前环境已成功加载 MapLibre GL + Leaflet 桥接插件
     if (typeof L.maplibreGL === 'function' && styleUrl) {

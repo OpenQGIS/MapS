@@ -350,7 +350,7 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
         f"# 图源核验基准日期: {check_time}",
         f"# 脚本导出时间: {timestamp}",
         f"# 本次选定底图: 共 {len(selected_layers)} 款",
-        "# 协议覆盖: XYZ Tiles 标准切片、WMS/WMTS 空间数据服务、VEC 矢量切片 (Vector Tiles)",
+        "# 协议覆盖: XYZ Tiles 标准切片、WMS/WMTS 空间数据服务、VEC / VEC-A 矢量切片 (Vector Tiles)",
         "# 兼容特性: 深度兼容 QGIS 4.x (现代数据连接架构) 与 QGIS 3.x 全版本",
         "# 使用方法:",
         "# 1. 在 QGIS 菜单栏快捷键 Ctrl+Alt+P 打开 Python 控制台",
@@ -395,14 +395,14 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
             continue
 
         # -------------------------------------------------------------
-        # 1. 矢量切片 VEC (Vector Tiles / MVT / PBF)
+        # 1. 矢量切片 VEC / VEC-A (Vector Tiles / MVT / PBF / ArcGIS)
         # -------------------------------------------------------------
-        if fmt == "VEC":
+        if fmt in ("VEC", "VEC-A"):
             lines = [u.strip() for u in raw_url.split("\n") if u.strip()]
             service_url = _py_sq(lines[0]) if lines else ""
             style_url = _py_sq(lines[1]) if len(lines) > 1 else ""
 
-            is_arcgis_vec = "arcgis.com" in service_url or "VectorTileServer" in service_url or "root.json" in service_url or ("arcgis.com" in style_url if style_url else False)
+            is_arcgis_vec = fmt == "VEC-A" or "arcgis.com" in service_url or "VectorTileServer" in service_url or "root.json" in service_url or ("arcgis.com" in style_url if style_url else False)
 
             if is_arcgis_vec:
                 if not style_url and "root.json" in service_url:
@@ -411,7 +411,7 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
                 elif not style_url and "VectorTileServer" in service_url:
                     style_url = service_url
 
-            script_lines.append(f"# >>> [VEC 矢量切片{' - ArcGIS服务' if is_arcgis_vec else ''}] {name}")
+            script_lines.append(f"# >>> [{'VEC-A 矢量切片 - ArcGIS服务' if is_arcgis_vec else 'VEC 矢量切片'}] {name}")
             if cats:
                 script_lines.append(f"#     分类: {cats}")
             if desc:
@@ -426,20 +426,22 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
             script_lines.append("try:")
             script_lines.append(f"    layer_name = '{name}'")
             if is_arcgis_vec:
-                script_lines.append(f"    service_url = '{service_url}'")
+                base_svc = service_url.rstrip("/")
+                tile_url = f"{base_svc}/tile/{{z}}/{{y}}/{{x}}.pbf" if "{z}" not in base_svc else base_svc
+                script_lines.append(f"    tile_url = '{tile_url}'")
                 script_lines.append(f"    style_url = '{style_url}'")
-                script_lines.append("    # Modern QGIS 3.x / 4.x vector tile connection")
-                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/serviceType', 'arcgis')")
+                script_lines.append("    # Modern QGIS 3.x / 4.x vector tile connection (XYZ/PBF 瓦片模板架构)")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/serviceType', 'xyz')")
                 script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/type', 'xyz')")
-                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', service_url)")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)")
                 if style_url:
                     script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)")
                 script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)")
                 script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 22)")
                 script_lines.append("    # Legacy QGIS 3.x compatibility keys")
-                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'arcgis')")
+                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'xyz')")
                 script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/type', 'xyz')")
-                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', service_url)")
+                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', tile_url)")
                 if style_url:
                     script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/styleUrl', style_url)")
                 script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmin', 0)")
@@ -447,15 +449,11 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
             else:
                 script_lines.append(f"    tile_url = '{service_url}'")
                 script_lines.append(f"    style_url = '{style_url}'")
-                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/serviceType', 'xyz')")
-                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/type', 'xyz')")
                 script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)")
                 if style_url:
                     script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)")
                 script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)")
                 script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 14)")
-                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'xyz')")
-                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/type', 'xyz')")
                 script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', tile_url)")
                 if style_url:
                     script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/styleUrl', style_url)")
@@ -467,15 +465,19 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
                 script_lines.append("    # 实例化 QgsVectorTileLayer 载入当前画布")
                 script_lines.append("    if QgsVectorTileLayer is not None:")
                 if is_arcgis_vec:
-                    script_lines.append("        vec_uri = f'serviceType=arcgis&type=xyz&url={service_url}'")
-                    script_lines.append("        if style_url: vec_uri += f'&styleUrl={style_url}'")
+                    script_lines.append("        vec_uri = f'type=xyz&url={tile_url}&zmin=0&zmax=22'")
+                    script_lines.append("        if style_url: vec_uri = f'styleUrl={style_url}&' + vec_uri")
                 else:
                     script_lines.append("        vec_uri = f'type=xyz&url={tile_url}&zmin=0&zmax=14'")
                     script_lines.append("        if style_url: vec_uri = f'styleUrl={style_url}&' + vec_uri")
                 script_lines.append("        vl = QgsVectorTileLayer(vec_uri, layer_name)")
                 script_lines.append("        if vl.isValid():")
                 if is_arcgis_vec:
-                    script_lines.append("            if style_url and QgsMapBoxGlStyleConverter is not None:")
+                    script_lines.append("            try:")
+                    script_lines.append("                vl.loadDefaultStyle()")
+                    script_lines.append("            except Exception:")
+                    script_lines.append("                pass")
+                    script_lines.append("            if style_url and QgsMapBoxGlStyleConverter is not None and (not hasattr(vl.renderer(), 'styles') or not vl.renderer().styles()):")
                     script_lines.append("                try:")
                     script_lines.append("                    ctx = ssl.create_default_context()")
                     script_lines.append("                    ctx.check_hostname = False")
