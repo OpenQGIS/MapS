@@ -3232,9 +3232,13 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
     };
   }
 
-  // 1.8 AWS Mapzen Terrarium RGB 高程解码渲染器 (HTML5 Canvas 实时解码真实地形)
-  if (layer.interpretation === 'terrariumterrain') {
-    const renderMode = state.demRenderMode || 'color';
+  // 1.8 AWS Mapzen Terrarium & GeoTIFF 高程解码渲染器 (HTML5 Canvas 实时解码真实地形)
+  const isGeoTiff = (url.includes('/geotiff/') || url.endsWith('.tif'));
+  const isTerrarium = (layer.interpretation === 'terrariumterrain' || url.includes('/terrarium/'));
+
+  if (isTerrarium || isGeoTiff) {
+    const defaultMode = isGeoTiff ? 'gray' : 'color';
+    const renderMode = state.demRenderMode || defaultMode;
     const TerrariumDecodedLayer = L.GridLayer.extend({
       createTile: function(coords, done) {
         const tile = document.createElement('canvas');
@@ -4167,16 +4171,21 @@ function initOrUpdatePreviewMap(layer, sublayerId = null) {
     }
   }, 180);
 
-  // 处理 DEM 渲染模式切换按钮（仅对支持高程解码的 Terrarium 图源显示）
+  // 处理 DEM 渲染模式切换按钮（对支持高程解码的 Terrarium 与 GeoTIFF 图源显示）
+  const isDem = (layer.interpretation === 'terrariumterrain' || (layer.url && (layer.url.includes('/geotiff/') || layer.url.includes('/terrarium/'))));
   const demModeWrap = document.getElementById("preview-dem-mode-wrap");
   if (demModeWrap) {
-    demModeWrap.style.display = (layer.interpretation === 'terrariumterrain') ? "inline-flex" : "none";
+    demModeWrap.style.display = isDem ? "inline-flex" : "none";
+    if (isDem && !state.demRenderMode) {
+      state.demRenderMode = (layer.url && layer.url.includes('/geotiff/')) ? 'gray' : 'color';
+    }
     updateDemModeButtonsUI();
   }
 }
 
 function updateDemModeButtonsUI() {
-  const mode = state.demRenderMode || "color";
+  const isGeo = state.activePreviewLayer && state.activePreviewLayer.url && state.activePreviewLayer.url.includes('/geotiff/');
+  const mode = state.demRenderMode || (isGeo ? 'gray' : 'color');
   ['color', 'gray', 'raw'].forEach(m => {
     const btn = document.getElementById(`btn-dem-${m}`);
     if (btn) {
