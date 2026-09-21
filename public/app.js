@@ -1266,7 +1266,7 @@ async function loadLayers() {
 
     // 静态降级：若后端 API 不可用（如 GitHub Pages 托管环境），无缝读取本地静态 layers.json
     if (!rawData) {
-      const sRes = await fetch("./data/layers.json?v=8.2");
+      const sRes = await fetch("./data/layers.json?v=8.3");
       const sData = await sRes.json();
       rawData = Array.isArray(sData) ? sData : (sData.data || []);
     }
@@ -2528,18 +2528,7 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
 
     if (fmt === "VEC" || fmt === "VEC-A") {
       const urlLines = rawUrl.split("\n").map(u => u.trim()).filter(Boolean);
-      let serviceUrl = pySq(urlLines[0]);
-      let styleUrl = urlLines.length > 1 ? pySq(urlLines[1]) : "";
-      const isArcGisVec = fmt === "VEC-A" || serviceUrl.includes('arcgis.com') || serviceUrl.includes('VectorTileServer') || serviceUrl.includes('root.json') || (styleUrl && styleUrl.includes('arcgis.com'));
-
-      if (isArcGisVec) {
-        if (!styleUrl && serviceUrl.includes('root.json')) {
-          styleUrl = serviceUrl;
-          serviceUrl = 'https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer';
-        } else if (!styleUrl && serviceUrl.includes('VectorTileServer')) {
-          styleUrl = serviceUrl;
-        }
-      }
+      const isArcGisVec = fmt === "VEC-A" || rawUrl.includes('arcgis.com') || rawUrl.includes('VectorTileServer') || rawUrl.includes('root.json');
 
       lines.push(`# >>> [${isArcGisVec ? 'VEC-A 矢量切片 - ArcGIS服务' : 'VEC 矢量切片'}] ${name}`);
       if (cats) lines.push(`#     分类: ${cats}`);
@@ -2551,42 +2540,48 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
       lines.push(`    layer_name = '${name}'`);
 
       if (isArcGisVec) {
-        const baseSvc = serviceUrl.replace(/\/+$/, '');
-        const tileUrl = baseSvc.includes('{z}') ? baseSvc : `${baseSvc}/tile/{z}/{y}/{x}.pbf`;
-        lines.push(`    tile_url = '${tileUrl}'`);
+        let styleUrl = pySq(urlLines.find(u => u.includes('root.json') || u.includes('VectorTileServer')) || urlLines[0]);
         lines.push(`    style_url = '${styleUrl}'`);
-        lines.push("    # Modern QGIS 3.x / 4.x vector tile connection (XYZ/PBF 瓦片模板架构)");
-        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/serviceType', 'xyz')");
-        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/type', 'xyz')");
-        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)");
-        if (styleUrl) lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)");
-        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)");
-        lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 22)");
+        lines.push("    zmin = 0");
+        lines.push("    zmax = 14");
+        lines.push("    # Modern QGIS 3.28+ / 4.x (ArcGIS 专用矢量切片服务架构)");
+        lines.push("    base_key = f'connections/vector-tile/items/{layer_name}'");
+        lines.push("    settings.setValue(f'{base_key}/service-type', 'arcgis')");
+        lines.push("    settings.setValue(f'{base_key}/type', 'xyz')");
+        lines.push("    settings.setValue(f'{base_key}/url', style_url)");
+        lines.push("    settings.setValue(f'{base_key}/styleUrl', style_url)");
+        lines.push("    settings.setValue(f'{base_key}/zmin', zmin)");
+        lines.push("    settings.setValue(f'{base_key}/zmax', zmax)");
+        lines.push("    settings.setValue(f'{base_key}/http-header/referer', '')");
         lines.push("    # Legacy QGIS 3.x compatibility keys");
-        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'xyz')");
-        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/type', 'xyz')");
-        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', tile_url)");
-        if (styleUrl) lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/styleUrl', style_url)");
-        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmin', 0)");
-        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmax', 22)");
+        lines.push("    for legacy_prefix in [f'connections-vector-tiles/{layer_name}', f'qgis/connections-vectortiles/{layer_name}']:");
+        lines.push("        settings.setValue(f'{legacy_prefix}/service-type', 'arcgis')");
+        lines.push("        settings.setValue(f'{legacy_prefix}/type', 'xyz')");
+        lines.push("        settings.setValue(f'{legacy_prefix}/url', style_url)");
+        lines.push("        settings.setValue(f'{legacy_prefix}/styleUrl', style_url)");
+        lines.push("        settings.setValue(f'{legacy_prefix}/zmin', zmin)");
+        lines.push("        settings.setValue(f'{legacy_prefix}/zmax', zmax)");
+        lines.push("        settings.setValue(f'{legacy_prefix}/http-header/referer', '')");
       } else {
+        let serviceUrl = pySq(urlLines[0]);
+        let styleUrl = urlLines.length > 1 ? pySq(urlLines[1]) : "";
         lines.push(`    tile_url = '${serviceUrl}'`);
         lines.push(`    style_url = '${styleUrl}'`);
         lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)");
         if (styleUrl) lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)");
         lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)");
         lines.push("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 14)");
-        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', tile_url)");
-        if (styleUrl) lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/styleUrl', style_url)");
-        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmin', 0)");
-        lines.push("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmax', 14)");
+        lines.push("    for legacy_prefix in [f'connections-vector-tiles/{layer_name}', f'qgis/connections-vectortiles/{layer_name}']:");
+        lines.push("        settings.setValue(f'{legacy_prefix}/url', tile_url)");
+        if (styleUrl) lines.push("        settings.setValue(f'{legacy_prefix}/styleUrl', style_url)");
+        lines.push("        settings.setValue(f'{legacy_prefix}/zmin', 0)");
+        lines.push("        settings.setValue(f'{legacy_prefix}/zmax', 14)");
       }
 
       if (addToCanvas) {
         lines.push("    if QgsVectorTileLayer:");
         if (isArcGisVec) {
-          lines.push("        uri = f'type=xyz&url={tile_url}&zmin=0&zmax=22'");
-          if (styleUrl) lines.push("        if style_url: uri = f'styleUrl={style_url}&' + uri");
+          lines.push("        uri = f'serviceType=arcgis&type=xyz&url={style_url}&zmax=14&zmin=0&http-header:referer='");
         } else {
           lines.push("        uri = f'type=xyz&url={tile_url}&zmin=0&zmax=14'");
           if (styleUrl) lines.push("        if style_url: uri = f'styleUrl={style_url}&' + uri");
@@ -2598,6 +2593,7 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
           lines.push("                vl.loadDefaultStyle()");
           lines.push("            except Exception:");
           lines.push("                pass");
+        } else {
           lines.push("            if style_url and QgsMapBoxGlStyleConverter and (not hasattr(vl.renderer(), 'styles') or not vl.renderer().styles()):");
           lines.push("                try:");
           lines.push("                    ctx = ssl.create_default_context()");

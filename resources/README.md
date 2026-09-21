@@ -25,7 +25,7 @@ https://my-map-server.example.com/tiles/{z}/{x}/{y}.png
 ### 1. 协议格式 (\**格式**\)
 - `XYZ Tiles`: 标准栅格切片（Web Mercator 或 WGS84 经纬度），URL 包含 `{z}/{x}/{y}`。
 - `WMS/WMTS`: OGC 空间地理信息服务，URL 包含 `WMTSCapabilities.xml` 或 `GetCapabilities`。
-- `VEC` / `VEC-A`: 矢量切片（Vector Tiles / MVT / PBF / ArcGIS VectorTileServer），在代码块中首行为切片服务 URL，次行为可选的 Mapbox GL Style JSON 链接。其中 VEC 为标准通用切片，VEC-A 为 ArcGIS 专用矢量切片服务，两者均归属于矢量切片大类。
+- `VEC` / `VEC-A`: 矢量切片（Vector Tiles / MVT / PBF / ArcGIS VectorTileServer）。其中 `VEC` 为通用标准切片（首行切片模板 URL，次行可选样式 JSON）；`VEC-A` 为 ArcGIS 专用矢量切片服务（单行提供 ArcGIS 样式 `root.json` 或服务入口，自动匹配 `service-type: arcgis`），两者均归属于矢量切片大类。
 - `插件类`: 需配合本地 QGIS 插件使用的工具源。
 
 ### 2. 分类标签 (\**分类**\)

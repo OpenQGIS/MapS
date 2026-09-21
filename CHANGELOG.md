@@ -7,10 +7,10 @@
 ## [v2.7.1] - 2026-09-21
 
 ### 🚀 优化与修复 (Improvements & Fixes)
-- **VEC-A 矢量切片协议专属升级与兼容架构**：
-  - 将 ArcGIS 矢量切片图源（`World-Topo-Map_NoLabel` 等）格式标签从通用 `VEC` 升级为专有 **`VEC-A`**，统一归属矢量切片大类；
-  - **终极兼容注册策略**：针对 `VEC-A` 导出脚本，自动将服务根地址补全展开为标准的 `.../tile/{z}/{y}/{x}.pbf` 瓦片模板，彻底解决 QGIS 浏览器连接因协议握手失败退化的问题；
-  - **原生样式极速解析**：在直接载入画布逻辑中深度引入 QGIS 原生 `layer.loadDefaultStyle()` 接口，秒级自动加载并渲染全部 268 条 Mapbox GL 规则与 207 条注记标注。
+- **VEC-A 矢量切片专用连接架构与纯净 URL 规范**：
+  - 将 ArcGIS 矢量切片图源（`World-Topo-Map_NoLabel` 等）格式标签独立为 **`VEC-A`**，统一归属于矢量切片大类；
+  - **图源链接独立纯净化**：`data/layers.json` 与 `resources/layers.md` 中保存单个纯净的 ArcGIS 样式根入口地址（`root.json?f=pjson`），卡片与复制链接即取即用，不再强制拼接冗长的 XYZ 模板切片 URL；
+  - **专用 ArcGIS 服务协议注册脚本**：针对 `VEC-A` 分类独立生成 `service-type: arcgis` 连接写入 `QgsSettings`，在画布载入中直接以 `serviceType=arcgis` 单入口唤起并调用 `vl.loadDefaultStyle()` 秒级完成 268 条矢量规则与 207 条注记标注渲染。
 
 ---
 
