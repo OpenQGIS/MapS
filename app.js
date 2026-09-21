@@ -46,7 +46,8 @@ const state = {
   boundaryGeoJsonData: null,
   activeEngine: "leaflet",
   maplibreMap: null,
-  wmsCapabilities: {}
+  wmsCapabilities: {},
+  demRenderMode: "color"
 };
 window.state = state;
 
@@ -3233,6 +3234,7 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
 
   // 1.8 AWS Mapzen Terrarium RGB 高程解码渲染器 (HTML5 Canvas 实时解码真实地形)
   if (layer.interpretation === 'terrariumterrain') {
+    const renderMode = state.demRenderMode || 'color';
     const TerrariumDecodedLayer = L.GridLayer.extend({
       createTile: function(coords, done) {
         const tile = document.createElement('canvas');
@@ -3243,44 +3245,67 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
         img.crossOrigin = 'anonymous';
         img.onload = function() {
           ctx.drawImage(img, 0, 0);
-          try {
-            const imgData = ctx.getImageData(0, 0, 256, 256);
-            const d = imgData.data;
-            for (let i = 0; i < d.length; i += 4) {
-              const r = d[i];
-              const g = d[i+1];
-              const b = d[i+2];
-              // Terrarium 解码公式: (R * 256 + G + B / 256) - 32768
-              const elev = (r * 256 + g + b / 256.0) - 32768.0;
-              // 归一化映射 (针对地表 0m ~ 5500m 经典高程色阶)
-              let norm = (elev - 0) / 5500.0;
-              if (norm < 0) norm = 0;
-              if (norm > 1) norm = 1;
-              // 经典地形渐变: 0~0.25 绿, 0.25~0.55 黄绿, 0.55~0.8 棕褐, 0.8~1.0 皑皑白雪
-              if (norm < 0.25) {
-                const t = norm / 0.25;
-                d[i] = 34 + t * (139 - 34);
-                d[i+1] = 139 + t * (195 - 139);
-                d[i+2] = 34 + t * (74 - 34);
-              } else if (norm < 0.55) {
-                const t = (norm - 0.25) / 0.30;
-                d[i] = 139 + t * (240 - 139);
-                d[i+1] = 195 + t * (230 - 195);
-                d[i+2] = 74 + t * (140 - 74);
-              } else if (norm < 0.8) {
-                const t = (norm - 0.55) / 0.25;
-                d[i] = 240 + t * (160 - 240);
-                d[i+1] = 230 + t * (82 - 230);
-                d[i+2] = 140 + t * (45 - 140);
-              } else {
-                const t = (norm - 0.8) / 0.20;
-                d[i] = 160 + t * (255 - 160);
-                d[i+1] = 82 + t * (255 - 82);
-                d[i+2] = 45 + t * (255 - 45);
+          if (renderMode !== 'raw') {
+            try {
+              const imgData = ctx.getImageData(0, 0, 256, 256);
+              const d = imgData.data;
+              for (let i = 0; i < d.length; i += 4) {
+                const r = d[i];
+                const g = d[i+1];
+                const b = d[i+2];
+                // Terrarium 解码公式: (R * 256 + G + B / 256) - 32768
+                const elev = (r * 256 + g + b / 256.0) - 32768.0;
+
+                if (renderMode === 'gray') {
+                  // 单波段灰度 DEM 模式 (等同于 QGIS singlebandgray)
+                  let v;
+                  if (elev < 0) {
+                    v = 15; // 海洋为深灰近黑
+                  } else {
+                    const norm = Math.min(Math.max(elev / 6000.0, 0), 1);
+                    v = Math.round(30 + norm * 225); // 陆地高程越亮
+                  }
+                  d[i] = v;
+                  d[i+1] = v;
+                  d[i+2] = v;
+                } else {
+                  // 彩色地貌着色模式 (海洋水深梯度 + 陆地经典高程色阶)
+                  if (elev < 0) {
+                    // 海洋水深: 从浅海到深海海沟
+                    const seaNorm = Math.min(Math.max((-elev) / 6000.0, 0), 1);
+                    d[i] = Math.round(180 - seaNorm * 162);   // 180 -> 18
+                    d[i+1] = Math.round(218 - seaNorm * 173); // 218 -> 45
+                    d[i+2] = Math.round(238 - seaNorm * 143); // 238 -> 95
+                  } else {
+                    // 陆地高程: 0m ~ 4800m
+                    const norm = Math.min(Math.max(elev / 4800.0, 0), 1);
+                    if (norm < 0.2) {
+                      const t = norm / 0.2;
+                      d[i] = Math.round(45 + t * 100);
+                      d[i+1] = Math.round(145 + t * 50);
+                      d[i+2] = Math.round(50 + t * 20);
+                    } else if (norm < 0.5) {
+                      const t = (norm - 0.2) / 0.3;
+                      d[i] = Math.round(145 + t * 85);
+                      d[i+1] = Math.round(195 + t * 0);
+                      d[i+2] = Math.round(70 + t * 5);
+                    } else if (norm < 0.8) {
+                      const t = (norm - 0.5) / 0.3;
+                      d[i] = Math.round(230 - t * 65);
+                      d[i+1] = Math.round(195 - t * 110);
+                      d[i+2] = Math.round(75 - t * 30);
+                    } else {
+                      const t = (norm - 0.8) / 0.2;
+                      d[i] = Math.round(165 + t * 90);
+                      d[i+1] = Math.round(85 + t * 170);
+                      d[i+2] = Math.round(45 + t * 210);
+                    }
+                  }
+                }
               }
-            }
-            ctx.putImageData(imgData, 0, 0);
-          } catch(e) {}
+              ctx.putImageData(imgData, 0, 0);
+            } catch(e) {}
+          }
           done(null, tile);
         };
         img.onerror = function(err) {
@@ -3291,10 +3316,16 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
       }
     });
 
+    const modeLabels = {
+      color: 'DEM 实时解码高程着色',
+      gray: 'DEM 实时解码灰度高程',
+      raw: 'DEM 原始未解码 RGB 切片'
+    };
+
     return {
       layer: new TerrariumDecodedLayer({ minZoom: 0, maxZoom: 15, attribution: 'AWS Mapzen Terrarium' }),
       status: 'ok',
-      statusText: 'DEM 实时解码高程着色'
+      statusText: modeLabels[renderMode] || 'DEM 实时解码高程着色'
     };
   }
 
@@ -4136,22 +4167,54 @@ function initOrUpdatePreviewMap(layer, sublayerId = null) {
     }
   }, 180);
 
-  // 处理 GeoJSON 边界高亮开关（仅对存在边界问题的图源显示，默认开启；无边界问题则隐藏并关闭）
-  const geojsonToggleWrap = document.getElementById("wrap-toggle-boundary-geojson");
-  const geojsonToggle = document.getElementById("toggle-boundary-geojson");
-  if (geojsonToggleWrap) {
-    geojsonToggleWrap.style.display = layer.has_boundary_issue ? "" : "none";
+  // 处理 DEM 渲染模式切换按钮（仅对支持高程解码的 Terrarium 图源显示）
+  const demModeWrap = document.getElementById("preview-dem-mode-wrap");
+  if (demModeWrap) {
+    demModeWrap.style.display = (layer.interpretation === 'terrariumterrain') ? "inline-flex" : "none";
+    updateDemModeButtonsUI();
   }
-  if (geojsonToggle) {
-    if (layer.has_boundary_issue) {
-      geojsonToggle.checked = true;
-      toggleBoundaryGeoJson(true);
-    } else {
-      geojsonToggle.checked = false;
-      toggleBoundaryGeoJson(false);
+}
+
+function updateDemModeButtonsUI() {
+  const mode = state.demRenderMode || "color";
+  ['color', 'gray', 'raw'].forEach(m => {
+    const btn = document.getElementById(`btn-dem-${m}`);
+    if (btn) {
+      if (m === mode) {
+        btn.classList.add('active');
+        btn.style.background = 'var(--accent-green)';
+        btn.style.color = '#fff';
+      } else {
+        btn.classList.remove('active');
+        btn.style.background = 'var(--bg-card)';
+        btn.style.color = 'var(--text-main)';
+      }
+    }
+  });
+}
+
+function switchDemRenderMode(mode) {
+  if (state.demRenderMode === mode) return;
+  state.demRenderMode = mode;
+  updateDemModeButtonsUI();
+
+  if (state.previewMap && state.activePreviewLayer) {
+    if (state.activeTileLayer) {
+      state.previewMap.removeLayer(state.activeTileLayer);
+      state.activeTileLayer = null;
+    }
+    const resolved = resolveLeafletTileLayer(state.activePreviewLayer);
+    state.activeTileLayer = resolved.layer;
+    attachTileNetworkListeners(state.activeTileLayer, resolved);
+    state.activeTileLayer.addTo(state.previewMap);
+    const statusPill = document.getElementById("preview-map-status");
+    if (statusPill) {
+      statusPill.className = `map-status-pill ${resolved.status}`;
+      statusPill.innerHTML = `<span class="status-dot ${resolved.status}"></span>${escapeHtml(resolved.statusText)}`;
     }
   }
 }
+window.switchDemRenderMode = switchDemRenderMode;
 
 function toggleBoundaryGeoJson(show) {
   if (state.activeEngine === "maplibre" && state.maplibreMap) {
