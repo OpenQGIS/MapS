@@ -2996,29 +2996,6 @@ html[data-theme="light"] #leaflet-map {
   border-color: var(--border-hover);
 }
 
-/* OSMWinter 针对性高度紧凑精简 */
-.layer-card.card-compact-winter {
-  padding-bottom: 0.25rem;
-}
-.layer-card.card-compact-winter .card-thumb-wrap {
-  height: 110px !important;
-}
-.layer-card.card-compact-winter .card-body {
-  padding: 0.75rem 1rem 0.75rem 1rem !important;
-  gap: 0.4rem !important;
-}
-.layer-card.card-compact-winter .card-desc {
-  height: 1.8rem !important;
-  line-height: 1.3 !important;
-}
-
-/* 表格模式下 OSMWinter 行高调低 */
-.layers-table tr.tr-compact-winter td {
-  padding-top: 0.35rem !important;
-  padding-bottom: 0.35rem !important;
-  line-height: 1.25 !important;
-}
-
 /* Floating Alert Banner directly inside Leaflet Wrap */
 .leaflet-container-wrap {
   width: 100%;

@@ -507,19 +507,9 @@ function getLayerPresetViewport(layer) {
     return PRESET_VIEWPORTS.CHONGQING_URBAN;
   }
 
-  // 2. 四川盆地 / 成渝地区 (Windy户外/冬季)
-  if (id === "layer_33" || id === "layer_34" || name.includes("Windy")) {
-    return PRESET_VIEWPORTS.SICHUAN_BASIN;
-  }
-
-  // 3. 龙门山等高线地形 (Open Topo Map)
+  // 2. 龙门山等高线地形 (Open Topo Map)
   if (id === "layer_16" || name === "Open Topo Map") {
     return PRESET_VIEWPORTS.LONGMEN_MOUNTAIN;
-  }
-
-  // 4. 秦巴山区冬季运动 (OSMWinter)
-  if (id === "layer_24" || name.includes("OSMWinter")) {
-    return PRESET_VIEWPORTS.QINBA_WINTER;
   }
 
   // 5. 成都大市域 (高德系列)
@@ -557,7 +547,7 @@ function getLayerPresetViewport(layer) {
     id === "layer_6" || id === "layer_8" || id === "layer_40" || id === "layer_41" ||
     id === "layer_42" || id === "layer_43" || id === "layer_44" || id === "layer_15" ||
     id === "layer_46" || id === "layer_47" || id === "layer_48" || id === "layer_59" ||
-    id === "layer_36" || id === "layer_37" || id === "layer_38" || id === "layer_39" ||
+    id === "layer_36" || id === "layer_37" || id === "layer_38" ||
     name.includes("World_") || name.includes("Sentinel") || name.includes("Wayback") ||
     name.includes("Ocean") || name.includes("NatGeo") || name.includes("Terrain") || name.includes("Physical")
   ) {
@@ -1882,10 +1872,9 @@ function renderLayers() {
       const inCart = state.cart.has(layer.id);
       const isLiked = state.liked.has(layer.id);
       const thumb = layer.thumbnail ? `<img src="${escapeHtml(layer.thumbnail)}" class="card-thumb" alt="${escapeHtml(layer.name)}" loading="lazy" />` : `<div class="thumb-placeholder">在线底图服务</div>`;
-      const isOSMWinter = layer.name === "OSMWinter" || layer.id === "layer_24";
 
       return `
-        <div class="layer-card ${inCart ? 'in-cart' : ''} ${isOSMWinter ? 'card-compact-winter' : ''}"
+        <div class="layer-card ${inCart ? 'in-cart' : ''}"
              data-id="${escapeHtml(layer.id)}">
           <div class="card-thumb-wrap" onclick="openPreviewModal('${escapeAttrJs(layer.id)}')" title="点击预览底图">
             ${thumb}
@@ -1964,9 +1953,8 @@ function renderLayers() {
           ${filtered.map(l => {
             const inCart = state.cart.has(l.id);
             const isLiked = state.liked.has(l.id);
-            const isOSMWinter = l.name === "OSMWinter" || l.id === "layer_24";
             return `
-              <tr data-id="${escapeHtml(l.id)}" class="${isOSMWinter ? 'tr-compact-winter' : ''}">
+              <tr data-id="${escapeHtml(l.id)}">
                 <td style="font-weight: 500; color: var(--text-main);" class="table-layer-title-cell">
                   <a href="javascript:void(0)" class="table-layer-title-link" data-layer-id="${escapeHtml(l.id)}" onclick="openPreviewModal('${escapeAttrJs(l.id)}')" title="悬停看卡片预览图，点击打开交互式地图">
                     <span class="table-thumb-indicator" title="悬停快速预览">${ICONS.image}</span>

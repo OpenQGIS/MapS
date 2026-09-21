@@ -16,7 +16,7 @@
 
 ---
 
-## 电子地图 (29款)
+## 电子地图 (26款)
 
 ### [layer_10] GeoQ水图
 - **格式**: `WMS/WMTS`
@@ -37,7 +37,7 @@ http://thematic.geoq.cn/arcgis/rest/services/ThematicMaps/WorldHydroMap/MapServe
 - **序号**: 11
 - **服务链接**:
 ```text
-https://ows.terrestris.de/osm/service
+https://ows.terrestris.de/osm/service?SERVICE=WMS&REQUEST=GetCapabilities
 ```
 - **描述**: OSM标准系列地图
 - **备注**: 边界问题
@@ -153,7 +153,7 @@ https://tile.openstreetmap.jp/{z}/{x}/{y}.png
 - **序号**: 22
 - **服务链接**:
 ```text
-https://b.piano.tiles.quaidorsay.fr/fr/{$z}/{$x}/{$y}.png
+https://b.piano.tiles.quaidorsay.fr/fr/{z}/{x}/{y}.png
 ```
 - **描述**: 黑白风格底图
 - **备注**: 边界问题
@@ -171,19 +171,6 @@ https://tile.openstreetmap.bzh/br/{z}/{x}/{y}.png
 - **描述**: 精简标注，路网版
 - **备注**: 边界问题
 - **缩略图**: `/thumbnails/thumb_23.png`
-
-### [layer_24] OSMWinter
-- **格式**: `XYZ Tiles`
-- **分类**: 电子地图, 地形图
-- **标签**: 国内直连, 边界问题, 无坐标偏移
-- **序号**: 24
-- **服务链接**:
-```text
-http://s0.outdooractive.com/osm/OSMWinter/{z}/{x}/{y}.png
-```
-- **描述**: OSM冬季运动
-- **备注**: 边界问题
-- **缩略图**: `/thumbnails/thumb_24.png`
 
 ### [layer_25] Cyclosm
 - **格式**: `XYZ Tiles`
@@ -210,32 +197,6 @@ https://tile.waymarkedtrails.org/cycling/{z}/{x}/{y}.png
 - **描述**: 有标记的自行车道路地图
 - **备注**: 边界问题
 - **缩略图**: `/thumbnails/thumb_26.png`
-
-### [layer_33] Windy_outdoor
-- **格式**: `XYZ Tiles`
-- **分类**: 电子地图
-- **标签**: 国内直连, 边界问题, 无坐标偏移
-- **序号**: 33
-- **服务链接**:
-```text
-https://tiles.windy.com/v1/maptiles/outdoor/256/{z}/{x}/{y}/?lang=en
-```
-- **描述**: windy底图
-- **备注**: 边界问题
-- **缩略图**: `/thumbnails/thumb_33.png`
-
-### [layer_34] Windy_winter
-- **格式**: `XYZ Tiles`
-- **分类**: 电子地图
-- **标签**: 国内直连, 边界问题, 无坐标偏移
-- **序号**: 34
-- **服务链接**:
-```text
-https://tiles.windy.com/v1/maptiles/winter/256/{z}/{x}/{y}/?lang=en
-```
-- **描述**: windy底图
-- **备注**: 边界问题
-- **缩略图**: `/thumbnails/thumb_34.png`
 
 ### [layer_42] NatGeo_World_Map
 - **格式**: `XYZ Tiles`
@@ -269,7 +230,7 @@ https://thematic.geoq.cn/arcgis/rest/services/ThematicMaps/WorldHydroMap/MapServ
 - **序号**: 50
 - **服务链接**:
 ```text
-https://t.ssl.ak.dynamic.tiles.virtualearth.net/comp/ch/a{q}.ipeg?g=0&mkt=zh-CN&it=GB,LC&shading=hill&n=t&og=2697&sv=9.38&cstl=s23&o=png&ur=hk
+https://t.ssl.ak.dynamic.tiles.virtualearth.net/comp/ch/a{q}.jpeg?g=0&mkt=zh-CN&it=GB,LC&shading=hill&n=t&og=2697&sv=9.38&cstl=s23&o=png&ur=hk
 ```
 - **描述**: 
 - **缩略图**: `/thumbnails/thumb_50.png`
@@ -294,7 +255,7 @@ http://wprd04.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&x={x}&y={y}&z
 - **序号**: 52
 - **服务链接**:
 ```text
-https://wprd01.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=2&style=8<ype=11
+https://wprd01.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=2&style=8
 ```
 - **描述**: 高德地图GCJ02坐标（透明背景）
 - **备注**: 数据漂移
@@ -392,7 +353,7 @@ https://vector.openstreetmap.org/styles/shortbread/colorful.json
 - **备注**: 边界问题
 - **缩略图**: `/thumbnails/thumb_60.png`
 
-## 影像图 (7款)
+## 影像图 (6款)
 
 ### [layer_6] Sentinel-2 哨兵2全球无云影像产品 WMTS
 - **格式**: `WMS/WMTS`
@@ -413,7 +374,7 @@ https://tiles.maps.eox.at/wmts/1.0.0/WMTSCapabilities.xml
 - **序号**: 8
 - **服务链接**:
 ```text
-https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapSTrver/WMTS/1.0.0/WMTSCapabilities.xml
+https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/WMTS/1.0.0/WMTSCapabilities.xml
 ```
 - **描述**: Wayback历史影像，分区更新，前往 https://livingatlas.arcgis.com/wayback/ 查看详细内容
 - **缩略图**: `/thumbnails/thumb_8.png`
@@ -453,18 +414,6 @@ https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}
 ```
 - **描述**: Google原版影像
 - **缩略图**: `/thumbnails/thumb_38.jpg`
-
-### [layer_39] 谷歌原版影像2
-- **格式**: `XYZ Tiles`
-- **分类**: 影像图
-- **标签**: 需VPN, 无边界问题, 无坐标偏移
-- **序号**: 39
-- **服务链接**:
-```text
-http://khms1.googleapis.com/kh/v=969&x={x}&y={y}&z={z}
-```
-- **描述**: Google原版影像
-- **缩略图**: `/thumbnails/thumb_39.jpg`
 
 ### [layer_49] 高德卫星图(GJC02)
 - **格式**: `XYZ Tiles`
@@ -589,19 +538,7 @@ https://tiles.emodnet-bathymetry.eu/2020/baselayer/web_mercator/{z}/{x}/{y}.png
 - **描述**: 欧洲海洋观测与数据网络网站的背景底图。高程着色，适合大范围制图。
 - **缩略图**: `/thumbnails/thumb_48.png`
 
-## 标注图 (3款)
-
-### [layer_7] ArcGIS标注
-- **格式**: `WMS/WMTS`
-- **分类**: 标注图
-- **标签**: 需VPN, 无边界问题, 无坐标偏移
-- **序号**: 7
-- **服务链接**:
-```text
-https://map.geoq.cn/arcgis/rest/services/ChinaOnlineCommunity_Mobile/MapServer/WMTS/1.0.0/WMTSCapabilities.xml
-```
-- **描述**: Arcgis pro自带标注图层（数据非常老旧）
-- **缩略图**: `/thumbnails/thumb_7.png`
+## 标注图 (2款)
 
 ### [layer_44] World_Ocean_Reference
 - **格式**: `XYZ Tiles`
@@ -710,7 +647,7 @@ https://tile.renchang.me/{z}/{x}/{y}.png
 - **序号**: 9
 - **服务链接**:
 ```text
-https://maps.heigit.org/osmlanduse/service?VERSION=1.3.0&TRANSPARENT=true&QUERY_LAYERS=osmlanduse:osm_lulc&LAYERS=osmlanduse:osm_lulc_combined_osm4eo&BUFFER=0&INFO_FORMAT=application/json&FEATURE_COUNT=1&I=91&J=129&WIDTH=256&HEIGHT=256&CRS=EPSG:3857&STYLES=&BBOX=12836528.782099359,3600489.7803449426,12993071.8160274,3757032.8142729835
+https://maps.heigit.org/osmlanduse/service
 ```
 - **描述**: osm中土地利用的区域，图例不能更改。（图源多半来自osm画手勾的图斑，图一乐）
 - **缩略图**: `/thumbnails/thumb_9.png`
