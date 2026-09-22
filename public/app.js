@@ -3561,16 +3561,59 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
   };
 }
 
+// --- Hillshade Layer & DEM Mode Classifier ---
+function isHillshadeActive(layer, currentDemMode = null) {
+  if (!layer) return false;
+
+  // 1. DEM 动态渲染模式检测（AWS Mapzen Terrarium / GeoTIFF）
+  const isDem = layer.interpretation === 'terrariumterrain' ||
+                (layer.url && (layer.url.includes('/terrarium/') || layer.url.includes('/geotiff/')));
+  if (isDem) {
+    const isGeo = layer.url && layer.url.includes('/geotiff/');
+    const defaultMode = isGeo ? 'gray' : 'color';
+    const activeMode = currentDemMode || state.demRenderMode || defaultMode;
+    return activeMode === 'hillshade';
+  }
+
+  // 2. 显式标记配置优先
+  if (layer.is_hillshade === true || layer.layer_type === 'hillshade') return true;
+  if (layer.is_hillshade === false) return false;
+
+  // 3. 静态图层特征匹配 (URL / 名称 / 说明)
+  const url = (layer.url || '').toLowerCase();
+  const name = (layer.name || '').toLowerCase();
+  const desc = (layer.description || '').toLowerCase();
+
+  if (url.includes('elevation/world_hillshade') || url.includes('elevation_hillshade') || url.includes('world_hillshade_dark')) return true;
+  if (name.includes('山体阴影') || (name.includes('hillshade') && !name.includes('hybrid'))) return true;
+  if (layer.id === 'layer_46' || desc.includes('纯山体阴影') || desc.includes('纯图-灰色')) return true;
+
+  return false;
+}
+
 // --- Map Preview Transparency Grid State Controller ---
 function setPreviewTilesLoaded(loaded) {
   const mapContainer = document.getElementById("leaflet-map");
-  if (mapContainer) {
-    mapContainer.classList.toggle("tiles-loaded", !!loaded);
-    const wrap = mapContainer.closest(".leaflet-container-wrap");
-    if (wrap) {
-      wrap.classList.toggle("tiles-loaded", !!loaded);
-    }
+  const maplibreContainer = document.getElementById("maplibre-map");
+  const wrap = mapContainer ? mapContainer.closest(".leaflet-container-wrap") : null;
+  const isHillshade = isHillshadeActive(state.activePreviewLayer, state.demRenderMode);
+
+  const targets = [mapContainer, maplibreContainer, wrap].filter(Boolean);
+
+  if (isHillshade) {
+    // 山体阴影图层或模式：强制阻断棋盘格，标记 is-hillshade 隔离类
+    targets.forEach(el => {
+      el.classList.remove("tiles-loaded");
+      el.classList.add("is-hillshade");
+    });
+    return;
   }
+
+  // 常规非山体阴影图层：解除 is-hillshade 阻断标记
+  targets.forEach(el => {
+    el.classList.remove("is-hillshade");
+    el.classList.toggle("tiles-loaded", !!loaded);
+  });
 }
 
 // --- Tile Network State Listener Engine ---
@@ -4256,6 +4299,9 @@ function switchDemRenderMode(mode) {
   if (state.demRenderMode === mode) return;
   state.demRenderMode = mode;
   updateDemModeButtonsUI();
+
+  // 模式切换时立即同步山体阴影隔离与瓦片加载状态
+  setPreviewTilesLoaded(false);
 
   if (state.previewMap && state.activePreviewLayer) {
     if (state.activeTileLayer) {

@@ -2844,6 +2844,15 @@ html[data-theme="dark"] #leaflet-map::before,
   opacity: 1 !important;
 }
 
+/* 山体阴影图层或显式关闭模式下强行隔离隐蔽棋盘格，保持纯色底 */
+#leaflet-map.is-hillshade::before,
+.leaflet-container-wrap.is-hillshade::before,
+#leaflet-map.no-checkerboard::before,
+.leaflet-container-wrap.no-checkerboard::before {
+  display: none !important;
+  opacity: 0 !important;
+}
+
 .preview-img-wrap {
   width: 100%;
   max-height: 420px;
