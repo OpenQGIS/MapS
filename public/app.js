@@ -334,8 +334,8 @@ function applyAestheticMode(active, isInteractive = false) {
       triggerAestheticShake();
     }
   } else {
-    document.title = "QGIS图源配置中心 (QGIS Basemap Hub)";
-    if (titleFull) titleFull.textContent = "QGIS图源配置中心";
+    document.title = "QGIS 在线底图配置中心 (QGIS Basemap Hub)";
+    if (titleFull) titleFull.textContent = "QGIS 在线底图配置中心";
     if (titleShort) titleShort.textContent = "地图配置";
     if (brandIcon) brandIcon.textContent = "QG";
     if (brandBadge) brandBadge.textContent = "v2.7 持续收录";
@@ -2974,16 +2974,25 @@ async function getNormalizedArcgisStyle(styleUrl) {
   }
   const fullUrl = styleUrl.includes('f=pjson') ? styleUrl : (styleUrl + (styleUrl.includes('?') ? '&f=pjson' : '?f=pjson'));
   
-  // 5秒中止控制
-  const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), 5000);
+  // 4秒中止控制，优先直连，失败时尝试安全中继
   let res;
   try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 4000);
     res = await fetch(fullUrl, { signal: ctrl.signal });
-  } finally {
     clearTimeout(tid);
+  } catch (e) {
+    if (typeof relayAvailable !== 'undefined' && relayAvailable) {
+      try {
+        const relayUrl = `/relay?url=${encodeURIComponent(fullUrl)}`;
+        const rCtrl = new AbortController();
+        const rTid = setTimeout(() => rCtrl.abort(), 8000);
+        res = await fetch(relayUrl, { signal: rCtrl.signal });
+        clearTimeout(rTid);
+      } catch (re) {}
+    }
   }
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res || !res.ok) throw new Error(`HTTP ${res ? res.status : 'fetch failed'}`);
   const json = await res.json();
 
   const baseUrlObj = new URL(styleUrl, window.location.href);
@@ -3005,7 +3014,7 @@ async function getNormalizedArcgisStyle(styleUrl) {
           delete sVal.url;
           sVal.tiles = [`${base}/tile/{z}/{y}/{x}.pbf`];
           sVal.minzoom = sVal.minzoom || 0;
-          sVal.maxzoom = Math.min(sVal.maxzoom || 15, 16); // 限制maxzoom，防止高层级无效404
+          sVal.maxzoom = sVal.maxzoom || 22; // 保持 ArcGIS 原生 maxzoom: 22 (LOD 0-22)
         }
       }
     }
@@ -3024,9 +3033,13 @@ async function getNormalizedArcgisStyle(styleUrl) {
     }
   }
 
-  // 3. 补全字体 glyphs 默认源
+  // 3. 补全字体 glyphs 默认源或绝对化
   if (!json.glyphs) {
     json.glyphs = 'https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/resources/fonts/{fontstack}/{range}.pbf';
+  } else if (!/^https?:/i.test(json.glyphs)) {
+    try {
+      json.glyphs = new URL(json.glyphs, baseUrlObj).href;
+    } catch (e) {}
   }
 
   // 3.5 智能样式画像分析（Profile Style）：识别地貌叠加型或无注记矢量底图（例如 World-Topo-Map_NoLabel）
@@ -3182,15 +3195,28 @@ function addBoundaryGeoJsonToMapLibre(map) {
 // 矢量切片预览核心引擎：状态机与专用双管线
 // ==========================================
 
+let relayAvailable = false;
+async function checkRelayAvailability() {
+  try {
+    const res = await fetch('/relay', { method: 'HEAD' });
+    relayAvailable = (res.status === 200 || res.status === 400 || res.status === 405);
+  } catch (e) {
+    relayAvailable = false;
+  }
+}
+checkRelayAvailability();
+
 const VectorPreviewFSM = {
   activeToken: 0,
   tileTimer: null,
   layer: null,
+  state: 'idle', // 'resolving_style' | 'loading_tiles' | 'ready' | 'failed'
 
   start(layer) {
     this.reset();
     this.activeToken = Date.now();
     this.layer = layer;
+    this.state = 'resolving_style';
     this.updatePill('resolving', layer.needs_vpn ? '🟡 境外矢量源连接中...' : '矢量切片解析中...');
     return this.activeToken;
   },
@@ -3198,6 +3224,7 @@ const VectorPreviewFSM = {
   reset() {
     this.activeToken = 0;
     this.layer = null;
+    this.state = 'idle';
     if (this.tileTimer) {
       clearTimeout(this.tileTimer);
       this.tileTimer = null;
@@ -3218,20 +3245,23 @@ const VectorPreviewFSM = {
 
   onStyleResolved(token, desc) {
     if (token !== this.activeToken) return;
+    this.state = 'loading_tiles';
     this.updatePill('loading', desc || '矢量数据加载中...');
-    // 启动15秒切片数据到达保护定时器
-    if (this.layer && this.layer.needs_vpn) {
-      this.tileTimer = setTimeout(() => {
-        if (token === this.activeToken && !vpnDismissedForCurrentSession) {
-          showVpnFallbackOverlay(this.layer);
-          this.updatePill('warn', '境外切片响应超时');
-        }
-      }, 15000);
+    // 启动15秒首切片窗口保护定时器
+    if (this.tileTimer) {
+      clearTimeout(this.tileTimer);
+      this.tileTimer = null;
     }
+    this.tileTimer = setTimeout(() => {
+      if (token === this.activeToken && this.state === 'loading_tiles') {
+        this.onFail(token, '切片响应超时', 'tile_timeout');
+      }
+    }, 15000);
   },
 
   onTileArrived(token, sourceId) {
     if (token !== this.activeToken) return;
+    this.state = 'ready';
     if (this.tileTimer) {
       clearTimeout(this.tileTimer);
       this.tileTimer = null;
@@ -3242,58 +3272,126 @@ const VectorPreviewFSM = {
     this.updatePill('ok', isArc ? 'ArcGIS 矢量底图已连接' : 'MVT 矢量切片已连接');
   },
 
-  onFail(token, reason) {
+  onFail(token, reason, type = 'general') {
     if (token !== this.activeToken) return;
-    this.reset();
+    this.state = 'failed';
+    if (this.tileTimer) {
+      clearTimeout(this.tileTimer);
+      this.tileTimer = null;
+    }
     this.updatePill('warn', reason || '矢量解析受限，请在 QGIS 中加载');
-    if (this.layer && this.layer.needs_vpn) {
-      showVpnFallbackOverlay(this.layer);
+
+    // 仅针对需要 VPN 且未手动关闭当前会话遮罩的图层弹窗
+    if (this.layer && this.layer.needs_vpn && !vpnDismissedForCurrentSession) {
+      if (type === 'style') {
+        showVpnFallbackOverlay(this.layer, {
+          badge: '境外图源 · 样式获取失败',
+          title: '矢量样式获取失败（CORS/阻断）',
+          desc: '该矢量图源的样式定义端点受跨域或网络阻断限制无法在浏览器直接渲染。建议在 QGIS 中添加使用，或开启代理工具。'
+        });
+      } else if (type === 'tile_timeout') {
+        showVpnFallbackOverlay(this.layer, {
+          badge: '境外图源 · 切片响应超时',
+          title: '未能接收到有效矢量切片',
+          desc: '样式已成功解析，但矢量切片数据加载超时（超过15秒）。该底图服务器位于境外，请检查代理分流规则或在 QGIS 中加载。'
+        });
+      } else {
+        showVpnFallbackOverlay(this.layer, {
+          badge: '境外图源 · 矢量加载受阻',
+          title: reason || '未能加载矢量切片数据',
+          desc: '该底图服务器位于境外。建议在 QGIS 中添加使用，或开启代理工具。'
+        });
+      }
     }
   }
 };
 
-// 1. 标准 MVT 管线（带 3s 超时本地短路降级）
+// 1. 标准 MVT 管线（三级瀑布：预置映射 -> 4s 乐观获取 -> 中继兜底）
+const LOCAL_MVT_STYLES = {
+  'https://vector.openstreetmap.org/styles/shortbread/colorful.json': './data/osm_shortbread.json'
+};
+
 async function loadStandardMvtStyle(rawLines) {
   const tileUrl = rawLines[0] || '';
   const remoteStyleUrl = rawLines.find(l => l.endsWith('.json') || l.includes('/styles/')) || '';
 
-  // 若无样式文件指定，直接返回最小样式
+  // 若无样式文件指定，直接返回最小通用样式
   if (!remoteStyleUrl) {
     return {
-      version: 8,
-      sources: {
-        'default-mvt': {
-          type: 'vector',
-          tiles: [tileUrl],
-          minzoom: 0,
-          maxzoom: 14
-        }
+      style: {
+        version: 8,
+        sources: {
+          'default-mvt': {
+            type: 'vector',
+            tiles: [tileUrl],
+            minzoom: 0,
+            maxzoom: 14
+          }
+        },
+        layers: [
+          {
+            id: 'mvt-bg',
+            type: 'background',
+            paint: { 'background-color': '#f8f9fa' }
+          }
+        ]
       },
-      layers: [
-        {
-          id: 'mvt-bg',
-          type: 'background',
-          paint: { 'background-color': '#f8f9fa' }
-        }
-      ]
+      isLocalFallback: false
     };
   }
 
-  // 尝试拉取远程样式，3秒快速超时
+  // Tier 1: 命中本地预置映射表（如 shortbread colorful）
+  if (LOCAL_MVT_STYLES[remoteStyleUrl]) {
+    try {
+      const localResp = await fetch(LOCAL_MVT_STYLES[remoteStyleUrl]);
+      if (localResp.ok) {
+        const localJson = await localResp.json();
+        if (tileUrl && localJson.sources) {
+          for (const s of Object.values(localJson.sources)) {
+            if (s && s.type === 'vector') {
+              s.tiles = [tileUrl];
+            }
+          }
+        }
+        return { style: localJson, isLocalFallback: true };
+      }
+    } catch (err) {
+      console.warn("读取本地预置样式失败，尝试远程获取:", err);
+    }
+  }
+
+  // Tier 2: 乐观远程获取，4秒快速超时
   try {
     const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 3000);
+    const tid = setTimeout(() => ctrl.abort(), 4000);
     const resp = await fetch(remoteStyleUrl, { signal: ctrl.signal });
     clearTimeout(tid);
     if (resp.ok) {
       const styleJson = await resp.json();
-      return styleJson;
+      return { style: styleJson, isLocalFallback: false };
     }
   } catch (e) {
-    console.warn("远程 MVT 样式获取受限或超时，自动切换本地样式副本:", e);
+    console.warn("远程 MVT 样式获取受限或超时:", e);
   }
 
-  // 降级：拉取本地 osm_shortbread.json 并注入切片模板
+  // Tier 3: 尝试通过后端安全中继 (/relay) 获取
+  if (relayAvailable) {
+    try {
+      const relayUrl = `/relay?url=${encodeURIComponent(remoteStyleUrl)}`;
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 8000);
+      const resp = await fetch(relayUrl, { signal: ctrl.signal });
+      clearTimeout(tid);
+      if (resp.ok) {
+        const styleJson = await resp.json();
+        return { style: styleJson, isLocalFallback: false, viaRelay: true };
+      }
+    } catch (e) {
+      console.warn("通过中继获取 MVT 样式失败:", e);
+    }
+  }
+
+  // 若存在备用本地短路样式，最后兜底一次
   try {
     const localResp = await fetch('./data/osm_shortbread.json');
     if (localResp.ok) {
@@ -3305,14 +3403,11 @@ async function loadStandardMvtStyle(rawLines) {
           }
         }
       }
-      return localJson;
+      return { style: localJson, isLocalFallback: true };
     }
-  } catch (err) {
-    console.error("加载本地样式副本失败:", err);
-  }
+  } catch (err) {}
 
-  // 兜底返回远程样式链接交由 MapLibre 自行处理
-  return remoteStyleUrl;
+  throw new Error("样式获取失败（CORS/阻断）");
 }
 
 async function initOrUpdateMapLibrePreview(layer) {
@@ -3342,6 +3437,7 @@ async function initOrUpdateMapLibrePreview(layer) {
 
   let styleParam = null;
   let transformFn = null;
+  let isLocalMvtFallback = false;
 
   try {
     if (isArcgis) {
@@ -3358,10 +3454,18 @@ async function initOrUpdateMapLibrePreview(layer) {
         return { url: reqUrl };
       };
     } else {
-      styleParam = await loadStandardMvtStyle(rawLines);
+      const mvtResult = await loadStandardMvtStyle(rawLines);
+      styleParam = mvtResult.style;
+      isLocalMvtFallback = mvtResult.isLocalFallback;
     }
 
-    VectorPreviewFSM.onStyleResolved(token, isArcgis ? 'ArcGIS 样式已就绪，正在加载数据...' : '矢量样式已解析，正在加载切片...');
+    if (token !== VectorPreviewFSM.activeToken) return;
+
+    let resolveDesc = isArcgis ? 'ArcGIS 样式已就绪，正在加载数据...' : '矢量样式已解析，正在加载切片...';
+    if (isLocalMvtFallback) {
+      resolveDesc = '本地回退样式已加载，正在连接切片...';
+    }
+    VectorPreviewFSM.onStyleResolved(token, resolveDesc);
 
     const mapOptions = {
       container: 'maplibre-map',
@@ -3378,37 +3482,82 @@ async function initOrUpdateMapLibrePreview(layer) {
     state.maplibreMap = map;
 
     let hasTileArrived = false;
+    let tileErrorCount = 0;
+    let hasRetriedRelay = false;
+
     const markSuccess = (sourceId) => {
       if (hasTileArrived) return;
       hasTileArrived = true;
       VectorPreviewFSM.onTileArrived(token, sourceId);
     };
 
-    // 核心判定：监听真实数据源数据到达 (sourcedata / load / idle)
+    const triggerRelayRetry = () => {
+      if (hasRetriedRelay || hasTileArrived || !relayAvailable) return false;
+      hasRetriedRelay = true;
+      console.log("检测到切片受阻，尝试通过安全中继重试切片...");
+      VectorPreviewFSM.updatePill('loading', '切片直连受阻，正在通过安全中继重试...');
+      
+      const currentStyle = map.getStyle();
+      if (currentStyle && currentStyle.sources) {
+        let modified = false;
+        for (const s of Object.values(currentStyle.sources)) {
+          if (s && s.type === 'vector' && s.tiles && s.tiles.length > 0) {
+            s.tiles = s.tiles.map(t => {
+              if (t.startsWith('/relay?url=')) return t;
+              return `/relay?url=${encodeURIComponent(t)}`;
+            });
+            modified = true;
+          }
+        }
+        if (modified) {
+          tileErrorCount = 0;
+          map.setStyle(currentStyle);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // 核心判定：监听真实切片与数据源到达 (sourcedata / load / idle)
     map.on('sourcedata', (e) => {
-      if (e.isSourceLoaded || (e.tile && (e.tile.state === 'loaded' || e.tile.state === 'reloading'))) {
+      if (token !== VectorPreviewFSM.activeToken) return;
+      const isLoaded = e.isSourceLoaded === true ||
+                       (e.tile && (e.tile.state === 'loaded' || e.tile.state === 'done')) ||
+                       e.sourceDataType === 'content';
+      if (isLoaded) {
         markSuccess(e.sourceId);
       }
     });
 
     map.once('load', () => {
-      markSuccess('map-load');
+      if (token !== VectorPreviewFSM.activeToken) return;
       if (layer.has_boundary_issue) {
         addBoundaryGeoJsonToMapLibre(map);
       }
     });
 
-    map.once('idle', () => {
-      markSuccess('map-idle');
+    map.on('idle', () => {
+      if (token !== VectorPreviewFSM.activeToken) return;
+      if (!hasTileArrived && tileErrorCount === 0) {
+        markSuccess('map-idle');
+      }
     });
 
     map.on('error', (e) => {
+      if (token !== VectorPreviewFSM.activeToken || hasTileArrived) return;
       console.warn("MapLibre runtime error:", e);
-      if (!hasTileArrived && layer.needs_vpn && e && e.sourceId) {
-        const errUrl = (e.error && (e.error.url || e.error.message)) || '';
-        const isNonCritical = /fonts|glyphs|sprite|glyph/i.test(errUrl);
-        if (!isNonCritical) {
-          VectorPreviewFSM.onFail(token, '境外图源数据接收中断');
+      const errUrl = (e.error && (e.error.url || e.error.message)) || '';
+      const isNonCritical = /fonts|glyphs|sprite|glyph/i.test(errUrl);
+      if (isNonCritical) return;
+
+      if (e.sourceId) {
+        tileErrorCount++;
+        // 若连续4次切片错误且尚未收到任何切片
+        if (tileErrorCount >= 4 && !hasTileArrived) {
+          const retrying = triggerRelayRetry();
+          if (!retrying) {
+            VectorPreviewFSM.onFail(token, '切片响应超时', 'tile_timeout');
+          }
         }
       }
     });
@@ -3416,7 +3565,7 @@ async function initOrUpdateMapLibrePreview(layer) {
     applyLayerDefaultView(layer);
 
     setTimeout(() => {
-      if (state.maplibreMap) {
+      if (state.maplibreMap && token === VectorPreviewFSM.activeToken) {
         state.maplibreMap.resize();
         applyLayerDefaultView(layer);
       }
@@ -3424,7 +3573,7 @@ async function initOrUpdateMapLibrePreview(layer) {
 
   } catch (err) {
     console.error("MapLibre 初始化异常:", err);
-    VectorPreviewFSM.onFail(token, '样式解析受限，请在 QGIS 中加载');
+    VectorPreviewFSM.onFail(token, '样式获取失败（CORS/阻断）', 'style');
   }
 
   // 处理 GeoJSON 边界高亮开关显示
@@ -3972,17 +4121,25 @@ function attachTileNetworkListeners(tileLayer, resolved) {
 let vpnTimeoutTimer = null;
 let vpnDismissedForCurrentSession = false;
 
-function showVpnFallbackOverlay(layer) {
+function showVpnFallbackOverlay(layer, opts = {}) {
   if (vpnDismissedForCurrentSession) return;
   const overlay = document.getElementById("preview-vpn-overlay");
   if (!overlay) return;
+
+  const badgeEl = overlay.querySelector('.vpn-overlay-badge span');
+  const titleEl = overlay.querySelector('.vpn-overlay-title');
+  const descEl = overlay.querySelector('.vpn-overlay-desc');
+
+  if (badgeEl) badgeEl.textContent = opts.badge || '境外图源 · 切片响应超时';
+  if (titleEl) titleEl.textContent = opts.title || '未能接收到有效瓦片切片';
+  if (descEl) descEl.textContent = opts.desc || '该底图服务器位于境外。若已开启代理，可尝试缩放或平移地图重试，或检查代理分流规则；也可更换为国内直连同类底图。';
 
   overlay.style.display = "flex";
 
   const statusPill = document.getElementById("preview-map-status");
   if (statusPill) {
     statusPill.className = "map-status-pill warn";
-    statusPill.innerHTML = `<span class="status-dot warn"></span>境外图源响应超时`;
+    statusPill.innerHTML = `<span class="status-dot warn"></span>${escapeHtml(opts.badge || '境外图源响应超时')}`;
   }
 
   // 铺垫一层低透明度基础参考底图，避免大面积灰黑网格与空白感

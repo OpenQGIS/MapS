@@ -12,13 +12,51 @@ import datetime
 import time
 import hashlib
 import threading
-from collections import deque, defaultdict
+from collections import deque, defaultdict, OrderedDict
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
 import urllib.parse
 import urllib.request
 import ssl
 import re
+
+# =====================================================================
+# 矢量切片与样式白名单安全中继器 (/relay) - 支持内存 LRU 缓存
+# =====================================================================
+RELAY_ALLOWED_DOMAINS = (
+    "vector.openstreetmap.org",
+    "basemaps.arcgis.com",
+    "tiles.arcgis.com",
+    "services.arcgisonline.com",
+    "www.arcgis.com",
+)
+RELAY_CACHE_MAX_ENTRIES = 400
+RELAY_MAX_CONTENT_BYTES = 5 * 1024 * 1024  # 5MB 单资源上限
+RELAY_TIMEOUT_SECS = 12
+
+class RelayLruCache:
+    def __init__(self, capacity=400):
+        self._lock = threading.Lock()
+        self.capacity = capacity
+        # url -> (content_bytes, content_type, headers_dict)
+        self.cache = OrderedDict()
+
+    def get(self, url):
+        with self._lock:
+            if url in self.cache:
+                self.cache.move_to_end(url)
+                return self.cache[url]
+            return None
+
+    def put(self, url, data):
+        with self._lock:
+            if url in self.cache:
+                self.cache.move_to_end(url)
+            self.cache[url] = data
+            if len(self.cache) > self.capacity:
+                self.cache.popitem(last=False)
+
+relay_cache = RelayLruCache(capacity=RELAY_CACHE_MAX_ENTRIES)
 
 # =====================================================================
 # 内存级 IP 滑动窗口限流器 (IP 仅在内存短暂驻留，不入库、不写盘，重启即空)
@@ -779,7 +817,94 @@ class RequestHandler(SimpleHTTPRequestHandler):
             self.send_json({"code": 0, "data": {}})
             return
 
+        elif path == "/relay":
+            query = urllib.parse.parse_qs(parsed.query)
+            target_url = query.get("url", [""])[0].strip()
+            if not target_url:
+                self.send_json({"code": 400, "message": "Missing 'url' parameter"}, status=400)
+                return
+
+            try:
+                target_parsed = urllib.parse.urlparse(target_url)
+            except Exception:
+                self.send_json({"code": 400, "message": "Invalid 'url'"}, status=400)
+                return
+
+            if target_parsed.scheme not in ("http", "https") or target_parsed.hostname not in RELAY_ALLOWED_DOMAINS:
+                self.send_json({"code": 403, "message": "Forbidden: Target domain not in relay allowlist"}, status=403)
+                return
+
+            # 查 LRU 缓存
+            cached = relay_cache.get(target_url)
+            if cached:
+                content, content_type = cached
+                self.send_response(200)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(content)))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.end_headers()
+                self.wfile.write(content)
+                return
+
+            # 发起后端安全抓取（带超时与大小上限）
+            try:
+                req = urllib.request.Request(
+                    target_url,
+                    headers={
+                        "User-Agent": "OpenQGIS-MapHub/1.0 (+https://github.com/OpenQGIS/maps)",
+                        "Accept": "*/*"
+                    }
+                )
+                ctx = ssl.create_default_context()
+                with urllib.request.urlopen(req, timeout=RELAY_TIMEOUT_SECS, context=ctx) as resp:
+                    resp_status = resp.getcode()
+                    if resp_status != 200:
+                        self.send_json({"code": resp_status, "message": f"Upstream returned HTTP {resp_status}"}, status=resp_status)
+                        return
+
+                    content = resp.read(RELAY_MAX_CONTENT_BYTES + 1)
+                    if len(content) > RELAY_MAX_CONTENT_BYTES:
+                        self.send_json({"code": 413, "message": "Upstream resource exceeded 5MB limit"}, status=413)
+                        return
+
+                    content_type = resp.headers.get("Content-Type", "application/octet-stream")
+                    # 写入 LRU 缓存
+                    relay_cache.put(target_url, (content, content_type))
+
+                    self.send_response(200)
+                    self.send_header("Content-Type", content_type)
+                    self.send_header("Content-Length", str(len(content)))
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+                    self.send_header("Cache-Control", "public, max-age=86400")
+                    self.end_headers()
+                    self.wfile.write(content)
+                    return
+            except urllib.error.HTTPError as he:
+                self.send_json({"code": he.code, "message": f"Upstream HTTPError: {he.code}"}, status=he.code)
+                return
+            except urllib.error.URLError as ue:
+                self.send_json({"code": 504, "message": f"Upstream Gateway Timeout: {ue.reason}"}, status=504)
+                return
+            except Exception as ex:
+                self.send_json({"code": 500, "message": f"Relay error: {str(ex)}"}, status=500)
+                return
+
         super().do_GET()
+
+    def do_HEAD(self):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        if path == "/relay":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+            self.end_headers()
+            return
+        super().do_HEAD()
 
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
