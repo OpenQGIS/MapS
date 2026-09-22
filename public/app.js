@@ -334,11 +334,16 @@ function applyAestheticMode(active, isInteractive = false) {
       triggerAestheticShake();
     }
   } else {
-    document.title = "QGIS 在线底图配置中心 (QGIS Basemap Hub)";
-    if (titleFull) titleFull.textContent = "QGIS 在线底图配置中心";
+    document.title = "QGIS图源配置中心 (QGIS Basemap Hub)";
+    if (titleFull) titleFull.textContent = "QGIS图源配置中心";
     if (titleShort) titleShort.textContent = "地图配置";
     if (brandIcon) brandIcon.textContent = "QG";
-    if (brandBadge) brandBadge.textContent = "v2.7 持续收录";
+    if (brandBadge) {
+      const raw = (state.stats && state.stats.check_time) || "2026.9.21";
+      const formatted = raw.replace(/年|\/|-/g, '.').replace(/月/g, '.').replace(/日/g, '').replace(/\.$/, '');
+      brandBadge.textContent = formatted;
+      brandBadge.title = `图源核验基准日期: ${formatted}`;
+    }
     if (searchInput) searchInput.placeholder = "搜索底图...";
     if (mobileSearchInput) mobileSearchInput.placeholder = "搜索底图...";
     if (drawerTitle) drawerTitle.textContent = "已选底图配置单";
@@ -1542,7 +1547,12 @@ function updateStatsUi(data) {
   const ctEl = document.getElementById("stat-check-time");
   if (ctEl) ctEl.textContent = data.checkTime || "2026年9月21日";
   const bctEl = document.getElementById("banner-check-time");
-  if (bctEl) bctEl.textContent = data.checkTime || "2026年9月21日";
+  if (bctEl) {
+    const raw = data.checkTime || "2026.9.21";
+    const formatted = raw.replace(/年|\/|-/g, '.').replace(/月/g, '.').replace(/日/g, '').replace(/\.$/, '');
+    bctEl.textContent = formatted;
+    bctEl.title = `图源核验基准日期: ${formatted}`;
+  }
 }
 
 function updateTotalLikesStat(animate = true) {
