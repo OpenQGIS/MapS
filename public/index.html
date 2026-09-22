@@ -423,6 +423,17 @@
               </div>
             </div>
             <div class="preview-map-controls-group" style="display: inline-flex; align-items: center; gap: 0.65rem; margin-left: auto;">
+              <label class="checkbox-label" id="wrap-toggle-boundary-geojson" style="display: none; cursor: pointer;" title="开启后突出标出边界争议/画法风险区域">
+                <input type="checkbox" id="toggle-boundary-geojson" checked>
+                <span style="color: var(--accent-red); font-weight: 500; display: inline-flex; align-items: center; gap: 0.25rem;">
+                  <span class="svg-icon">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </span>
+                  风险区域
+                </span>
+              </label>
               <button type="button" class="btn-map-control" id="btn-reset-china-view" onclick="resetToChinaView()" title="切换至中国视野">
                 <span class="svg-icon">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -447,17 +458,6 @@
                 </span>
                 <span id="fullscreen-btn-text">全屏</span>
               </button>
-              <label class="checkbox-label" id="wrap-toggle-boundary-geojson" style="cursor: pointer;" title="开启后突出标出边界争议/画法风险区域">
-                <input type="checkbox" id="toggle-boundary-geojson" checked>
-                <span style="color: var(--accent-red); font-weight: 500; display: inline-flex; align-items: center; gap: 0.25rem;">
-                  <span class="svg-icon">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-                    </svg>
-                  </span>
-                  风险区域
-                </span>
-              </label>
             </div>
           </div>
         </div>
@@ -642,6 +642,6 @@
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js'"></script>
   <!-- Lottie Web Animation -->
   <script src="./lottie.min.js"></script>
-  <script src="./app.js?v=11.28"></script>
+  <script src="./app.js?v=11.29"></script>
 </body>
 </html>

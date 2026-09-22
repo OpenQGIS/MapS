@@ -3188,7 +3188,7 @@ async function initOrUpdateMapLibrePreview(layer) {
   const geojsonToggleWrap = document.getElementById("wrap-toggle-boundary-geojson");
   const geojsonToggle = document.getElementById("toggle-boundary-geojson");
   if (geojsonToggleWrap) {
-    geojsonToggleWrap.style.display = layer.has_boundary_issue ? "" : "none";
+    geojsonToggleWrap.style.display = layer.has_boundary_issue ? "inline-flex" : "none";
   }
   if (geojsonToggle) {
     geojsonToggle.checked = !!layer.has_boundary_issue;
@@ -4017,6 +4017,16 @@ function openPreviewModal(layerId) {
     if (boundaryAlertBox) boundaryAlertBox.style.display = "none";
   }
 
+  // 边界高亮开关与状态显示控制（仅有国界画法争议/风险的图源才展示【风险区域】开关，合规图源完全隐藏）
+  const geojsonToggleWrap = document.getElementById("wrap-toggle-boundary-geojson");
+  const geojsonToggle = document.getElementById("toggle-boundary-geojson");
+  if (geojsonToggleWrap) {
+    geojsonToggleWrap.style.display = layer.has_boundary_issue ? "inline-flex" : "none";
+  }
+  if (geojsonToggle) {
+    geojsonToggle.checked = !!layer.has_boundary_issue;
+  }
+
   // 弹窗内的加入配置单按钮状态
   updatePreviewCartButton(layerId);
 
@@ -4217,6 +4227,9 @@ function initOrUpdatePreviewMap(layer, sublayerId = null) {
     }
     updateDemModeButtonsUI();
   }
+
+  // 仅在有争议/画法风险的图源中启用边界高亮，合规图源自动清除高亮
+  toggleBoundaryGeoJson(!!layer.has_boundary_issue);
 }
 
 function updateDemModeButtonsUI() {
@@ -4358,6 +4371,7 @@ function closeModal(id) {
     hidePreviewBoundaryAlert();
     hideVpnFallbackOverlay();
     setPreviewTilesLoaded(false);
+    toggleBoundaryGeoJson(false);
 
     // 释放 MapLibre WebGL 显存
     if (state.maplibreMap) {
