@@ -3003,6 +3003,31 @@ html[data-theme="dark"] #leaflet-map::before,
   flex-wrap: wrap;
 }
 
+.preview-map-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.preview-map-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: space-between;
+}
+
+.preview-map-controls-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .map-status-pill {
   display: inline-flex;
   align-items: center;
@@ -4100,6 +4125,11 @@ html[data-theme="light"] .wms-dock-select {
     padding: 2px 5px !important;
     font-size: 0.68rem !important;
   }
+  .preview-map-controls-group {
+    width: 100% !important;
+    justify-content: flex-end !important;
+    margin-left: auto !important;
+  }
 
   /* URL 与长代码行强制折行，防止横向撑破卡片或弹窗 */
   .preview-url-row,
@@ -4503,6 +4533,15 @@ html[data-theme="light"] .wms-dock-select {
 }
 #preview-modal.preview-fullscreen #preview-token-wrap {
   width: auto !important;
+}
+#preview-modal.preview-fullscreen .preview-map-toolbar-actions {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  justify-content: space-between !important;
+}
+#preview-modal.preview-fullscreen .preview-map-controls-group {
+  margin-left: auto !important;
+  flex-wrap: nowrap !important;
 }
 
 /* ============================================================

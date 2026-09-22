@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <!-- MapLibre GL CSS for Vector Tiles Preview (MVT) -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css'"/>
-  <link rel="stylesheet" href="./style.css?v=9.16">
+  <link rel="stylesheet" href="./style.css?v=9.17">
 </head>
 <body>
 
@@ -402,7 +402,7 @@
       <div class="preview-modal-body">
         <!-- 交互式地图主视口工具栏 -->
         <div class="preview-map-toolbar">
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div class="preview-map-toolbar-left" style="display: flex; align-items: center; gap: 0.5rem;">
             <span id="preview-map-status" class="map-status-pill">
               <span class="status-dot"></span>在线底图调用中
             </span>
@@ -413,7 +413,7 @@
               <button type="button" id="preview-token-apply-btn" class="preview-copy-btn" title="保存并刷新底图">应用</button>
             </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <div class="preview-map-toolbar-actions" style="display: flex; align-items: center; gap: 0.65rem; flex: 1 1 auto; min-width: 0; justify-content: space-between;">
             <div id="preview-dem-mode-wrap" style="display: none; align-items: center; gap: 0.35rem;">
               <span style="font-size: 0.75rem; color: var(--text-dim);">DEM模式:</span>
               <div class="dem-mode-btn-group" style="display: inline-flex; border: 1px solid var(--border-subtle); border-radius: 4px; overflow: hidden; font-size: 0.72rem;">
@@ -422,41 +422,43 @@
                 <button type="button" class="btn-dem-mode" id="btn-dem-hillshade" onclick="switchDemRenderMode('hillshade')" style="padding: 2px 8px; border: none; cursor: pointer; background: var(--bg-card); color: var(--text-main);">山体阴影</button>
               </div>
             </div>
-            <button type="button" class="btn-map-control" id="btn-reset-china-view" onclick="resetToChinaView()" title="切换至中国视野">
-              <span class="svg-icon">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/>
-                </svg>
-              </span>
-              中国视野
-            </button>
-            <button type="button" class="btn-map-control" id="btn-reset-world-view" onclick="resetToWorldView()" title="切换至全球视野">
-              <span class="svg-icon">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/>
-                </svg>
-              </span>
-              全球视野
-            </button>
-            <button type="button" class="btn-map-control" id="btn-fullscreen-preview" onclick="togglePreviewFullscreen()" title="全屏查看地图（更大视野，Esc 或再点一次退出）">
-              <span class="svg-icon">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                </svg>
-              </span>
-              <span id="fullscreen-btn-text">全屏</span>
-            </button>
-            <label class="checkbox-label" id="wrap-toggle-boundary-geojson" style="cursor: pointer;" title="开启后突出标出边界争议/画法风险区域">
-              <input type="checkbox" id="toggle-boundary-geojson" checked>
-              <span style="color: var(--accent-red); font-weight: 500; display: inline-flex; align-items: center; gap: 0.25rem;">
+            <div class="preview-map-controls-group" style="display: inline-flex; align-items: center; gap: 0.65rem; margin-left: auto;">
+              <button type="button" class="btn-map-control" id="btn-reset-china-view" onclick="resetToChinaView()" title="切换至中国视野">
                 <span class="svg-icon">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/>
                   </svg>
                 </span>
-                风险区域
-              </span>
-            </label>
+                中国视野
+              </button>
+              <button type="button" class="btn-map-control" id="btn-reset-world-view" onclick="resetToWorldView()" title="切换至全球视野">
+                <span class="svg-icon">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/>
+                  </svg>
+                </span>
+                全球视野
+              </button>
+              <button type="button" class="btn-map-control" id="btn-fullscreen-preview" onclick="togglePreviewFullscreen()" title="全屏查看地图（更大视野，Esc 或再点一次退出）">
+                <span class="svg-icon">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                  </svg>
+                </span>
+                <span id="fullscreen-btn-text">全屏</span>
+              </button>
+              <label class="checkbox-label" id="wrap-toggle-boundary-geojson" style="cursor: pointer;" title="开启后突出标出边界争议/画法风险区域">
+                <input type="checkbox" id="toggle-boundary-geojson" checked>
+                <span style="color: var(--accent-red); font-weight: 500; display: inline-flex; align-items: center; gap: 0.25rem;">
+                  <span class="svg-icon">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </span>
+                  风险区域
+                </span>
+              </label>
+            </div>
           </div>
         </div>
 
