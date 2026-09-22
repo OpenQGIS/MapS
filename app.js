@@ -2082,6 +2082,9 @@ function toggleCart(layerId) {
 
 function saveCart() {
   localStorage.setItem("qgis_cart", JSON.stringify(Array.from(state.cart)));
+  if (typeof invalidatePrecomputedScript === "function") {
+    invalidatePrecomputedScript();
+  }
 }
 
 function updateCartBadge() {
@@ -2833,76 +2836,101 @@ function applyExportHeat(layerIds, serverStats = null) {
   }
 }
 
-// --- Checkout & Script Generation ---
-async function handleCheckout() {
+// --- 预计算与预加载缓存器 ---
+let cachedScriptData = null;
+let cachedScriptKey = "";
+
+function invalidatePrecomputedScript() {
+  cachedScriptData = null;
+  cachedScriptKey = "";
+}
+
+function getOrPrecomputeScript() {
+  const layerIds = Array.from(state.cart);
+  if (layerIds.length === 0) {
+    return { count: 0, script: "", layerIds: [], filename: "qgis_import_basemaps.py" };
+  }
+  const key = layerIds.slice().sort().join(",");
+  if (cachedScriptData && cachedScriptKey === key) {
+    return cachedScriptData;
+  }
+  const selectedLayers = layerIds.map(id => state.layers.find(l => l.id === id)).filter(Boolean);
+  const clientScript = generateClientQgisScript(selectedLayers, false);
+  cachedScriptData = {
+    count: selectedLayers.length,
+    script: clientScript,
+    layerIds: layerIds,
+    filename: "qgis_import_basemaps.py"
+  };
+  cachedScriptKey = key;
+  return cachedScriptData;
+}
+
+// --- 后台异步静默上报导出统计（Fire-and-Forget，不阻塞 UI 交互） ---
+function reportExportStatsAsync(layerIds, vid) {
+  if (!Array.isArray(layerIds) || layerIds.length === 0) return;
+
+  // 1. 本地 Python 服务端日志记录（若本地启动了 server.py）
+  fetch("./api/export", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ layer_ids: layerIds, add_to_canvas: false, visitor_id: vid })
+  }).catch(() => {});
+
+  // 2. Cloudflare Worker 全网热度追踪（静默同步，无感降级）
+  if (typeof WORKER_BASE_URL !== "undefined" && WORKER_BASE_URL) {
+    fetch(`${WORKER_BASE_URL}/export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ layer_ids: layerIds, vid }),
+      cache: "no-store"
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(wJson => {
+        if (wJson && wJson.code === 0 && wJson.data) {
+          if (wJson.data.layer_stats && Object.keys(wJson.data.layer_stats).length > 0) {
+            applyExportHeat(layerIds, wJson.data.layer_stats);
+          }
+          const globalDl = wJson.data.downloads;
+          if (typeof globalDl === "number") {
+            localStorage.setItem("qgis_site_downloads", globalDl);
+            updateCachedStat("downloads", globalDl);
+            const dlEl = document.getElementById("stat-downloads");
+            if (dlEl) animateCountUp(dlEl, globalDl, 500);
+          }
+        }
+      })
+      .catch(() => {});
+  }
+}
+
+// --- Checkout & Script Generation (瞬时无阻响应) ---
+function handleCheckout() {
   if (state.cart.size === 0) return;
   const layerIds = Array.from(state.cart);
   const vid = getVisitorId();
 
   try {
-    let data = null;
-    try {
-      const res = await fetch("./api/export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ layer_ids: layerIds, add_to_canvas: false, visitor_id: vid })
-      });
-      if (res.status === 429) {
-        showToast("操作过于频繁，请稍后再试");
-        return;
-      }
-      if (res.ok) {
-        const json = await res.json();
-        if (json.code === 0) data = json.data;
-      }
-    } catch (e) {}
-
-    // 静态降级：若后端 API 不可用，在纯浏览器端直接生成脚本
-    if (!data) {
-      const selectedLayers = layerIds.map(id => state.layers.find(l => l.id === id)).filter(Boolean);
-      const clientScript = generateClientQgisScript(selectedLayers, false);
-      data = {
-        count: selectedLayers.length,
-        script: clientScript
-      };
-      // 调用 Cloudflare Worker 追踪各图层导出次数，并取回全网真实热度统计
-      try {
-        const wRes = await fetch(`${WORKER_BASE_URL}/export`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ layer_ids: layerIds, vid }),
-          cache: "no-store"
-        });
-        if (wRes.ok) {
-          const wJson = await wRes.json();
-          if (wJson.code === 0 && wJson.data) {
-            // 用 Worker 返回的全网统计覆盖本地 layer_stats
-            if (wJson.data.layer_stats && Object.keys(wJson.data.layer_stats).length > 0) {
-              data.layer_stats = wJson.data.layer_stats;
-            }
-            // 同步顶部全站累计导出数展示
-            const globalDl = wJson.data.downloads;
-            if (typeof globalDl === "number") {
-              localStorage.setItem("qgis_site_downloads", globalDl);
-              updateCachedStat("downloads", globalDl);
-              const dlEl = document.getElementById("stat-downloads");
-              if (dlEl) animateCountUp(dlEl, globalDl, 500);
-            }
-          }
-        }
-      } catch (e) {}
+    // 1. 0ms 纯内存即时取用/生成脚本（完全避开网络 I/O 阻塞）
+    const data = getOrPrecomputeScript();
+    if (!data || !data.script) {
+      showToast("生成脚本失败，请重试");
+      return;
     }
 
-    if (data) {
-      document.getElementById("export-count-text").textContent = `已生成 ${data.count} 款底图的导入代码`;
-      document.getElementById("script-code-box").textContent = data.script;
+    // 2. 瞬时填充弹窗数据
+    const countEl = document.getElementById("export-count-text");
+    if (countEl) countEl.textContent = `已生成 ${data.count} 款底图的导入代码`;
 
-      // 实时递增选定导出底图的热力值并持久化
-      applyExportHeat(layerIds, data.layer_stats);
+    const codeBox = document.getElementById("script-code-box");
+    if (codeBox) codeBox.textContent = data.script;
 
+    // 3. 本地乐观实时递增热力值
+    applyExportHeat(layerIds);
 
-      
-      const downloadBtn = document.getElementById("download-script-btn");
+    // 4. 绑定下载与复制动作
+    const downloadBtn = document.getElementById("download-script-btn");
+    if (downloadBtn) {
       downloadBtn.onclick = () => {
         const blob = new Blob([data.script], { type: "text/x-python;charset=utf-8" });
         const url = URL.createObjectURL(blob);
@@ -2914,21 +2942,25 @@ async function handleCheckout() {
         showToast("脚本已下载");
         incrementLocalDownloads();
       };
+    }
 
-      document.getElementById("copy-script-btn").onclick = () => {
+    const copyBtn = document.getElementById("copy-script-btn");
+    if (copyBtn) {
+      copyBtn.onclick = () => {
         copyText(data.script, isAncientAesthetic ? "秘籍已铭记，速去 QGIS 传功！" : "脚本代码已复制");
         incrementLocalDownloads();
       };
-
-      openModal("checkout-modal");
-      closeCart();
-      loadStats();
-    } else {
-      showToast(json.message || "导出生成失败");
     }
+
+    // 5. 立即呈现弹窗并收起抽屉
+    openModal("checkout-modal");
+    closeCart();
+
+    // 6. 后台发后即忘（Fire-and-Forget）异步统计上报，彻底脱离主交互路径
+    reportExportStatsAsync(layerIds, vid);
   } catch (err) {
     console.error("生成脚本失败:", err);
-    showToast("生成脚本失败，请检查服务连接");
+    showToast("生成脚本失败，请重试");
   }
 }
 
@@ -4720,8 +4752,13 @@ function initEventListeners() {
   document.getElementById("cart-backdrop").addEventListener("click", closeCart);
   document.getElementById("drawer-clear-btn").addEventListener("click", clearCart);
 
-  // 结算按钮
-  document.getElementById("drawer-checkout-btn").addEventListener("click", handleCheckout);
+  // 结算按钮 (附带悬停/触控预热)
+  const checkoutBtnEl = document.getElementById("drawer-checkout-btn");
+  if (checkoutBtnEl) {
+    checkoutBtnEl.addEventListener("click", handleCheckout);
+    checkoutBtnEl.addEventListener("mouseenter", () => getOrPrecomputeScript());
+    checkoutBtnEl.addEventListener("touchstart", () => getOrPrecomputeScript(), { passive: true });
+  }
 
   // 预设按钮
   document.getElementById("preset-direct").addEventListener("click", () => applyPreset("top10_direct"));
