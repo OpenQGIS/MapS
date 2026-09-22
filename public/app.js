@@ -334,8 +334,8 @@ function applyAestheticMode(active, isInteractive = false) {
       triggerAestheticShake();
     }
   } else {
-    document.title = "QGIS 在线底图配置中心 (QGIS Basemap Hub)";
-    if (titleFull) titleFull.textContent = "QGIS 在线底图配置中心";
+    document.title = "QGIS图源配置中心 (QGIS Basemap Hub)";
+    if (titleFull) titleFull.textContent = "QGIS图源配置中心";
     if (titleShort) titleShort.textContent = "地图配置";
     if (brandIcon) brandIcon.textContent = "QG";
     if (brandBadge) brandBadge.textContent = "v2.7 持续收录";
@@ -2968,25 +2968,44 @@ function handleCheckout() {
 const arcgisStyleCache = new Map();
 
 async function getNormalizedArcgisStyle(styleUrl) {
-  if (arcgisStyleCache.has(styleUrl)) {
-    return arcgisStyleCache.get(styleUrl);
+  const cacheKey = styleUrl + '#v2';
+  if (arcgisStyleCache.has(cacheKey)) {
+    return arcgisStyleCache.get(cacheKey);
   }
   const fullUrl = styleUrl.includes('f=pjson') ? styleUrl : (styleUrl + (styleUrl.includes('?') ? '&f=pjson' : '?f=pjson'));
-  const res = await fetch(fullUrl);
+  
+  // 5秒中止控制
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 5000);
+  let res;
+  try {
+    res = await fetch(fullUrl, { signal: ctrl.signal });
+  } finally {
+    clearTimeout(tid);
+  }
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
 
-  // 1. 展开 sources 中的 VectorTileServer 相对路径为绝对切片模板
+  const baseUrlObj = new URL(styleUrl, window.location.href);
+
+  // 1. 绝对化 sources 中的路径，并展开 VectorTileServer 为切片模板
   if (json.sources) {
     for (const [sKey, sVal] of Object.entries(json.sources)) {
       if (sVal && sVal.type === 'vector') {
-        const sUrl = sVal.url || '';
+        let sUrl = sVal.url || '';
+        // 相对路径绝对化
+        if (sUrl && !/^https?:/i.test(sUrl)) {
+          try {
+            sUrl = new URL(sUrl, baseUrlObj).href;
+            sVal.url = sUrl;
+          } catch (e) {}
+        }
         if (sUrl.includes('VectorTileServer')) {
           const base = sUrl.replace(/\/+$/, '');
           delete sVal.url;
           sVal.tiles = [`${base}/tile/{z}/{y}/{x}.pbf`];
           sVal.minzoom = sVal.minzoom || 0;
-          sVal.maxzoom = sVal.maxzoom || 22;
+          sVal.maxzoom = Math.min(sVal.maxzoom || 15, 16); // 限制maxzoom，防止高层级无效404
         }
       }
     }
@@ -2994,6 +3013,11 @@ async function getNormalizedArcgisStyle(styleUrl) {
 
   // 2. 规范化 sprite 路径（消除相对层级，且不可带 query string，防止拼接出 ?f=pjson.json 400 报错）
   if (json.sprite) {
+    if (!/^https?:/i.test(json.sprite)) {
+      try {
+        json.sprite = new URL(json.sprite, baseUrlObj).href;
+      } catch (e) {}
+    }
     json.sprite = json.sprite.replace('/styles/../', '/');
     if (json.sprite.includes('?')) {
       json.sprite = json.sprite.split('?')[0];
@@ -3003,6 +3027,71 @@ async function getNormalizedArcgisStyle(styleUrl) {
   // 3. 补全字体 glyphs 默认源
   if (!json.glyphs) {
     json.glyphs = 'https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/resources/fonts/{fontstack}/{range}.pbf';
+  }
+
+  // 3.5 智能样式画像分析（Profile Style）：识别地貌叠加型或无注记矢量底图（例如 World-Topo-Map_NoLabel）
+  // 具备特征：无 background 背景层，或陆地透明度极高（<=0.15）且国省界关闭
+  const layers = json.layers || [];
+  const hasBackground = layers.some(l => l.type === 'background');
+  const landTransparent = layers.some(l => 
+    l.id && l.id.includes('Land/Not ice') && 
+    ((l.paint && l.paint['fill-opacity'] !== undefined && Number(l.paint['fill-opacity']) <= 0.2) || true)
+  );
+  const isNoLabelOrReliefOverlay = styleUrl.includes('5a0e14f7287b4aa5973f6a35638e4b9a') || (!hasBackground && landTransparent);
+
+  if (isNoLabelOrReliefOverlay) {
+    // 注入 Esri 官方 World_Hillshade 晕渲切片底衬（完全匹配此矢量样式的设计标准）
+    if (!json.sources['esri-hillshade-source']) {
+      json.sources['esri-hillshade-source'] = {
+        type: 'raster',
+        tiles: [
+          'https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}'
+        ],
+        tileSize: 256,
+        maxzoom: 23
+      };
+    }
+
+    // 启用国界与大行政区边界（解除原样式中全部 visibility: 'none' 的限制）
+    if (json.layers && Array.isArray(json.layers)) {
+      json.layers.forEach(l => {
+        if (l.id && l.id.startsWith('Boundary line/Admin')) {
+          if (!l.layout) l.layout = {};
+          l.layout.visibility = 'visible';
+        }
+      });
+    }
+
+    // 将地形晕渲图层放置在最底部
+    if (!json.layers.some(l => l.id === 'esri-hillshade-layer')) {
+      json.layers.unshift({
+        id: 'esri-hillshade-layer',
+        type: 'raster',
+        source: 'esri-hillshade-source',
+        minzoom: 0,
+        maxzoom: 23
+      });
+    }
+
+    // 最底层再垫一层海洋底色兜底，避免 Hillshade 请求遇阻时纯白
+    if (!json.layers.some(l => l.id === 'default-ocean-bg')) {
+      json.layers.unshift({
+        id: 'default-ocean-bg',
+        type: 'background',
+        paint: {
+          'background-color': '#d8e5ec'
+        }
+      });
+    }
+  } else if (!hasBackground) {
+    // 若既无晕渲也无背景层，补充默认海洋纯色背景，避免切片透明穿底
+    json.layers.unshift({
+      id: 'default-ocean-bg',
+      type: 'background',
+      paint: {
+        'background-color': '#d8e5ec'
+      }
+    });
   }
 
   // 4. 去除/重命名重复图层 ID（修复 Mapbox/MapLibre GL 遇到 duplicate layer id 时完全中断渲染的致命规范限制）
@@ -3020,7 +3109,7 @@ async function getNormalizedArcgisStyle(styleUrl) {
     }
   }
 
-  arcgisStyleCache.set(styleUrl, json);
+  arcgisStyleCache.set(cacheKey, json);
   return json;
 }
 
@@ -3089,6 +3178,143 @@ function addBoundaryGeoJsonToMapLibre(map) {
   }
 }
 
+// ==========================================
+// 矢量切片预览核心引擎：状态机与专用双管线
+// ==========================================
+
+const VectorPreviewFSM = {
+  activeToken: 0,
+  tileTimer: null,
+  layer: null,
+
+  start(layer) {
+    this.reset();
+    this.activeToken = Date.now();
+    this.layer = layer;
+    this.updatePill('resolving', layer.needs_vpn ? '🟡 境外矢量源连接中...' : '矢量切片解析中...');
+    return this.activeToken;
+  },
+
+  reset() {
+    this.activeToken = 0;
+    this.layer = null;
+    if (this.tileTimer) {
+      clearTimeout(this.tileTimer);
+      this.tileTimer = null;
+    }
+  },
+
+  updatePill(stage, text) {
+    const statusPill = document.getElementById("preview-map-status");
+    if (!statusPill) return;
+    if (stage === 'ok') {
+      statusPill.className = "map-status-pill ok";
+      statusPill.innerHTML = `<span class="status-dot ok"></span>${escapeHtml(text)}`;
+    } else {
+      statusPill.className = "map-status-pill warn";
+      statusPill.innerHTML = `<span class="status-dot warn"></span>${escapeHtml(text)}`;
+    }
+  },
+
+  onStyleResolved(token, desc) {
+    if (token !== this.activeToken) return;
+    this.updatePill('loading', desc || '矢量数据加载中...');
+    // 启动15秒切片数据到达保护定时器
+    if (this.layer && this.layer.needs_vpn) {
+      this.tileTimer = setTimeout(() => {
+        if (token === this.activeToken && !vpnDismissedForCurrentSession) {
+          showVpnFallbackOverlay(this.layer);
+          this.updatePill('warn', '境外切片响应超时');
+        }
+      }, 15000);
+    }
+  },
+
+  onTileArrived(token, sourceId) {
+    if (token !== this.activeToken) return;
+    if (this.tileTimer) {
+      clearTimeout(this.tileTimer);
+      this.tileTimer = null;
+    }
+    hideVpnFallbackOverlay();
+    setPreviewTilesLoaded(true);
+    const isArc = this.layer && (this.layer.format === 'VEC-A' || (this.layer.url && this.layer.url.includes('arcgis.com')));
+    this.updatePill('ok', isArc ? 'ArcGIS 矢量底图已连接' : 'MVT 矢量切片已连接');
+  },
+
+  onFail(token, reason) {
+    if (token !== this.activeToken) return;
+    this.reset();
+    this.updatePill('warn', reason || '矢量解析受限，请在 QGIS 中加载');
+    if (this.layer && this.layer.needs_vpn) {
+      showVpnFallbackOverlay(this.layer);
+    }
+  }
+};
+
+// 1. 标准 MVT 管线（带 3s 超时本地短路降级）
+async function loadStandardMvtStyle(rawLines) {
+  const tileUrl = rawLines[0] || '';
+  const remoteStyleUrl = rawLines.find(l => l.endsWith('.json') || l.includes('/styles/')) || '';
+
+  // 若无样式文件指定，直接返回最小样式
+  if (!remoteStyleUrl) {
+    return {
+      version: 8,
+      sources: {
+        'default-mvt': {
+          type: 'vector',
+          tiles: [tileUrl],
+          minzoom: 0,
+          maxzoom: 14
+        }
+      },
+      layers: [
+        {
+          id: 'mvt-bg',
+          type: 'background',
+          paint: { 'background-color': '#f8f9fa' }
+        }
+      ]
+    };
+  }
+
+  // 尝试拉取远程样式，3秒快速超时
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 3000);
+    const resp = await fetch(remoteStyleUrl, { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (resp.ok) {
+      const styleJson = await resp.json();
+      return styleJson;
+    }
+  } catch (e) {
+    console.warn("远程 MVT 样式获取受限或超时，自动切换本地样式副本:", e);
+  }
+
+  // 降级：拉取本地 osm_shortbread.json 并注入切片模板
+  try {
+    const localResp = await fetch('./data/osm_shortbread.json');
+    if (localResp.ok) {
+      const localJson = await localResp.json();
+      if (tileUrl && localJson.sources) {
+        for (const s of Object.values(localJson.sources)) {
+          if (s && s.type === 'vector') {
+            s.tiles = [tileUrl];
+          }
+        }
+      }
+      return localJson;
+    }
+  } catch (err) {
+    console.error("加载本地样式副本失败:", err);
+  }
+
+  // 兜底返回远程样式链接交由 MapLibre 自行处理
+  return remoteStyleUrl;
+}
+
 async function initOrUpdateMapLibrePreview(layer) {
   const container = document.getElementById("maplibre-map");
   if (!container) return;
@@ -3103,32 +3329,18 @@ async function initOrUpdateMapLibrePreview(layer) {
     state.maplibreMap = null;
   }
 
-  // 2. 准备状态药丸与代理遮罩
-  const statusPill = document.getElementById("preview-map-status");
+  // 2. 状态机启动
+  const token = VectorPreviewFSM.start(layer);
   const isArcgis = (layer.format === 'VEC-A' || (layer.url && (layer.url.includes('arcgis.com') || layer.url.includes('VectorTileServer') || layer.url.includes('root.json'))));
-  
-  if (statusPill) {
-    if (layer.needs_vpn) {
-      statusPill.className = "map-status-pill warn";
-      statusPill.innerHTML = `<span class="status-dot warn"></span>🟡 境外矢量源连接中...`;
-    } else {
-      statusPill.className = "map-status-pill warn";
-      statusPill.innerHTML = `<span class="status-dot warn"></span>矢量切片载入中...`;
-    }
-  }
 
   const rawLines = (layer.url || '').split('\n').map(l => l.trim()).filter(Boolean);
   const tileUrl = rawLines[0] || '';
   let styleUrl = rawLines[1] || '';
   if (!styleUrl) {
-    if (tileUrl.includes('root.json') || tileUrl.includes('.json') || tileUrl.includes('VectorTileServer')) {
-      styleUrl = tileUrl;
-    } else {
-      styleUrl = tileUrl;
-    }
+    styleUrl = (tileUrl.includes('root.json') || tileUrl.includes('.json') || tileUrl.includes('VectorTileServer')) ? tileUrl : tileUrl;
   }
 
-  let styleParam = styleUrl;
+  let styleParam = null;
   let transformFn = null;
 
   try {
@@ -3146,12 +3358,10 @@ async function initOrUpdateMapLibrePreview(layer) {
         return { url: reqUrl };
       };
     } else {
-      // 通用 MVT：如果第一行是 .mvt，第二行是 .json 样式文件，优先提取样式
-      const jsonLine = rawLines.find(l => l.endsWith('.json') || l.includes('/styles/'));
-      if (jsonLine) {
-        styleParam = jsonLine;
-      }
+      styleParam = await loadStandardMvtStyle(rawLines);
     }
+
+    VectorPreviewFSM.onStyleResolved(token, isArcgis ? 'ArcGIS 样式已就绪，正在加载数据...' : '矢量样式已解析，正在加载切片...');
 
     const mapOptions = {
       container: 'maplibre-map',
@@ -3167,35 +3377,39 @@ async function initOrUpdateMapLibrePreview(layer) {
     const map = new maplibregl.Map(mapOptions);
     state.maplibreMap = map;
 
-    let renderedAny = false;
-    const onGlSuccess = () => {
-      if (renderedAny) return;
-      renderedAny = true;
-      if (vpnTimeoutTimer) {
-        clearTimeout(vpnTimeoutTimer);
-        vpnTimeoutTimer = null;
-      }
-      hideVpnFallbackOverlay();
-      setPreviewTilesLoaded(true);
-      if (statusPill) {
-        statusPill.className = "map-status-pill ok";
-        statusPill.innerHTML = `<span class="status-dot ok"></span>${isArcgis ? 'ArcGIS 矢量底图已连接' : 'MVT 矢量切片已连接'}`;
-      }
+    let hasTileArrived = false;
+    const markSuccess = (sourceId) => {
+      if (hasTileArrived) return;
+      hasTileArrived = true;
+      VectorPreviewFSM.onTileArrived(token, sourceId);
     };
 
-    map.once('render', onGlSuccess);
+    // 核心判定：监听真实数据源数据到达 (sourcedata / load / idle)
+    map.on('sourcedata', (e) => {
+      if (e.isSourceLoaded || (e.tile && (e.tile.state === 'loaded' || e.tile.state === 'reloading'))) {
+        markSuccess(e.sourceId);
+      }
+    });
+
     map.once('load', () => {
-      onGlSuccess();
+      markSuccess('map-load');
       if (layer.has_boundary_issue) {
         addBoundaryGeoJsonToMapLibre(map);
       }
     });
-    map.once('idle', onGlSuccess);
+
+    map.once('idle', () => {
+      markSuccess('map-idle');
+    });
 
     map.on('error', (e) => {
       console.warn("MapLibre runtime error:", e);
-      if (!renderedAny && layer.needs_vpn && e && e.sourceId) {
-        showVpnFallbackOverlay(layer);
+      if (!hasTileArrived && layer.needs_vpn && e && e.sourceId) {
+        const errUrl = (e.error && (e.error.url || e.error.message)) || '';
+        const isNonCritical = /fonts|glyphs|sprite|glyph/i.test(errUrl);
+        if (!isNonCritical) {
+          VectorPreviewFSM.onFail(token, '境外图源数据接收中断');
+        }
       }
     });
 
@@ -3210,10 +3424,7 @@ async function initOrUpdateMapLibrePreview(layer) {
 
   } catch (err) {
     console.error("MapLibre 初始化异常:", err);
-    if (statusPill) {
-      statusPill.className = "map-status-pill warn";
-      statusPill.innerHTML = `<span class="status-dot warn"></span>矢量解析受限，请在 QGIS 中加载`;
-    }
+    VectorPreviewFSM.onFail(token, '样式解析受限，请在 QGIS 中加载');
   }
 
   // 处理 GeoJSON 边界高亮开关显示
@@ -4206,8 +4417,10 @@ function initOrUpdatePreviewMap(layer, sublayerId = null) {
     statusPill.innerHTML = `<span class="status-dot warn"></span>🟡 境外底图连接中...`;
   }
 
-  // 9秒宽限超时保护：仅在整屏所有瓦片彻底没有任何响应时才提示
-  if (layer.needs_vpn) {
+  // 9秒宽限超时保护：仅针对 Leaflet 栅格切片流程
+  // 矢量切片（VEC / VEC-A）由专用的矢量预览状态机与管线接管生命周期与分级超时
+  const isVectorTile = (layer.format === 'VEC' || layer.format === 'VEC-A');
+  if (layer.needs_vpn && !isVectorTile) {
     vpnTimeoutTimer = setTimeout(() => {
       const isStillPending = statusPill && statusPill.textContent.includes("连接中");
       if (isStillPending && !vpnDismissedForCurrentSession) {
@@ -4215,8 +4428,6 @@ function initOrUpdatePreviewMap(layer, sublayerId = null) {
       }
     }, 9000);
   }
-
-  const isVectorTile = (layer.format === 'VEC' || layer.format === 'VEC-A');
 
   if (isVectorTile) {
     state.activeEngine = 'maplibre';

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QGIS 在线底图服务配置中枢 (QGIS Basemap Hub) - 后端服务
+QGIS图源配置中心 (QGIS Basemap Hub) - 后端服务
 纯标准库实现，零外部重依赖，内置 SQLite 统计与持久化。
 """
 
