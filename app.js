@@ -1445,7 +1445,7 @@ async function loadStats() {
     uv: baseUv,
     downloads: baseDownloads,
     layers: state.layers.length || 55,
-    checkTime: "2026年5月26日"
+    checkTime: "2026年9月21日"
   });
 
   // 2. 异步从 Cloudflare Worker 拉取最新全网真实数据
@@ -1540,9 +1540,9 @@ function updateStatsUi(data) {
   updateTotalLikesStat(false);
 
   const ctEl = document.getElementById("stat-check-time");
-  if (ctEl) ctEl.textContent = data.checkTime || "2026年5月26日";
+  if (ctEl) ctEl.textContent = data.checkTime || "2026年9月21日";
   const bctEl = document.getElementById("banner-check-time");
-  if (bctEl) bctEl.textContent = data.checkTime || "2026年5月26日";
+  if (bctEl) bctEl.textContent = data.checkTime || "2026年9月21日";
 }
 
 function updateTotalLikesStat(animate = true) {
@@ -2529,7 +2529,7 @@ function generateClientQgisScript(selectedLayers, addToCanvas) {
   const now = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   const timestamp = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-  const checkTime = "2026年5月26日";
+  const checkTime = "2026年9月21日";
   const pySq = (s) => (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
   const lines = [

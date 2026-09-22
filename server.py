@@ -684,7 +684,7 @@ def get_check_time():
                             return m.group(1).strip()
             except Exception:
                 pass
-    return "2026年5月26日"
+    return "2026年9月21日"
 
 
 
