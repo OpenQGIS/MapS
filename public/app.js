@@ -3233,13 +3233,12 @@ function resolveLeafletTileLayer(layer, targetSublayerId = null) {
     };
   }
 
-  // 1.8 AWS Mapzen Terrarium & GeoTIFF & Normal 高程与山体阴影渲染器 (HTML5 Canvas 实时解码真实地形)
+  // 1.8 AWS Mapzen Terrarium & GeoTIFF 高程与山体阴影渲染器 (HTML5 Canvas 实时解码真实地形)
   const isGeoTiff = (url.includes('/geotiff/') || url.endsWith('.tif'));
   const isTerrarium = (layer.interpretation === 'terrariumterrain' || url.includes('/terrarium/'));
-  const isNormal = url.includes('/normal/');
 
-  if (isTerrarium || isGeoTiff || isNormal) {
-    const defaultMode = isNormal ? 'hillshade' : (isGeoTiff ? 'gray' : 'color');
+  if (isTerrarium || isGeoTiff) {
+    const defaultMode = isGeoTiff ? 'gray' : 'color';
     const renderMode = state.demRenderMode || defaultMode;
     const tileSubpath = (renderMode === 'hillshade') ? 'normal' : 'terrarium';
 
@@ -4204,28 +4203,25 @@ function initOrUpdatePreviewMap(layer, sublayerId = null) {
     }
   }, 180);
 
-  // 处理 DEM 渲染模式切换按钮（对支持高程与山体阴影的 Terrarium、GeoTIFF 与 Normal 图源显示）
-  const isDem = (layer.interpretation === 'terrariumterrain' || (layer.url && (layer.url.includes('/geotiff/') || layer.url.includes('/terrarium/') || layer.url.includes('/normal/'))));
+  // 处理 DEM 渲染模式切换按钮（对支持高程解码的 Terrarium 与 GeoTIFF 图源显示）
+  const isDem = (layer.interpretation === 'terrariumterrain' || (layer.url && (layer.url.includes('/geotiff/') || layer.url.includes('/terrarium/'))));
   const demModeWrap = document.getElementById("preview-dem-mode-wrap");
   if (demModeWrap) {
     demModeWrap.style.display = isDem ? "inline-flex" : "none";
-    if (isDem && !state.demRenderMode) {
-      if (layer.url && layer.url.includes('/normal/')) {
-        state.demRenderMode = 'hillshade';
-      } else if (layer.url && layer.url.includes('/geotiff/')) {
-        state.demRenderMode = 'gray';
-      } else {
-        state.demRenderMode = 'color';
+    if (isDem) {
+      if (!state.demRenderMode) {
+        state.demRenderMode = (layer.url && layer.url.includes('/geotiff/')) ? 'gray' : 'color';
       }
+    } else {
+      state.demRenderMode = null;
     }
     updateDemModeButtonsUI();
   }
 }
 
 function updateDemModeButtonsUI() {
-  const isNorm = state.activePreviewLayer && state.activePreviewLayer.url && state.activePreviewLayer.url.includes('/normal/');
   const isGeo = state.activePreviewLayer && state.activePreviewLayer.url && state.activePreviewLayer.url.includes('/geotiff/');
-  const defaultMode = isNorm ? 'hillshade' : (isGeo ? 'gray' : 'color');
+  const defaultMode = isGeo ? 'gray' : 'color';
   const mode = state.demRenderMode || defaultMode;
   ['color', 'gray', 'hillshade'].forEach(m => {
     const btn = document.getElementById(`btn-dem-${m}`);
