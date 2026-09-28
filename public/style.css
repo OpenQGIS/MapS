@@ -455,7 +455,6 @@ html[data-theme="light"] .floating-addall-btn.all-selected:hover {
   color: #166534;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.09);
 }
-}
 
 .addall-count {
   font-family: var(--font-mono);
@@ -473,13 +472,24 @@ html[data-theme="light"] .addall-count {
 }
 
 .floating-addall-btn.all-selected .addall-count {
-  background: var(--accent-lime);
-  color: #0c1a02;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.floating-addall-btn.all-selected .addall-count:not(:empty)::before {
+  content: "(";
+}
+
+.floating-addall-btn.all-selected .addall-count:not(:empty)::after {
+  content: ")";
 }
 
 html[data-theme="light"] .floating-addall-btn.all-selected .addall-count {
-  background: #16a34a;
-  color: #ffffff;
+  background: transparent;
+  color: inherit;
 }
 
 .floating-addall-btn:disabled {
@@ -675,30 +685,52 @@ html[data-theme="light"] #floating-cart-btn {
 
 /* --- Responsive Media Queries (Mobile & iPad) --- */
 
+/* 顶部导航自适应阶梯 1：宽度收窄 (<= 1150px) 时，优先隐藏【QGIS图源配置中心】与徽标，仅保留 QG 图标，为统计栏腾出充足空间 */
+@media (max-width: 1150px) {
+  .brand-title,
+  .brand-title-full,
+  .brand-title-short,
+  .brand-badge {
+    display: none !important;
+  }
+  .brand-section {
+    gap: 0 !important;
+  }
+  .header-container {
+    gap: 0.75rem;
+  }
+  .stats-bar {
+    gap: 0.85rem;
+  }
+}
+
+/* 顶部导航自适应阶梯 2：宽度继续收窄 (<= 880px) 时，空间若仍不够，再隐藏【购物车】文字，保留图标与数字角标 */
+@media (max-width: 880px) {
+  .header-cart-text {
+    display: none !important;
+  }
+  .stats-bar {
+    gap: 0.55rem;
+    font-size: 0.75rem;
+  }
+}
+
 /* 平板 / iPad 模式 (768px ~ 1024px) */
 @media (min-width: 768px) and (max-width: 1024px) {
   .header-container {
     gap: 0.75rem;
-  }
-  .brand-title {
-    font-size: 1rem;
   }
   .stats-bar {
     display: flex !important;
     gap: 0.65rem;
     flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;
     justify-content: center;
   }
-  /* 超过字符就截断 */
   .stat-item {
-    min-width: 0;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     font-size: 0.74rem;
-    flex-shrink: 1;
+    flex-shrink: 0;
   }
   .stat-item span, .stat-item strong {
     white-space: nowrap;
@@ -754,11 +786,14 @@ html[data-theme="light"] #floating-cart-btn {
     display: inline-flex !important;
   }
 
-  /* 宽度较窄时（<= 600px）不显示【地图配置】文字，只保留左侧 QG 徽标 */
+  /* 宽度较窄时（<= 600px）不显示【地图配置】文字，只保留左侧 QG 徽标；同时购物车按钮仅保留图标+徽标数字 */
   @media (max-width: 600px) {
     .brand-title,
     .brand-title-short,
     .brand-title-full {
+      display: none !important;
+    }
+    .header-cart-text {
       display: none !important;
     }
   }
@@ -1501,12 +1536,14 @@ html[data-theme="light"] #floating-cart-btn {
   align-items: center;
   flex: 1 1 auto;
   min-width: 0;
+  gap: 4px;
 }
 
 .category-pills {
   display: flex;
   align-items: center;
   gap: 0.22rem;
+  flex: 1 1 auto;
   width: 100%;
   min-width: 0;
   overflow-x: auto;
@@ -1521,12 +1558,14 @@ html[data-theme="light"] #floating-cart-btn {
 }
 
 .pills-scroll-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-  width: 20px;
-  height: 20px;
+  position: relative;
+  top: auto;
+  transform: none;
+  z-index: 2;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  flex-shrink: 0;
   border-radius: 9999px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-card);
@@ -1534,26 +1573,34 @@ html[data-theme="light"] #floating-cart-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: bold;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   transition: all 0.15s;
   padding: 0;
 }
 
-.pills-scroll-btn:hover {
+.pills-scroll-btn:hover:not(:disabled):not(.disabled) {
   border-color: var(--border-hover);
   background: var(--bg-card-hover);
 }
 
+.pills-scroll-btn:disabled,
+.pills-scroll-btn.disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none;
+}
+
 .pills-scroll-left {
-  left: -8px;
+  left: auto;
 }
 
 .pills-scroll-right {
-  right: -8px;
+  right: auto;
 }
 
 .mobile-category-wrap {
@@ -4104,6 +4151,38 @@ html[data-theme="light"] .wms-dock-select {
 
 /* --- 极窄屏幕专项适配规则 (<= 480px) --- */
 @media (max-width: 480px) {
+  /* 顶部导航栏极窄防溢出：收紧边距间隙与按钮尺寸，彻底杜绝横向撑破截断 */
+  .site-header {
+    padding: 0.42rem 0.5rem !important;
+  }
+  .header-container {
+    gap: 0.35rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .brand-section {
+    gap: 0.35rem !important;
+    flex-shrink: 0 !important;
+  }
+  .header-actions {
+    gap: 0.35rem !important;
+    flex-shrink: 0 !important;
+  }
+  .header-cart-text {
+    display: none !important;
+  }
+  .theme-toggle-btn, .cart-toggle-btn, .view-toggle-btn {
+    padding: 0.32rem 0.42rem !important;
+    font-size: 0.72rem !important;
+    gap: 0.25rem !important;
+    flex-shrink: 0 !important;
+  }
+  .cart-badge {
+    padding: 1px 5px !important;
+    font-size: 0.7rem !important;
+  }
+
   /* 页面边距微调防紧绷 */
   .main-layout {
     padding-left: 0.65rem !important;
@@ -4426,6 +4505,32 @@ html[data-theme="light"] .wms-dock-select {
     left: 44px !important;
     right: 8px !important;
     top: 8px !important;
+  }
+}
+
+/* --- 超极端窄屏专项适配规则 (<= 360px，如极窄窗口、折叠屏外屏) --- */
+@media (max-width: 360px) {
+  .site-header {
+    padding: 0.35rem 0.35rem !important;
+  }
+  .header-container {
+    gap: 0.25rem !important;
+  }
+  .brand-icon {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 0.72rem !important;
+  }
+  .header-actions {
+    gap: 0.25rem !important;
+  }
+  .theme-toggle-btn, .cart-toggle-btn, .view-toggle-btn {
+    padding: 0.26rem 0.32rem !important;
+    gap: 0.2rem !important;
+  }
+  .cart-badge {
+    padding: 1px 4px !important;
+    font-size: 0.65rem !important;
   }
 }
 

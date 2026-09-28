@@ -1190,8 +1190,17 @@ function initPillsScroll() {
       rightBtn.style.display = "none";
       return;
     }
-    leftBtn.style.display = container.scrollLeft > 4 ? "flex" : "none";
-    rightBtn.style.display = container.scrollLeft < (container.scrollWidth - container.clientWidth - 4) ? "flex" : "none";
+    leftBtn.style.display = "flex";
+    rightBtn.style.display = "flex";
+
+    const atLeft = container.scrollLeft <= 4;
+    const atRight = container.scrollLeft >= (container.scrollWidth - container.clientWidth - 4);
+
+    leftBtn.disabled = atLeft;
+    leftBtn.classList.toggle("disabled", atLeft);
+
+    rightBtn.disabled = atRight;
+    rightBtn.classList.toggle("disabled", atRight);
   }
 
   leftBtn.onclick = () => {
