@@ -1744,6 +1744,43 @@ html[data-theme="light"] #floating-cart-btn {
   white-space: nowrap;
 }
 
+/* View Mode Single Button with Mraph Animation */
+.view-mode-single-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  padding: 0.28rem 0.62rem;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  height: 28px;
+  flex-shrink: 0;
+  transition: all 0.16s ease;
+  user-select: none;
+}
+
+.view-mode-single-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+  color: var(--accent-blue);
+}
+
+.view-mode-single-btn .mraph-svg {
+  width: 13px;
+  height: 13px;
+}
+
+.view-mode-single-btn .view-mode-label {
+  font-size: 0.74rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
 /* View Mode Pure SVG Toggle Group */
 .view-mode-toggle-group {
   display: inline-flex;
@@ -5362,6 +5399,48 @@ html[data-theme="dark"] .ancient-modal-tips {
   .ancient-modal-action-btn {
     padding: 0.7rem 2.2rem;
     font-size: 0.95rem;
+  }
+}
+
+/* ==========================================================================
+   Mraph 极坐标矢量变形与全局触控微交互增强样式
+   ========================================================================== */
+.mraph-svg {
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.mraph-btn-enhanced {
+  position: relative !important;
+  overflow: hidden !important;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease !important;
+}
+
+.mraph-pressing {
+  transform: scale(0.95) !important;
+}
+
+.mraph-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.35) 0%, rgba(56, 189, 248, 0) 70%);
+  transform: scale(0);
+  animation: mraph-ripple-expand 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@keyframes mraph-ripple-expand {
+  0% {
+    transform: scale(0);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
   }
 }
 

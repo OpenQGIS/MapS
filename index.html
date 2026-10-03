@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <!-- MapLibre GL CSS for Vector Tiles Preview (MVT) -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css'"/>
-  <link rel="stylesheet" href="./style.css?v=9.20">
+  <link rel="stylesheet" href="./style.css?v=9.21">
 </head>
 <body>
 
@@ -255,20 +255,14 @@
           <span id="filtered-count" class="filtered-count-badge">-</span>
         </div>
 
-        <!-- 视图切换：纯 SVG 矢量图标 -->
-        <div class="view-mode-toggle-group">
-          <button id="view-btn-grid" class="view-icon-btn active" title="大图卡片流 (Grid)" aria-label="卡片视图">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="7" height="7" x="3" y="3" rx="0"/><rect width="7" height="7" x="14" y="3" rx="0"/>
-              <rect width="7" height="7" x="14" y="14" rx="0"/><rect width="7" height="7" x="3" y="14" rx="0"/>
-            </svg>
-          </button>
-          <button id="view-btn-table" class="view-icon-btn" title="紧凑数据表 (Table)" aria-label="表格视图">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
-        </div>
+        <!-- 视图切换：单按钮极坐标变形切换 (Grid ⟷ Table) -->
+        <button id="view-mode-toggle-btn" class="view-icon-btn view-mode-single-btn active" title="当前为卡片视图，点击切换为数据表格" aria-label="切换卡片/表格视图">
+          <svg class="mraph-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path id="path-view-mode" d="M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z"></path>
+          </svg>
+          <span class="view-mode-label" id="view-mode-label">卡片</span>
+        </button>
+        <span style="display:none;"><button id="view-btn-grid"></button><button id="view-btn-table"></button></span>
       </div>
     </section>
 
@@ -642,6 +636,8 @@
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js'"></script>
   <!-- Lottie Web Animation -->
   <script src="./lottie.min.js"></script>
-  <script src="./app.js?v=11.36"></script>
+  <!-- Mraph 矢量极坐标变形与交互增强引擎 -->
+  <script src="./mraph.js"></script>
+  <script src="./app.js?v=11.37"></script>
 </body>
 </html>

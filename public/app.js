@@ -1102,11 +1102,40 @@ function applyMobileCols(cols, notify = false) {
     textEl.textContent = isDouble ? "双列" : "单列";
   }
 
-  const icon1 = btn.querySelector(".icon-cols-1");
-  const icon2 = btn.querySelector(".icon-cols-2");
-  if (icon1 && icon2) {
-    icon1.style.display = isDouble ? "none" : "inline-flex";
-    icon2.style.display = isDouble ? "inline-flex" : "none";
+  if (window.Mraph && window.Mraph.ICONS) {
+    if (!btn._mraphAnim) {
+      let svg = btn.querySelector("svg.mraph-svg");
+      if (!svg) {
+        const oldIcons = btn.querySelectorAll(".layout-toggle-icon");
+        oldIcons.forEach(i => i.style.display = "none");
+        svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("class", "mraph-svg");
+        svg.setAttribute("width", "14");
+        svg.setAttribute("height", "14");
+        svg.setAttribute("viewBox", "0 0 24 24");
+        svg.setAttribute("fill", "none");
+        svg.setAttribute("stroke", "currentColor");
+        svg.setAttribute("stroke-width", "2");
+        svg.setAttribute("stroke-linecap", "round");
+        svg.setAttribute("stroke-linejoin", "round");
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        svg.appendChild(path);
+        btn.prepend(svg);
+      }
+      const path = svg.querySelector("path");
+      btn._mraphAnim = Mraph.attach(path, {
+        initial: isDouble ? "cols2" : "cols1",
+        preset: "snappy"
+      });
+    }
+    btn._mraphAnim.morphTo(isDouble ? "cols2" : "cols1");
+  } else {
+    const icon1 = btn.querySelector(".icon-cols-1");
+    const icon2 = btn.querySelector(".icon-cols-2");
+    if (icon1 && icon2) {
+      icon1.style.display = isDouble ? "none" : "inline-flex";
+      icon2.style.display = isDouble ? "inline-flex" : "none";
+    }
   }
 
   if (notify && typeof showToast === "function") {
@@ -1254,12 +1283,28 @@ function applyTheme(theme) {
   const icon = document.getElementById("theme-icon");
   const text = document.getElementById("theme-text");
   if (icon && text) {
-    if (theme === "light") {
-      icon.innerHTML = ICONS.sun;
-      text.textContent = "浅色";
+    if (window.Mraph && window.Mraph.ICONS) {
+      if (!icon._mraphAnim) {
+        let path = icon.querySelector("path");
+        if (!path) {
+          icon.innerHTML = `<svg class="mraph-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d=""></path></svg>`;
+          path = icon.querySelector("path");
+        }
+        icon._mraphAnim = Mraph.attach(path, {
+          initial: theme === "light" ? "sun" : "moon",
+          preset: "snappy"
+        });
+      }
+      icon._mraphAnim.morphTo(theme === "light" ? "sun" : "moon");
+      text.textContent = theme === "light" ? "浅色" : "深色";
     } else {
-      icon.innerHTML = ICONS.moon;
-      text.textContent = "深色";
+      if (theme === "light") {
+        icon.innerHTML = ICONS.sun;
+        text.textContent = "浅色";
+      } else {
+        icon.innerHTML = ICONS.moon;
+        text.textContent = "深色";
+      }
     }
   }
 
@@ -2108,8 +2153,16 @@ function saveCart() {
 
 function updateCartBadge() {
   const count = state.cart.size;
-  document.getElementById("cart-badge-count").textContent = count;
-  document.getElementById("floating-cart-badge").textContent = count;
+  const badge1 = document.getElementById("cart-badge-count");
+  const badge2 = document.getElementById("floating-cart-badge");
+  if (badge1) badge1.textContent = count;
+  if (badge2) badge2.textContent = count;
+  
+  const headerCartBtn = document.getElementById("header-cart-btn");
+  if (headerCartBtn && window.Mraph) {
+    window.Mraph.bounce(headerCartBtn);
+  }
+
   const checkoutBtn = document.getElementById("drawer-checkout-btn");
   if (checkoutBtn) {
     checkoutBtn.disabled = count === 0;
@@ -4988,6 +5041,11 @@ function formatDescWithLinks(str) {
 
 // --- Event Listeners Binding ---
 function initEventListeners() {
+  // 启动 Mraph 全局微动效增强（触控水波纹与机械按压弹性回弹，排除点赞和眼睛）
+  if (window.Mraph && typeof window.Mraph.initGlobalRipple === "function") {
+    window.Mraph.initGlobalRipple();
+  }
+
   // 主题切换
   const themeBtn = document.getElementById("theme-toggle-btn");
   if (themeBtn) {
@@ -5055,25 +5113,54 @@ function initEventListeners() {
     });
   }
 
-  // 视图切换 (纯 SVG 矢量图标)
+  // 视图切换：单按钮极坐标变形切换 (Grid ⟷ Table)
+  const singleViewBtn = document.getElementById("view-mode-toggle-btn");
+  const singleViewPath = document.getElementById("path-view-mode");
+  const singleViewLabel = document.getElementById("view-mode-label");
+  let viewModeAnim = null;
+
+  if (singleViewBtn && singleViewPath && window.Mraph && window.Mraph.ICONS) {
+    viewModeAnim = Mraph.attach(singleViewPath, {
+      initial: state.viewMode === "table" ? "list" : "grid",
+      preset: "snappy"
+    });
+  }
+
+  function updateViewModeUI(mode) {
+    state.viewMode = mode;
+    const isTable = mode === "table";
+    if (singleViewBtn) {
+      singleViewBtn.title = isTable ? "当前为数据表格，点击切换为卡片网格" : "当前为卡片视图，点击切换为数据表格";
+    }
+    if (singleViewLabel) {
+      singleViewLabel.textContent = isTable ? "表格" : "卡片";
+    }
+    if (viewModeAnim) {
+      viewModeAnim.morphTo(isTable ? "list" : "grid");
+    }
+    if (btnGrid) btnGrid.classList.toggle("active", !isTable);
+    if (btnTable) btnTable.classList.toggle("active", isTable);
+    if (isTable === false && typeof hideTablePopoverDirect === "function") {
+      hideTablePopoverDirect();
+    }
+    renderLayers();
+  }
+
+  if (singleViewBtn) {
+    singleViewBtn.addEventListener("click", (e) => {
+      const nextMode = state.viewMode === "grid" ? "table" : "grid";
+      updateViewModeUI(nextMode);
+    });
+  }
+
+  // 兼容旧按钮触发
   const btnGrid = document.getElementById("view-btn-grid");
   const btnTable = document.getElementById("view-btn-table");
   if (btnGrid) {
-    btnGrid.addEventListener("click", () => {
-      state.viewMode = "grid";
-      btnGrid.classList.add("active");
-      if (btnTable) btnTable.classList.remove("active");
-      if (typeof hideTablePopoverDirect === "function") hideTablePopoverDirect();
-      renderLayers();
-    });
+    btnGrid.addEventListener("click", () => updateViewModeUI("grid"));
   }
   if (btnTable) {
-    btnTable.addEventListener("click", () => {
-      state.viewMode = "table";
-      btnTable.classList.add("active");
-      if (btnGrid) btnGrid.classList.remove("active");
-      renderLayers();
-    });
+    btnTable.addEventListener("click", () => updateViewModeUI("table"));
   }
 
   // 手机端【标签】下拉选择器
@@ -5349,9 +5436,26 @@ function legacyCopyText(text) {
   return ok;
 }
 
-function copyText(text, successMsg) {
+function copyText(text, successMsg, triggerBtn) {
   if (!text) return;
-  const onSuccess = () => showToast(successMsg || "已复制到剪贴板");
+  const onSuccess = () => {
+    showToast(successMsg || "已复制到剪贴板");
+    const btn = triggerBtn || (window.event && window.event.target ? window.event.target.closest("button, .btn-copy-url") : null);
+    if (btn && window.Mraph && window.Mraph.ICONS) {
+      let path = btn.querySelector("svg path");
+      if (path) {
+        if (!btn._mraphAnim) {
+          btn._mraphAnim = Mraph.attach(path, { initial: "copy", preset: "snappy" });
+        }
+        btn._mraphAnim.morphTo("check");
+        btn.classList.add("mraph-copied-success");
+        setTimeout(() => {
+          if (btn._mraphAnim) btn._mraphAnim.morphTo("copy");
+          btn.classList.remove("mraph-copied-success");
+        }, 1800);
+      }
+    }
+  };
   const onFail = () => showToast(legacyCopyText(text) ? onSuccess() : "复制失败，请手动选择复制");
   if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
     navigator.clipboard.writeText(text).then(onSuccess).catch(onFail);

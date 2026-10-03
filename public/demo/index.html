@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Mraph 按钮点击动效交互演示 | QGIS图源配置中心</title>
+  <link rel="stylesheet" href="./demo.css">
+</head>
+<body>
+
+  <!-- 顶部导览栏 -->
+  <header class="demo-header">
+    <div class="demo-header-inner">
+      <div class="demo-title-group">
+        <div class="demo-logo">M</div>
+        <div>
+          <div class="demo-title">
+            Mraph 按钮点击交互动效增强
+            <span class="brand-badge">PROCRUSTES + POLAR SPRING</span>
+          </div>
+          <div class="demo-subtitle">基于本地 morphicons 算法核心 · 极简零依赖 · 现代微交互套件</div>
+        </div>
+      </div>
+
+      <!-- 右侧快捷控制 -->
+      <div class="demo-header-controls">
+        <button class="btn-replica-base theme-toggle-btn-replica" id="global-theme-btn" title="切换浅色/深色主题">
+          <svg class="mraph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path id="path-global-theme" d=""></path>
+          </svg>
+          <span id="global-theme-label">深色模式</span>
+        </button>
+
+        <button class="btn-replica-base" id="global-layout-btn" title="切换单列/双列布局">
+          <svg class="mraph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path id="path-global-layout" d=""></path>
+          </svg>
+          <span id="global-layout-label">双列视图</span>
+        </button>
+
+        <button class="btn-replica-base cart-toggle-btn-replica" id="global-cart-btn" title="查看图源配置选单">
+          <svg class="mraph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path id="path-global-cart" d=""></path>
+          </svg>
+          <span>购物车</span>
+          <span class="cart-badge-replica" id="cart-counter">3</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 演示主体容器 -->
+  <main class="demo-container">
+
+    <!-- 动效动力学控制台 -->
+    <section class="settings-strip">
+      <div class="settings-group">
+        <span class="settings-label">物理弹簧动力学预设:</span>
+        <div class="segmented-control" id="ctrl-preset">
+          <button type="button" class="seg-btn active" data-val="snappy">爽快 (Snappy)</button>
+          <button type="button" class="seg-btn" data-val="smooth">丝滑 (Smooth)</button>
+          <button type="button" class="seg-btn" data-val="bouncy">弹性回弹 (Bouncy)</button>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <span class="settings-label">几何插值模式:</span>
+        <div class="segmented-control" id="ctrl-mode">
+          <button type="button" class="seg-btn active" data-val="polar">极坐标 (Polar Geodesic)</button>
+          <button type="button" class="seg-btn" data-val="linear">直角坐标 (Linear)</button>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <span class="settings-label">触觉微交互:</span>
+        <label style="font-size: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+          <input type="checkbox" id="ctrl-ripple" checked> 启用水波纹涟漪 (Ripple)
+        </label>
+      </div>
+    </section>
+
+    <!-- 演示模块网格 -->
+    <section class="demo-grid">
+
+      <!-- 卡片 1: 顶部状态栏按钮群交互 -->
+      <article class="demo-card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">1. 状态栏顶部按钮组</h3>
+            <p class="card-desc">模拟系统当前顶部 Header 真实按钮，点击触发平滑的矢量形变与物理微回弹。</p>
+          </div>
+          <span class="card-tag">Header Actions</span>
+        </div>
+
+        <div class="button-showcase" style="gap: 14px;">
+          <!-- 演示主题按钮 -->
+          <button class="btn-replica-base theme-toggle-btn-replica" id="demo-theme-btn">
+            <svg class="mraph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path id="path-demo-theme" d=""></path>
+            </svg>
+            <span id="demo-theme-text">切换主题</span>
+          </button>
+
+          <!-- 演示布局按钮 -->
+          <button class="btn-replica-base" id="demo-layout-btn">
+            <svg class="mraph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path id="path-demo-layout" d=""></path>
+            </svg>
+            <span id="demo-layout-text">双列</span>
+          </button>
+
+          <!-- 演示卡片与列表视图切换按钮 (新增) -->
+          <button class="btn-replica-base" id="demo-viewmode-btn" title="点击切换卡片/列表视图">
+            <svg class="mraph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path id="path-demo-viewmode" d=""></path>
+            </svg>
+            <span id="demo-viewmode-text">卡片视图</span>
+          </button>
+
+          <!-- 演示加购抽屉按钮 -->
+          <button class="btn-replica-base cart-toggle-btn-replica" id="demo-cart-btn">
+            <svg class="mraph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path id="path-demo-cart" d=""></path>
+            </svg>
+            <span>购物车</span>
+            <span class="cart-badge-replica" id="demo-cart-badge">5</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- 卡片 2: 浮动工具栏与下拉筛选 -->
+      <article class="demo-card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">2. 浮动工具栏与下拉筛选</h3>
+            <p class="card-desc">模拟手机端/浮动栏上的分类下拉与搜索清除交互，箭头与关闭叉号动态切换。</p>
+          </div>
+          <span class="card-tag">Floating Deck</span>
+        </div>
+
+        <div class="button-showcase" style="justify-content: space-around;">
+          <!-- 分类下拉触发器 -->
+          <button class="btn-replica-base" id="demo-dropdown-btn" style="min-width: 110px; justify-content: space-between;">
+            <span>全部分类</span>
+            <svg class="mraph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path id="path-demo-dropdown" d=""></path>
+            </svg>
+          </button>
+
+          <!-- 搜索输入与清除按钮组 -->
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="text" id="demo-search-input" value="天地图" placeholder="搜索底图..." style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 7px 32px 7px 12px; font-size: 13px; color: var(--text-main); outline: none; width: 140px;">
+            <button id="demo-search-clear-btn" style="position: absolute; right: 4px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center;">
+              <svg class="mraph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path id="path-demo-search" d=""></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <!-- 卡片 3: 底图卡片真实业务交互场景 (Layer Card) -->
+      <article class="demo-card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">3. 底图卡片真实业务场景全链路动效 (Layer Card Replica)</h3>
+            <p class="card-desc">真实模拟地图库中每一张底图卡片的四大核心操作：复制 Python 脚本、加入选单、全屏预览与点赞互动。</p>
+          </div>
+          <span class="card-tag">Live Card</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; align-items: start;">
+          <!-- 仿真卡片实体 -->
+          <div class="layer-card-replica">
+            <div class="layer-card-thumb">
+              <div class="layer-card-thumb-pattern"></div>
+              <div style="color: var(--text-accent); font-family: var(--font-mono); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; z-index: 1;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="7"/></svg>
+                天地图 · 影像底图 (Tianditu Satellite)
+              </div>
+            </div>
+
+            <div class="layer-card-info">
+              <div class="layer-card-title">
+                <span>天地图全球遥感影像服务</span>
+                <span class="card-tag" style="color: var(--success); border-color: rgba(16, 185, 129, 0.3);">国内直连</span>
+              </div>
+              <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">国家地理信息公共服务平台天地图 WMTS 服务，包含高清遥感正射影像与全国路网矢量注记。</p>
+
+              <!-- 卡片操作按钮行 -->
+              <div class="layer-card-actions">
+                <!-- 1. 复制 Python 代码按钮 -->
+                <button class="btn-card-action" id="card-btn-copy" title="一键复制 QGIS Python 加载代码">
+                  <svg class="mraph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path id="path-card-copy" d=""></path>
+                  </svg>
+                  <span id="card-copy-text">复制Python</span>
+                </button>
+
+                <!-- 2. 加入购物车/选单按钮 -->
+                <button class="btn-card-action btn-accent" id="card-btn-add" title="加入导出选单">
+                  <svg class="mraph-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path id="path-card-add" d=""></path>
+                  </svg>
+                  <span id="card-add-text">加入选单</span>
+                </button>
+
+                <!-- 3. 预览底图按钮 (原生静态图标，不参与 Mraph 变形) -->
+                <button class="btn-card-action" id="card-btn-preview" title="实时底图预览 (保持原生静态)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <span id="card-preview-text">预览</span>
+                </button>
+
+                <!-- 4. 推荐点赞按钮 (原生点赞机制，不参与 Mraph 变形) -->
+                <button class="btn-card-action" id="card-btn-like" title="推荐点赞 (保持原生点赞)" style="flex: 0 0 42px; padding: 6px 0;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片操作动效技术解析说明 -->
+          <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: var(--text-muted);">
+            <div style="color: var(--text-main); font-weight: 600;">动效触发反馈细节：</div>
+            <ul style="padding-left: 20px; line-height: 1.8;">
+              <li><strong>复制 Python</strong>：点击后剪贴板图标平滑变形为对勾（Copy ➔ Check），按钮注入成功绿色微光，两秒后自动回弹恢复。</li>
+              <li><strong>加入选单</strong>：加号与打勾（Plus ➔ Check）无缝互斥变形，右上角购物车徽标产生弹性跃升动效。</li>
+              <li><strong>底图预览 & 推荐点赞</strong>：遵从设计规范，保持原生静态/既有点赞逻辑，不作 Mraph 变形。</li>
+              <li><strong>全站触觉反馈</strong>：全站任意按钮点击激发生动水波纹（Ripple）与 0.95x 机械按压微缩放。</li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <!-- 卡片 4: Mraph 几何形变探究大舞台 (Playground) -->
+      <article class="demo-card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">4. 极坐标测地线几何形变探究台 (Mraph Polar Playground)</h3>
+            <p class="card-desc">点击下方任意图标或直接点击中央舞台，观察 2D Procrustes 最优刚体分解与极坐标形变插值。</p>
+          </div>
+          <span class="card-tag">Procrustes Inspector</span>
+        </div>
+
+        <div class="stage-playground">
+          <div class="stage-canvas-box" id="stage-box" title="点击切换至下一个图标">
+            <svg viewBox="0 0 24 24">
+              <path id="stage-path" d=""></path>
+            </svg>
+          </div>
+
+          <div class="stage-readout" id="stage-readout">
+            正在检测最优刚体相似度与旋转角...
+          </div>
+
+          <div class="stage-icon-palette" id="stage-palette">
+            <!-- 动态生成图标切换按钮 -->
+          </div>
+        </div>
+      </article>
+
+      <!-- 卡片 5: 一键集成与调用指引 -->
+      <article class="demo-card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">5. 极简集成与直接调用 (Integration Guide)</h3>
+            <p class="card-desc">代码零外部依赖，直接引入本地 mraph.js 即可为任意按钮赋予此动效。</p>
+          </div>
+          <span class="card-tag">Developer API</span>
+        </div>
+
+        <div class="code-panel">
+<pre><span class="code-comment">// 1. 在现有页面中引入本地脚本</span>
+&lt;<span class="code-keyword">script</span> <span class="code-highlight">src</span>=<span class="code-string">"./demo/mraph.js"</span>&gt;&lt;/<span class="code-keyword">script</span>&gt;
+
+<span class="code-comment">// 2. 为现有任意按钮绑定点击变形动效</span>
+<span class="code-keyword">const</span> btnTheme = <span class="code-highlight">Mraph.bindButton</span>(<span class="code-string">'#theme-toggle-btn'</span>, {
+  <span class="code-highlight">from</span>: <span class="code-string">'sun'</span>,
+  <span class="code-highlight">to</span>: <span class="code-string">'moon'</span>,
+  <span class="code-highlight">preset</span>: <span class="code-string">'snappy'</span>,   <span class="code-comment">// 弹簧预设：snappy | smooth | bouncy</span>
+  <span class="code-highlight">ripple</span>: <span class="code-keyword">true</span>,       <span class="code-comment">// 是否开启水波纹触控</span>
+  <span class="code-highlight">onToggle</span>: (<span class="code-highlight">activeState</span>) =&gt; {
+    <span class="code-comment">// 业务联动逻辑，例如切换全局浅色/深色主题</span>
+    console.log(<span class="code-string">'当前图标状态:'</span>, activeState);
+  }
+});
+
+<span class="code-comment">// 3. 或者用于瞬时操作成功反馈 (如一键复制)</span>
+<span class="code-keyword">const</span> animator = <span class="code-highlight">Mraph.attach</span>(svgPathElement);
+animator.<span class="code-highlight">morphTo</span>(<span class="code-string">'check'</span>);
+setTimeout(() =&gt; animator.<span class="code-highlight">morphTo</span>(<span class="code-string">'copy'</span>), <span class="code-string">1800</span>);</pre>
+        </div>
+      </article>
+
+    </section>
+
+  </main>
+
+  <!-- 引入本地 Mraph 核心 -->
+  <script src="./mraph.js"></script>
+
+  <!-- 演示页面交互逻辑 -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      let currentPreset = 'snappy';
+      let currentMode = 'polar';
+      let rippleEnabled = true;
+
+      // 1. 全局配置切换
+      document.querySelectorAll('#ctrl-preset .seg-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#ctrl-preset .seg-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentPreset = btn.dataset.val;
+          stageAnimator.setPreset(currentPreset);
+        });
+      });
+
+      document.querySelectorAll('#ctrl-mode .seg-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#ctrl-mode .seg-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentMode = btn.dataset.val;
+          stageAnimator.setMode(currentMode);
+        });
+      });
+
+      document.getElementById('ctrl-ripple').addEventListener('change', (e) => {
+        rippleEnabled = e.target.checked;
+      });
+
+      // 2. 状态栏顶部按钮组绑定
+      // 主题切换
+      const themeBtn = document.getElementById('global-theme-btn');
+      const themePath = document.getElementById('path-global-theme');
+      const themeLabel = document.getElementById('global-theme-label');
+      const themeAnim = Mraph.attach(themePath, { initial: 'moon', preset: 'snappy' });
+      themeBtn.addEventListener('click', (e) => {
+        if (rippleEnabled) Mraph.triggerRipple(e, themeBtn);
+        const next = themeAnim.toggle('sun', 'moon', (st) => {
+          themeLabel.textContent = st === 'sun' ? '浅色模式' : '深色模式';
+          document.documentElement.setAttribute('data-theme', st === 'sun' ? 'light' : 'dark');
+        });
+      });
+
+      // 布局切换
+      const layoutBtn = document.getElementById('global-layout-btn');
+      const layoutPath = document.getElementById('path-global-layout');
+      const layoutLabel = document.getElementById('global-layout-label');
+      const layoutAnim = Mraph.attach(layoutPath, { initial: 'cols2', preset: 'snappy' });
+      layoutBtn.addEventListener('click', (e) => {
+        if (rippleEnabled) Mraph.triggerRipple(e, layoutBtn);
+        layoutAnim.toggle('cols1', 'cols2', (st) => {
+          layoutLabel.textContent = st === 'cols2' ? '双列视图' : '单列视图';
+        });
+      });
+
+      // 购物车按钮
+      const cartBtn = document.getElementById('global-cart-btn');
+      const cartPath = document.getElementById('path-global-cart');
+      const cartCounter = document.getElementById('cart-counter');
+      const cartAnim = Mraph.attach(cartPath, { initial: 'cart', preset: 'bouncy' });
+      cartBtn.addEventListener('click', (e) => {
+        if (rippleEnabled) Mraph.triggerRipple(e, cartBtn);
+        cartAnim.toggle('cart', 'check', () => {
+          setTimeout(() => cartAnim.morphTo('cart'), 1200);
+        });
+      });
+
+      // 3. Demo 示例 1 绑定
+      const demoThemeBtn = document.getElementById('demo-theme-btn');
+      const demoThemePath = document.getElementById('path-demo-theme');
+      const demoThemeText = document.getElementById('demo-theme-text');
+      const demoThemeAnim = Mraph.attach(demoThemePath, { initial: 'sun', preset: 'snappy' });
+      demoThemeBtn.addEventListener('click', (e) => {
+        if (rippleEnabled) Mraph.triggerRipple(e, demoThemeBtn);
+        demoThemeAnim.toggle('sun', 'moon', (st) => {
+          demoThemeText.textContent = st === 'sun' ? '浅色模式' : '深色模式';
+        });
+      });
+
+      const demoLayoutBtn = document.getElementById('demo-layout-btn');
+      const demoLayoutPath = document.getElementById('path-demo-layout');
+      const demoLayoutText = document.getElementById('demo-layout-text');
+      const demoLayoutAnim = Mraph.attach(demoLayoutPath, { initial: 'cols1', preset: 'snappy' });
+      demoLayoutBtn.addEventListener('click', (e) => {
+        if (rippleEnabled) Mraph.triggerRipple(e, demoLayoutBtn);
+        demoLayoutAnim.toggle('cols1', 'cols2', (st) => {
+          demoLayoutText.textContent = st === 'cols2' ? '双列' : '单列';
+        });
+      });
+
+      // 演示卡片与列表视图切换绑定
+      const demoViewModeBtn = document.getElementById('demo-viewmode-btn');
+      const demoViewModePath = document.getElementById('path-demo-viewmode');
+      const demoViewModeText = document.getElementById('demo-viewmode-text');
+      const demoViewModeAnim = Mraph.attach(demoViewModePath, { initial: 'grid', preset: 'snappy' });
+      demoViewModeBtn.addEventListener('click', (e) => {
+        if (rippleEnabled) Mraph.triggerRipple(e, demoViewModeBtn);
+        demoViewModeAnim.toggle('grid', 'list', (st) => {
+          demoViewModeText.textContent = st === 'list' ? '列表视图' : '卡片视图';
+        });
+      });
+
+      const demoCartBtn = document.getElementById('demo-cart-btn');
+      const demoCartPath = document.getElementById('path-demo-cart');
+      const demoCartBadge = document.getElementById('demo-cart-badge');
+      const demoCartAnim = Mraph.attach(demoCartPath, { initial: 'cart', preset: 'bouncy' });
+      demoCartBtn.addEventListener('click', (e) => {
+        if (rippleEnabled) Mraph.triggerRipple(e, demoCartBtn);
+        demoCartAnim.toggle('cart', 'check', () => {
+          demoCartBadge.textContent = parseInt(demoCartBadge.textContent) + 1;
+          setTimeout(() => demoCartAnim.morphTo('cart'), 1000);
+        });
+      });
+
+      // 4. 下拉筛选与搜索清除
+      const dropBtn = document.getElementById('demo-dropdown-btn');
+      const dropPath = document.getElementById('path-demo-dropdown');
+      const dropAnim = Mraph.attach(dropPath, { initial: 'chevronDown', preset: 'snappy' });
+      dropBtn.addEventListener('click', (e) => {
+        if (rippleEnabled) Mraph.triggerRipple(e, dropBtn);
+        dropAnim.toggle('chevronDown', 'chevronUp');
+      });
+
+      const searchBtn = document.getElementById('demo-search-clear-btn');
+      const searchPath = document.getElementById('path-demo-search');
+      const searchInput = document.getElementById('demo-search-input');
+      const searchAnim = Mraph.attach(searchPath, { initial: 'x', preset: 'snappy' });
+      searchBtn.addEventListener('click', (e) => {
+        if (rippleEnabled) Mraph.triggerRipple(e, searchBtn);
+        if (searchInput.value) {
+          searchInput.value = '';
+          searchAnim.morphTo('search');
+        } else {
+          searchInput.value = '遥感影像';
+          searchAnim.morphTo('x');
+        }
+      });
+      searchInput.addEventListener('input', () => {
+        searchAnim.morphTo(searchInput.value ? 'x' : 'search');
+      });
+
+      // 5. 底图卡片四大交互
+      // 复制 Python 脚本
+      const cardCopyBtn = document.getElementById('card-btn-copy');
+      const cardCopyPath = document.getElementById('path-card-copy');
+      const cardCopyText = document.getElementById('card-copy-text');
+      const cardCopyAnim = Mraph.attach(cardCopyPath, { initial: 'copy', preset: 'snappy' });
+      cardCopyBtn.addEventListener('click', (e) => {
+        if (rippleEnabled) Mraph.triggerRipple(e, cardCopyBtn);
+        cardCopyBtn.classList.add('is-copied');
+        cardCopyText.textContent = '已复制!';
+        cardCopyAnim.morphTo('check');
+        setTimeout(() => {
+          cardCopyAnim.morphTo('copy');
+          cardCopyBtn.classList.remove('is-copied');
+          cardCopyText.textContent = '复制Python';
+        }, 2000);
+      });
+
+      // 加入选单
+      const cardAddBtn = document.getElementById('card-btn-add');
+      const cardAddPath = document.getElementById('path-card-add');
+      const cardAddText = document.getElementById('card-add-text');
+      const cardAddAnim = Mraph.attach(cardAddPath, { initial: 'plus', preset: 'snappy' });
+      cardAddBtn.addEventListener('click', (e) => {
+        if (rippleEnabled) Mraph.triggerRipple(e, cardAddBtn);
+        cardAddAnim.toggle('plus', 'check', (st) => {
+          if (st === 'check') {
+            cardAddBtn.classList.add('is-added');
+            cardAddText.textContent = '已加入';
+            cartCounter.textContent = parseInt(cartCounter.textContent) + 1;
+          } else {
+            cardAddBtn.classList.remove('is-added');
+            cardAddText.textContent = '加入选单';
+            cartCounter.textContent = Math.max(0, parseInt(cartCounter.textContent) - 1);
+          }
+        });
+      });
+
+      // 预览底图 (保持原生行为，不绑定 Mraph 变形)
+      const cardPrevBtn = document.getElementById('card-btn-preview');
+      const cardPrevText = document.getElementById('card-preview-text');
+      let isPreviewing = false;
+      cardPrevBtn.addEventListener('click', (e) => {
+        if (rippleEnabled) Mraph.triggerRipple(e, cardPrevBtn);
+        isPreviewing = !isPreviewing;
+        cardPrevText.textContent = isPreviewing ? '隐藏' : '预览';
+      });
+
+      // 推荐点赞 (保持原生行为，不绑定 Mraph 变形)
+      const cardLikeBtn = document.getElementById('card-btn-like');
+      let isLiked = false;
+      cardLikeBtn.addEventListener('click', (e) => {
+        if (rippleEnabled) Mraph.triggerRipple(e, cardLikeBtn);
+        isLiked = !isLiked;
+        cardLikeBtn.style.color = isLiked ? '#ef4444' : 'inherit';
+        cardLikeBtn.style.borderColor = isLiked ? 'rgba(239, 68, 68, 0.4)' : 'var(--border-subtle)';
+        Mraph.bounce(cardLikeBtn);
+      });
+
+      // 6. 几何形变探究大舞台 (Playground)
+      const stageBox = document.getElementById('stage-box');
+      const stagePath = document.getElementById('stage-path');
+      const stageReadout = document.getElementById('stage-readout');
+      const stagePalette = document.getElementById('stage-palette');
+
+      const stageAnimator = Mraph.attach(stagePath, { initial: 'sun', preset: currentPreset, mode: currentMode });
+      const playgroundIcons = ['sun', 'moon', 'cols1', 'cols2', 'grid', 'list', 'plus', 'check', 'copy', 'cart', 'search', 'download', 'menu'];
+
+      playgroundIcons.forEach(iconName => {
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        pill.className = `icon-pill-btn ${iconName === 'sun' ? 'active' : ''}`;
+        pill.dataset.icon = iconName;
+        pill.textContent = Mraph.ICONS[iconName]?.label?.split(' ')[0] || iconName;
+        pill.addEventListener('click', () => {
+          document.querySelectorAll('.icon-pill-btn').forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          triggerStageMorph(iconName);
+        });
+        stagePalette.appendChild(pill);
+      });
+
+      let stageIndex = 0;
+      function triggerStageMorph(targetName) {
+        stageAnimator.morphTo(targetName, (finalName) => {
+          stageReadout.innerHTML = `形变完成 · 当前图形: <strong>${Mraph.ICONS[finalName]?.label || finalName}</strong> | 物理阻尼预设: <code>${currentPreset}</code> | 极坐标分解完成`;
+        });
+        stageReadout.innerHTML = `正在计算 2D Procrustes 对齐与测地线路径 ➔ <strong>${Mraph.ICONS[targetName]?.label || targetName}</strong>...`;
+      }
+
+      stageBox.addEventListener('click', () => {
+        stageIndex = (stageIndex + 1) % playgroundIcons.length;
+        const nextIcon = playgroundIcons[stageIndex];
+        document.querySelectorAll('.icon-pill-btn').forEach(p => {
+          p.classList.toggle('active', p.dataset.icon === nextIcon);
+        });
+        triggerStageMorph(nextIcon);
+      });
+
+      stageReadout.innerHTML = `就绪 · 点击上方任意图标或中央舞台体验连续测地线形变`;
+    });
+  </script>
+</body>
+</html>
