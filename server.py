@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QGIS 在线底图服务配置中枢 (QGIS Basemap Hub) - 后端服务
+QGIS图源配置中心 (QGIS Basemap Hub) - 后端服务
 纯标准库实现，零外部重依赖，内置 SQLite 统计与持久化。
 """
 
@@ -12,13 +12,51 @@ import datetime
 import time
 import hashlib
 import threading
-from collections import deque, defaultdict
+from collections import deque, defaultdict, OrderedDict
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
 import urllib.parse
 import urllib.request
 import ssl
 import re
+
+# =====================================================================
+# 矢量切片与样式白名单安全中继器 (/relay) - 支持内存 LRU 缓存
+# =====================================================================
+RELAY_ALLOWED_DOMAINS = (
+    "vector.openstreetmap.org",
+    "basemaps.arcgis.com",
+    "tiles.arcgis.com",
+    "services.arcgisonline.com",
+    "www.arcgis.com",
+)
+RELAY_CACHE_MAX_ENTRIES = 400
+RELAY_MAX_CONTENT_BYTES = 5 * 1024 * 1024  # 5MB 单资源上限
+RELAY_TIMEOUT_SECS = 12
+
+class RelayLruCache:
+    def __init__(self, capacity=400):
+        self._lock = threading.Lock()
+        self.capacity = capacity
+        # url -> (content_bytes, content_type, headers_dict)
+        self.cache = OrderedDict()
+
+    def get(self, url):
+        with self._lock:
+            if url in self.cache:
+                self.cache.move_to_end(url)
+                return self.cache[url]
+            return None
+
+    def put(self, url, data):
+        with self._lock:
+            if url in self.cache:
+                self.cache.move_to_end(url)
+            self.cache[url] = data
+            if len(self.cache) > self.capacity:
+                self.cache.popitem(last=False)
+
+relay_cache = RelayLruCache(capacity=RELAY_CACHE_MAX_ENTRIES)
 
 # =====================================================================
 # 内存级 IP 滑动窗口限流器 (IP 仅在内存短暂驻留，不入库、不写盘，重启即空)
@@ -350,7 +388,7 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
         f"# 图源核验基准日期: {check_time}",
         f"# 脚本导出时间: {timestamp}",
         f"# 本次选定底图: 共 {len(selected_layers)} 款",
-        "# 协议覆盖: XYZ Tiles 标准切片、WMS/WMTS 空间数据服务、VEC 矢量切片 (Vector Tiles)",
+        "# 协议覆盖: XYZ Tiles 标准切片、WMS/WMTS 空间数据服务、VEC / VEC-A 矢量切片 (Vector Tiles)",
         "# 兼容特性: 深度兼容 QGIS 4.x (现代数据连接架构) 与 QGIS 3.x 全版本",
         "# 使用方法:",
         "# 1. 在 QGIS 菜单栏快捷键 Ctrl+Alt+P 打开 Python 控制台",
@@ -359,11 +397,15 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
         "# ====================================================================",
         "",
         "import urllib.parse",
+        "import urllib.request",
+        "import json",
+        "import ssl",
         "from qgis.core import QgsSettings, QgsRasterLayer, QgsProject",
         "try:",
-        "    from qgis.core import QgsVectorTileLayer",
+        "    from qgis.core import QgsVectorTileLayer, QgsMapBoxGlStyleConverter",
         "except ImportError:",
         "    QgsVectorTileLayer = None",
+        "    QgsMapBoxGlStyleConverter = None",
         "from qgis.utils import iface",
         "",
         "settings = QgsSettings()",
@@ -376,14 +418,6 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
         ""
     ]
 
-    has_vpn = any(layer.get("needs_vpn") for layer in selected_layers)
-    if has_vpn:
-        script_lines.append("# -------------------------------------------------------------")
-        script_lines.append("# 💡 网络代理提醒：")
-        script_lines.append("# 本批次底图中包含境外源。若在 QGIS 画布中加载显示红叉或空白，")
-        script_lines.append("# 请在 QGIS 菜单栏【设置】->【选项】->【网络】中配置本地网络代理（如 127.0.0.1:7890）。")
-        script_lines.append("# -------------------------------------------------------------")
-        script_lines.append("")
 
     for layer in selected_layers:
         name = _py_sq(layer.get("name", "未命名图层"))
@@ -399,14 +433,13 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
             continue
 
         # -------------------------------------------------------------
-        # 1. 矢量切片 VEC (Vector Tiles / MVT / PBF)
+        # 1. 矢量切片 VEC / VEC-A (Vector Tiles / MVT / PBF / ArcGIS)
         # -------------------------------------------------------------
-        if fmt == "VEC":
+        if fmt in ("VEC", "VEC-A"):
             lines = [u.strip() for u in raw_url.split("\n") if u.strip()]
-            tile_url = _py_sq(lines[0])
-            style_url = _py_sq(lines[1]) if len(lines) > 1 else ""
+            is_arcgis_vec = fmt == "VEC-A" or "arcgis.com" in raw_url or "VectorTileServer" in raw_url or "root.json" in raw_url
 
-            script_lines.append(f"# >>> [VEC 矢量切片] {name}")
+            script_lines.append(f"# >>> [{'VEC-A 矢量切片 - ArcGIS服务' if is_arcgis_vec else 'VEC 矢量切片'}] {name}")
             if cats:
                 script_lines.append(f"#     分类: {cats}")
             if desc:
@@ -420,40 +453,86 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
 
             script_lines.append("try:")
             script_lines.append(f"    layer_name = '{name}'")
-            script_lines.append(f"    tile_url = '{tile_url}'")
-            script_lines.append(f"    style_url = '{style_url}'")
-            script_lines.append("    # 写入 QGIS 浏览器 Vector Tiles 连接 (QGIS 4 & QGIS 3 双写兼容)")
-            script_lines.append("    # 1) QGIS 4 现代统一连接路径")
-            script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)")
-            if style_url:
-                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)")
-            script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)")
-            script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 14)")
-            script_lines.append("    # 2) QGIS 3 兼容路径")
-            script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/serviceType', 'xyz')")
-            script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/url', tile_url)")
-            if style_url:
-                script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/styleUrl', style_url)")
-            script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmin', 0)")
-            script_lines.append("    settings.setValue(f'qgis/connections-vectortiles/{layer_name}/zmax', 14)")
+            if is_arcgis_vec:
+                style_url = next((u for u in lines if "root.json" in u or "VectorTileServer" in u), lines[0] if lines else "")
+                style_url = _py_sq(style_url)
+                script_lines.append(f"    style_url = '{style_url}'")
+                script_lines.append("    zmin = 0")
+                script_lines.append("    zmax = 14")
+                script_lines.append("    # Modern QGIS 3.28+ / 4.x (ArcGIS 专用矢量切片服务架构)")
+                script_lines.append("    base_key = f'connections/vector-tile/items/{layer_name}'")
+                script_lines.append("    settings.setValue(f'{base_key}/service-type', 'arcgis')")
+                script_lines.append("    settings.setValue(f'{base_key}/type', 'xyz')")
+                script_lines.append("    settings.setValue(f'{base_key}/url', style_url)")
+                script_lines.append("    settings.setValue(f'{base_key}/styleUrl', style_url)")
+                script_lines.append("    settings.setValue(f'{base_key}/zmin', zmin)")
+                script_lines.append("    settings.setValue(f'{base_key}/zmax', zmax)")
+                script_lines.append("    settings.setValue(f'{base_key}/http-header/referer', '')")
+                script_lines.append("    # Legacy QGIS 3.x compatibility keys")
+                script_lines.append("    for legacy_prefix in [f'connections-vector-tiles/{layer_name}', f'qgis/connections-vectortiles/{layer_name}']:")
+                script_lines.append("        settings.setValue(f'{legacy_prefix}/service-type', 'arcgis')")
+                script_lines.append("        settings.setValue(f'{legacy_prefix}/type', 'xyz')")
+                script_lines.append("        settings.setValue(f'{legacy_prefix}/url', style_url)")
+                script_lines.append("        settings.setValue(f'{legacy_prefix}/styleUrl', style_url)")
+                script_lines.append("        settings.setValue(f'{legacy_prefix}/zmin', zmin)")
+                script_lines.append("        settings.setValue(f'{legacy_prefix}/zmax', zmax)")
+                script_lines.append("        settings.setValue(f'{legacy_prefix}/http-header/referer', '')")
+            else:
+                service_url = _py_sq(lines[0]) if lines else ""
+                style_url = _py_sq(lines[1]) if len(lines) > 1 else ""
+                script_lines.append(f"    tile_url = '{service_url}'")
+                script_lines.append(f"    style_url = '{style_url}'")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/url', tile_url)")
+                if style_url:
+                    script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/styleUrl', style_url)")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmin', 0)")
+                script_lines.append("    settings.setValue(f'connections/vector-tile/items/{layer_name}/zmax', 14)")
+                script_lines.append("    for legacy_prefix in [f'connections-vector-tiles/{layer_name}', f'qgis/connections-vectortiles/{layer_name}']:")
+                script_lines.append("        settings.setValue(f'{legacy_prefix}/url', tile_url)")
+                if style_url:
+                    script_lines.append("        settings.setValue(f'{legacy_prefix}/styleUrl', style_url)")
+                script_lines.append("        settings.setValue(f'{legacy_prefix}/zmin', 0)")
+                script_lines.append("        settings.setValue(f'{legacy_prefix}/zmax', 14)")
+
             script_lines.append("    vec_count += 1")
             if add_to_canvas:
                 script_lines.append("    # 实例化 QgsVectorTileLayer 载入当前画布")
                 script_lines.append("    if QgsVectorTileLayer is not None:")
-                script_lines.append("        vec_uri = f'type=xyz&url={tile_url}&zmin=0&zmax=14'")
-                script_lines.append("        if style_url:")
-                script_lines.append("            vec_uri += f'&styleUrl={style_url}'")
+                if is_arcgis_vec:
+                    script_lines.append("        vec_uri = f'serviceType=arcgis&type=xyz&url={style_url}&zmax=14&zmin=0&http-header:referer='")
+                else:
+                    script_lines.append("        vec_uri = f'type=xyz&url={tile_url}&zmin=0&zmax=14'")
+                    if style_url:
+                        script_lines.append("        if style_url: vec_uri = f'styleUrl={style_url}&' + vec_uri")
                 script_lines.append("        vl = QgsVectorTileLayer(vec_uri, layer_name)")
                 script_lines.append("        if vl.isValid():")
+                if is_arcgis_vec:
+                    script_lines.append("            try:")
+                    script_lines.append("                vl.loadDefaultStyle()")
+                    script_lines.append("            except Exception:")
+                    script_lines.append("                pass")
+                else:
+                    script_lines.append("            if style_url and QgsMapBoxGlStyleConverter is not None and (not hasattr(vl.renderer(), 'styles') or not vl.renderer().styles()):")
+                    script_lines.append("                try:")
+                    script_lines.append("                    ctx = ssl.create_default_context()")
+                    script_lines.append("                    ctx.check_hostname = False")
+                    script_lines.append("                    ctx.verify_mode = ssl.CERT_NONE")
+                    script_lines.append("                    req = urllib.request.Request(style_url, headers={'User-Agent': 'Mozilla/5.0 QGIS/3.x'})")
+                    script_lines.append("                    with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:")
+                    script_lines.append("                        s_data = json.loads(resp.read().decode('utf-8'))")
+                    script_lines.append("                        conv = QgsMapBoxGlStyleConverter()")
+                    script_lines.append("                        if conv.convert(s_data) == QgsMapBoxGlStyleConverter.Success:")
+                    script_lines.append("                            vl.setRenderer(conv.renderer())")
+                    script_lines.append("                            if conv.labeling(): vl.setLabeling(conv.labeling())")
+                    script_lines.append("                except Exception:")
+                    script_lines.append("                    pass")
                 script_lines.append("            QgsProject.instance().addMapLayer(vl)")
                 script_lines.append("            loaded_layers += 1")
                 script_lines.append("            print(f'  [√] 成功添加矢量切片至画布: {layer_name}')")
                 script_lines.append("        else:")
                 script_lines.append("            print(f'  [+] 已注册 Vector Tiles 连接（画布初始化受限）: {layer_name}')")
-                script_lines.append("    else:")
-                script_lines.append("        print(f'  [+] 当前 QGIS 版本未包含 QgsVectorTileLayer，已注册浏览器连接: {layer_name}')")
             else:
-                script_lines.append("    print(f'  [√] 成功注册 Vector Tiles 连接: {layer_name}')")
+                script_lines.append("    print(f'  [√] 成功注册 Vector Tiles 矢量切片: {layer_name}')")
             script_lines.append("except Exception as err:")
             script_lines.append("    print(f'  [×] 注册矢量切片失败: {layer_name}, 错误: {err}')")
             script_lines.append("")
@@ -489,10 +568,14 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
             if add_to_canvas:
                 script_lines.append("    # 实例化 QgsRasterLayer (WMS 驱动) 载入画布")
                 script_lines.append("    safe_wms = urllib.parse.quote(wms_url, safe=':/?=&')")
-                script_lines.append("    if 'capabilities' in wms_url.lower():")
-                script_lines.append("        wms_uri = f'crs=EPSG:3857&format=image/png&url={safe_wms}'")
-                script_lines.append("    else:")
-                script_lines.append("        wms_uri = f'url={safe_wms}'")
+                if layer.get("qgis_uri"):
+                    qgis_uri_str = _py_sq(layer["qgis_uri"])
+                    script_lines.append(f"    wms_uri = '{qgis_uri_str}'")
+                else:
+                    script_lines.append("    if 'capabilities' in wms_url.lower():")
+                    script_lines.append("        wms_uri = f'crs=EPSG:3857&format=image/png&url={safe_wms}'")
+                    script_lines.append("    else:")
+                    script_lines.append("        wms_uri = f'url={safe_wms}'")
                 script_lines.append("    wms_layer = QgsRasterLayer(wms_uri, layer_name, 'wms')")
                 script_lines.append("    if wms_layer.isValid():")
                 script_lines.append("        QgsProject.instance().addMapLayer(wms_layer)")
@@ -511,11 +594,16 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
         # -------------------------------------------------------------
         else:
             clean_url = _py_sq(raw_url.split("\n")[0].strip())
+            zmin = layer.get("zmin", 0) if isinstance(layer.get("zmin"), int) else 0
+            zmax = layer.get("zmax", 19) if isinstance(layer.get("zmax"), int) else 19
+            interp = _py_sq(layer.get("interpretation", "default"))
             script_lines.append(f"# >>> [XYZ Tiles 标准瓦片] {name}")
             if cats:
                 script_lines.append(f"#     分类: {cats}")
             if desc:
                 script_lines.append(f"#     说明: {desc}")
+            if layer.get("interpretation"):
+                script_lines.append(f"#     ⚙️ 高程解码: interpretation={layer['interpretation']}")
             if has_boundary:
                 script_lines.append("#     ⚠️ 标注: 存在国界线/边界争议，仅供内部科研参考")
             if has_drift:
@@ -526,20 +614,28 @@ def generate_qgis_script(selected_layers, add_to_canvas=False):
             script_lines.append("try:")
             script_lines.append(f"    layer_name = '{name}'")
             script_lines.append(f"    layer_url = '{clean_url}'")
+            script_lines.append(f"    zmin = {zmin}")
+            script_lines.append(f"    zmax = {zmax}")
+            script_lines.append(f"    interp = '{interp}'")
             script_lines.append("    # 写入 QGIS 浏览器 XYZ Tiles 连接分支 (QGIS 4 & QGIS 3 双写兼容)")
             script_lines.append("    # 1) QGIS 4 现代统一连接路径")
             script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/url', layer_url)")
-            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/zmin', 0)")
-            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/zmax', 19)")
+            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/zmin', zmin)")
+            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/zmax', zmax)")
+            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/interpretation', interp)")
+            script_lines.append("    settings.setValue(f'connections/xyz/items/{layer_name}/http-header/referer', '')")
             script_lines.append("    # 2) QGIS 3 兼容路径")
             script_lines.append("    settings.setValue(f'qgis/connections-xyz/{layer_name}/url', layer_url)")
-            script_lines.append("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmin', 0)")
-            script_lines.append("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmax', 19)")
+            script_lines.append("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmin', zmin)")
+            script_lines.append("    settings.setValue(f'qgis/connections-xyz/{layer_name}/zmax', zmax)")
             script_lines.append("    xyz_count += 1")
             if add_to_canvas:
                 script_lines.append("    # 载入项目画布 (XYZ 栅格驱动)")
                 script_lines.append("    safe_xyz = urllib.parse.quote(layer_url, safe=':/?=&{}')")
-                script_lines.append("    raster_uri = f'type=xyz&url={safe_xyz}&zmax=19&zmin=0'")
+                script_lines.append("    if interp != 'default':")
+                script_lines.append("        raster_uri = f'interpretation={interp}&type=xyz&url={safe_xyz}&zmax={zmax}&zmin={zmin}&http-header:referer='")
+                script_lines.append("    else:")
+                script_lines.append("        raster_uri = f'type=xyz&url={safe_xyz}&zmax={zmax}&zmin={zmin}&http-header:referer='")
                 script_lines.append("    map_layer = QgsRasterLayer(raster_uri, layer_name, 'wms')")
                 script_lines.append("    if map_layer.isValid():")
                 script_lines.append("        QgsProject.instance().addMapLayer(map_layer)")
@@ -588,7 +684,7 @@ def get_check_time():
                             return m.group(1).strip()
             except Exception:
                 pass
-    return "2026年5月26日"
+    return "2026年9月21日"
 
 
 
@@ -721,7 +817,94 @@ class RequestHandler(SimpleHTTPRequestHandler):
             self.send_json({"code": 0, "data": {}})
             return
 
+        elif path == "/relay":
+            query = urllib.parse.parse_qs(parsed.query)
+            target_url = query.get("url", [""])[0].strip()
+            if not target_url:
+                self.send_json({"code": 400, "message": "Missing 'url' parameter"}, status=400)
+                return
+
+            try:
+                target_parsed = urllib.parse.urlparse(target_url)
+            except Exception:
+                self.send_json({"code": 400, "message": "Invalid 'url'"}, status=400)
+                return
+
+            if target_parsed.scheme not in ("http", "https") or target_parsed.hostname not in RELAY_ALLOWED_DOMAINS:
+                self.send_json({"code": 403, "message": "Forbidden: Target domain not in relay allowlist"}, status=403)
+                return
+
+            # 查 LRU 缓存
+            cached = relay_cache.get(target_url)
+            if cached:
+                content, content_type = cached
+                self.send_response(200)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(content)))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.end_headers()
+                self.wfile.write(content)
+                return
+
+            # 发起后端安全抓取（带超时与大小上限）
+            try:
+                req = urllib.request.Request(
+                    target_url,
+                    headers={
+                        "User-Agent": "OpenQGIS-MapHub/1.0 (+https://github.com/OpenQGIS/maps)",
+                        "Accept": "*/*"
+                    }
+                )
+                ctx = ssl.create_default_context()
+                with urllib.request.urlopen(req, timeout=RELAY_TIMEOUT_SECS, context=ctx) as resp:
+                    resp_status = resp.getcode()
+                    if resp_status != 200:
+                        self.send_json({"code": resp_status, "message": f"Upstream returned HTTP {resp_status}"}, status=resp_status)
+                        return
+
+                    content = resp.read(RELAY_MAX_CONTENT_BYTES + 1)
+                    if len(content) > RELAY_MAX_CONTENT_BYTES:
+                        self.send_json({"code": 413, "message": "Upstream resource exceeded 5MB limit"}, status=413)
+                        return
+
+                    content_type = resp.headers.get("Content-Type", "application/octet-stream")
+                    # 写入 LRU 缓存
+                    relay_cache.put(target_url, (content, content_type))
+
+                    self.send_response(200)
+                    self.send_header("Content-Type", content_type)
+                    self.send_header("Content-Length", str(len(content)))
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+                    self.send_header("Cache-Control", "public, max-age=86400")
+                    self.end_headers()
+                    self.wfile.write(content)
+                    return
+            except urllib.error.HTTPError as he:
+                self.send_json({"code": he.code, "message": f"Upstream HTTPError: {he.code}"}, status=he.code)
+                return
+            except urllib.error.URLError as ue:
+                self.send_json({"code": 504, "message": f"Upstream Gateway Timeout: {ue.reason}"}, status=504)
+                return
+            except Exception as ex:
+                self.send_json({"code": 500, "message": f"Relay error: {str(ex)}"}, status=500)
+                return
+
         super().do_GET()
+
+    def do_HEAD(self):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        if path == "/relay":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+            self.end_headers()
+            return
+        super().do_HEAD()
 
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -871,7 +1054,22 @@ class RequestHandler(SimpleHTTPRequestHandler):
                         ON CONFLICT(layer_id) DO UPDATE SET downloads = downloads + 1, updated_at = CURRENT_TIMESTAMP
                     """, (lid,))
             conn.commit()
+
+            # 查询选中图层的实时数据库统计（点赞、下载与综合热度），用于前端即时同步
+            cur.execute("SELECT layer_id, likes, downloads FROM layer_stats WHERE layer_id IN ({})".format(
+                ','.join('?' for _ in layer_ids)
+            ), layer_ids)
+            stats_rows = cur.fetchall()
             conn.close()
+
+            layer_stats = {
+                row[0]: {
+                    "likes": row[1],
+                    "downloads": row[2],
+                    "heat": row[1] * 2 + row[2] * 3
+                }
+                for row in stats_rows
+            }
 
             script = generate_qgis_script(selected_layers, add_to_canvas=add_to_canvas)
 
@@ -880,7 +1078,8 @@ class RequestHandler(SimpleHTTPRequestHandler):
                 "data": {
                     "count": len(selected_layers),
                     "script": script,
-                    "filename": f"qgis_basemaps_import_{len(selected_layers)}.py"
+                    "filename": f"qgis_basemaps_import_{len(selected_layers)}.py",
+                    "layer_stats": layer_stats
                 }
             })
             return

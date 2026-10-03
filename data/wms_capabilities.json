@@ -321,20 +321,6 @@
       }
     ]
   },
-  "layer_7": {
-    "id": "layer_7",
-    "name": "ArcGIS标注",
-    "service_type": "WMTS",
-    "base_url": "https://map.geoq.cn/arcgis/rest/services/ChinaOnlineCommunity_Mobile/MapServer/WMTS",
-    "capabilities_url": "https://map.geoq.cn/arcgis/rest/services/ChinaOnlineCommunity_Mobile/MapServer/WMTS/1.0.0/WMTSCapabilities.xml",
-    "layers": [
-      {
-        "id": "ChinaOnlineCommunity_Mobile",
-        "title": "ChinaOnlineCommunity_Mobile (全国多语言精细标注图层)",
-        "abstract": "ArcGIS中国在线移动标注服务"
-      }
-    ]
-  },
   "layer_8": {
     "id": "layer_8",
     "name": "Wayback历史影像",

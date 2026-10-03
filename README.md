@@ -1,6 +1,6 @@
-# QGIS 在线底图服务配置中枢 (QGIS Basemap Hub)
+# QGIS图源配置中心 (QGIS Basemap Hub)
 
-一个开箱即用、轻量且高颜值的 QGIS 在线底图服务与图源配置中枢。提供涵盖天地图、OSM、Esri、高德、腾讯、百度、海图、夜间灯光、地质灾害等百余款空间底图图层检索、实时动态切片预览、多协议解析（XYZ Tiles / WMS / WMTS / Vector Tiles），以及一键生成并导出专属 PyQGIS 自动化导入脚本。
+开箱即用的 QGIS 图源中枢。提供涵盖天地图、OSM、Esri、高德、腾讯、百度、海图、夜间灯光、地质灾害等百余款空间底图图层检索、实时动态切片预览、多协议解析（XYZ Tiles / WMS / WMTS / Vector Tiles），以及一键生成并导出专属 PyQGIS 自动化导入脚本。
 
 ---
 
