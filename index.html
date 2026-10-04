@@ -630,7 +630,19 @@
           </div>
 
           <!-- 悬浮在地图右下角的加入配置单按钮 -->
-          <button type="button" id="preview-add-cart-btn" class="add-cart-btn">+ 加入配置单</button>
+          <button type="button" id="preview-add-cart-btn" class="add-cart-btn" title="加入底图配置单" aria-label="加入底图配置单">
+            <span class="btn-morph-icon">
+              <span class="morph-line line-h"></span>
+              <span class="morph-line line-v"></span>
+            </span>
+            <span class="btn-text-roller">
+              <span class="btn-text-inner">
+                <span class="text-slot"><span class="btn-text-full">加入配置单</span></span>
+                <span class="text-slot"><span class="btn-text-full">已在配置单</span></span>
+                <span class="text-slot"><span class="btn-text-full">取消</span></span>
+              </span>
+            </span>
+          </button>
         </div>
 
         <!-- 元数据折叠栏：URL 与图层说明默认收起，点击标题展开 -->

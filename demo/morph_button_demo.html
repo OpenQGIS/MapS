@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>加购 / 已选 / 取消 Morph 动画交互演示</title>
+  <style>
+    :root {
+      --bg-page: #f8fafc;
+      --card-bg: #ffffff;
+      
+      /* 品牌绿色系 (选入态) */
+      --green-primary: #52c41a;
+      --green-primary-hover: #45b014;
+      --green-subtle: #f6ffed;
+      --green-border: #b7eb8f;
+      --green-text: #389e0d;
+
+      /* 警示/取消色系 (Hover 反选态) */
+      --red-subtle: #fff1f0;
+      --red-border: #ffccc7;
+      --red-text: #cf1322;
+
+      /* 基础中性色 */
+      --gray-border: #e2e8f0;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    body {
+      background: var(--bg-page);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* 商品卡片容器展示 */
+    .showcase-grid {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 900px;
+    }
+
+    .mock-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 16px;
+      width: 250px;
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--gray-border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .mock-card:hover {
+      box-shadow: 0 8px 28px -4px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .card-thumb {
+      width: 100%;
+      height: 150px;
+      background: linear-gradient(135deg, #eef2f6 0%, #e2e8f0 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 500;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.4;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+      padding-top: 8px;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .card-price {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .card-price span {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* ========================================================
+       核心：Morphing 按钮组件设计
+       ======================================================== */
+    .morph-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 34px;
+      padding: 0 14px;
+      border-radius: 9999px; /* 胶囊圆角 */
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      outline: none;
+      border: 1px solid transparent;
+      transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹性曲线 */
+      overflow: hidden;
+    }
+
+    .morph-btn:active {
+      transform: scale(0.94);
+    }
+
+    /* 状态 1：未选入（默认高光加购态） */
+    .morph-btn.unselected {
+      background-color: var(--green-primary);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(82, 196, 26, 0.25);
+    }
+    .morph-btn.unselected:hover {
+      background-color: var(--green-primary-hover);
+      box-shadow: 0 4px 12px rgba(82, 196, 26, 0.35);
+    }
+
+    /* 状态 2：已选入（默认呈现清爽高辨识度的成功选中态） */
+    .morph-btn.selected {
+      background-color: var(--green-subtle);
+      border-color: var(--green-border);
+      color: var(--green-text);
+      box-shadow: none;
+    }
+
+    /* 状态 2 在 Hover 时：丝滑 Morph 变形为“取消/反选”诱导态 */
+    .morph-btn.selected:hover {
+      background-color: var(--red-subtle);
+      border-color: var(--red-border);
+      color: var(--red-text);
+    }
+
+    /* --------------------------------------------------------
+       图标 Morphing 引擎（纯 CSS + 几何线条形变）
+       -------------------------------------------------------- */
+    .icon-box {
+      width: 14px;
+      height: 14px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* 用两条交叉线段构造几何图形 */
+    .icon-box .line {
+      position: absolute;
+      background-color: currentColor;
+      border-radius: 2px;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* 未选态：标准加号（+） */
+    .morph-btn.unselected .icon-box .line-h {
+      width: 12px;
+      height: 2px;
+      transform: rotate(0deg);
+    }
+    .morph-btn.unselected .icon-box .line-v {
+      width: 2px;
+      height: 12px;
+      transform: rotate(0deg);
+    }
+
+    /* 已选态默认：形态 Morph 成为勾号（✓） */
+    .morph-btn.selected .icon-box .line-h {
+      /* 勾号长边 */
+      width: 11px;
+      height: 2px;
+      transform: translate(2px, 2px) rotate(-45deg);
+    }
+    .morph-btn.selected .icon-box .line-v {
+      /* 勾号短边 */
+      width: 6px;
+      height: 2px;
+      transform: translate(-3px, 4px) rotate(45deg);
+    }
+
+    /* 已选态悬浮 Hover：顺滑旋转为叉号（✕ 取消） */
+    .morph-btn.selected:hover .icon-box {
+      transform: rotate(180deg);
+    }
+    .morph-btn.selected:hover .icon-box .line-h {
+      width: 11px;
+      height: 2px;
+      transform: translate(0, 0) rotate(45deg);
+    }
+    .morph-btn.selected:hover .icon-box .line-v {
+      width: 11px;
+      height: 2px;
+      transform: translate(0, 0) rotate(-45deg);
+    }
+
+    /* --------------------------------------------------------
+       文字滚轴淡入淡出（Text Slide / Morphing）
+       -------------------------------------------------------- */
+    .text-roller {
+      position: relative;
+      height: 18px;
+      overflow: hidden;
+      display: inline-block;
+      text-align: left;
+    }
+
+    .text-inner {
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .text-slot {
+      height: 18px;
+      line-height: 18px;
+      white-space: nowrap;
+    }
+
+    /* 文本滚轮位移控制 */
+    .morph-btn.unselected .text-inner {
+      transform: translateY(0); /* 显示 "+ 选入" */
+    }
+    .morph-btn.selected .text-inner {
+      transform: translateY(-18px); /* 显示 "已选" */
+    }
+    .morph-btn.selected:hover .text-inner {
+      transform: translateY(-36px); /* 悬浮时滚动显示 "取消" */
+    }
+
+    /* 控制面板 */
+    .tips-card {
+      margin-top: 40px;
+      background: #ffffff;
+      border: 1px dashed #cbd5e1;
+      padding: 18px 24px;
+      border-radius: 12px;
+      max-width: 600px;
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.7;
+    }
+    .tips-card strong {
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>加购 / 已选 / 取消 Morph 交互原型</h1>
+    <p>点击按钮切换状态，体验几何线条图标与状态文字的丝滑 Morphing 过渡</p>
+  </div>
+
+  <div class="showcase-grid">
+
+    <!-- 卡片 1 (未选入) -->
+    <div class="mock-card">
+      <div class="card-thumb">地图底图层 A</div>
+      <div class="card-title">标准卫星影像图源 2026</div>
+      <div class="card-footer">
+        <div class="card-price"><span>¥</span>99</div>
+        <button class="morph-btn unselected" onclick="toggleBtn(this)">
+          <div class="icon-box">
+            <span class="line line-h"></span>
+            <span class="line line-v"></span>
+          </div>
+          <div class="text-roller">
+            <div class="text-inner">
+              <div class="text-slot">选入</div>
+              <div class="text-slot">已选</div>
+              <div class="text-slot">取消</div>
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- 卡片 2 (已选入初始状态) -->
+    <div class="mock-card">
+      <div class="card-thumb">地理高程数据 B</div>
+      <div class="card-title">全国 12.5m DEM 高程栅格</div>
+      <div class="card-footer">
+        <div class="card-price"><span>¥</span>199</div>
+        <button class="morph-btn selected" onclick="toggleBtn(this)">
+          <div class="icon-box">
+            <span class="line line-h"></span>
+            <span class="line line-v"></span>
+          </div>
+          <div class="text-roller">
+            <div class="text-inner">
+              <div class="text-slot">选入</div>
+              <div class="text-slot">已选</div>
+              <div class="text-slot">取消</div>
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="tips-card">
+    <strong>💡 交互体验亮点说明：</strong><br />
+    1. <strong>告别灰色禁用感</strong>：已选状态采用清爽的淡绿边框底色，给用户明确的正向反馈；<br />
+    2. <strong>图标 Morphing</strong>：加号（+）在选中时平滑变形为勾号（✓）；当鼠标移上去想点击时，顺畅旋转为叉号（✕）；<br />
+    3. <strong>文字垂直卷轴</strong>：从“选入”到“已选”，再到 Hover 时的“取消”，原地平滑滚动，不产生宽度抖动；<br />
+    4. <strong>轻量高效</strong>：完全无需引入庞大的动画库，纯 CSS 硬件加速即可做到 60FPS 极佳物理质感。
+  </div>
+
+  <script>
+    function toggleBtn(btn) {
+      if (btn.classList.contains('unselected')) {
+        btn.classList.remove('unselected');
+        btn.classList.add('selected');
+      } else {
+        btn.classList.remove('selected');
+        btn.classList.add('unselected');
+      }
+    }
+  </script>
+</body>
+</html>

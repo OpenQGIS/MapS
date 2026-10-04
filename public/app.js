@@ -2336,6 +2336,45 @@ function renderCategories() {
   }
 }
 
+/**
+ * 构造具备图标 Morphing 及文本垂直滚轴的加购按钮 HTML
+ */
+function getCartBtnHtml(layerId, inCart, isTable = false) {
+  const titleText = inCart ? '点击移出配置单' : '加入底图配置单';
+  const ariaText = inCart ? '已在配置单，点击移出' : '加入底图配置单';
+  
+  // 文本定制（兼容古风雅致与常规现代文案）
+  const addFull = isAncientAesthetic ? '收入行囊' : '加入配置';
+  const addedFull = isAncientAesthetic ? '已在行囊' : '已在配置';
+  const cancelFull = isAncientAesthetic ? '取出' : '取消';
+
+  const addShort = isAncientAesthetic ? '收入' : '选入';
+  const addedShort = isAncientAesthetic ? '已纳' : '已选';
+  const cancelShort = isAncientAesthetic ? '取出' : '取消';
+
+  const extraStyle = isTable ? 'style="display: inline-flex;"' : '';
+
+  return `
+    <button class="add-cart-btn ${inCart ? 'added' : ''}" 
+            ${extraStyle}
+            onclick="toggleCart('${escapeAttrJs(layerId)}')" 
+            title="${titleText}" 
+            aria-label="${ariaText}">
+      <span class="btn-morph-icon">
+        <span class="morph-line line-h"></span>
+        <span class="morph-line line-v"></span>
+      </span>
+      <span class="btn-text-roller">
+        <span class="btn-text-inner">
+          <span class="text-slot"><span class="btn-text-full">${addFull}</span><span class="btn-text-short">${addShort}</span></span>
+          <span class="text-slot"><span class="btn-text-full">${addedFull}</span><span class="btn-text-short">${addedShort}</span></span>
+          <span class="text-slot"><span class="btn-text-full">${cancelFull}</span><span class="btn-text-short">${cancelShort}</span></span>
+        </span>
+      </span>
+    </button>
+  `;
+}
+
 function renderLayers() {
   const container = document.getElementById("layers-container");
   const filtered = getFilteredLayers();
@@ -2408,10 +2447,7 @@ function renderLayers() {
                 </button>
                 <span class="heat-badge" title="综合热度指数">${ICONS.flame} <span id="heat-${escapeHtml(layer.id)}">${layer.heat || 0}</span></span>
               </div>
-              <button class="add-cart-btn ${inCart ? 'added' : ''}" onclick="toggleCart('${escapeAttrJs(layer.id)}')">
-                <span class="btn-text-full">${inCart ? (isAncientAesthetic ? '已在行囊' : '已在配置单') : (isAncientAesthetic ? '+ 收入行囊' : '+ 加入配置')}</span>
-                <span class="btn-text-short">${inCart ? (isAncientAesthetic ? '已纳' : '已选') : (isAncientAesthetic ? '+ 收入' : '+ 选入')}</span>
-              </button>
+              ${getCartBtnHtml(layer.id, inCart)}
             </div>
           </div>
         </div>
@@ -2484,9 +2520,7 @@ function renderLayers() {
                   </div>
                 </td>
                 <td style="text-align: right;">
-                  <button class="add-cart-btn ${inCart ? 'added' : ''}" style="display: inline-flex;" onclick="toggleCart('${escapeAttrJs(l.id)}')">
-                    ${inCart ? (isAncientAesthetic ? '已纳' : '已选') : (isAncientAesthetic ? '收入' : '加入')}
-                  </button>
+                  ${getCartBtnHtml(l.id, inCart, true)}
                 </td>
               </tr>
             `;
@@ -2524,8 +2558,16 @@ function updateCartBadge() {
   const count = state.cart.size;
   const badge1 = document.getElementById("cart-badge-count");
   const badge2 = document.getElementById("floating-cart-badge");
-  if (badge1) badge1.textContent = count;
-  if (badge2) badge2.textContent = count;
+  
+  [badge1, badge2].forEach(b => {
+    if (!b) return;
+    b.textContent = count;
+    if (count === 0) {
+      b.classList.add("badge-hidden");
+    } else {
+      b.classList.remove("badge-hidden");
+    }
+  });
   
   const headerCartBtn = document.getElementById("header-cart-btn");
   if (headerCartBtn && window.Mraph) {
@@ -4935,7 +4977,27 @@ function updatePreviewCartButton(layerId) {
   if (!btn) return;
   const inCart = state.cart.has(layerId);
   btn.className = `add-cart-btn ${inCart ? 'added' : ''}`;
-  btn.textContent = inCart ? '✓ 已在配置单' : '+ 加入配置单';
+  btn.title = inCart ? '点击移出配置单' : '加入底图配置单';
+  btn.setAttribute('aria-label', inCart ? '已在配置单，点击移出' : '加入底图配置单');
+
+  const addFull = isAncientAesthetic ? '收入行囊' : '加入配置单';
+  const addedFull = isAncientAesthetic ? '已在行囊' : '已在配置单';
+  const cancelFull = isAncientAesthetic ? '取出' : '取消';
+
+  btn.innerHTML = `
+    <span class="btn-morph-icon">
+      <span class="morph-line line-h"></span>
+      <span class="morph-line line-v"></span>
+    </span>
+    <span class="btn-text-roller">
+      <span class="btn-text-inner">
+        <span class="text-slot"><span class="btn-text-full">${addFull}</span></span>
+        <span class="text-slot"><span class="btn-text-full">${addedFull}</span></span>
+        <span class="text-slot"><span class="btn-text-full">${cancelFull}</span></span>
+      </span>
+    </span>
+  `;
+
   btn.onclick = () => {
     toggleCart(layerId);
     updatePreviewCartButton(layerId);
