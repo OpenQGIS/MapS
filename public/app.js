@@ -1,7 +1,7 @@
 const ICONS = {
   cart: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>`,
-  sun: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`,
-  moon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>`,
+  sun: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7"/></svg>`,
+  moon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454l0 .008"/></svg>`,
   heartOutline: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
   heartFilled: `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
   copy: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="0" ry="0"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`,
@@ -336,7 +336,7 @@ function applyAestheticMode(active, isInteractive = false) {
   } else {
     document.title = "QGIS图源配置中心 (QGIS Basemap Hub)";
     if (titleFull) titleFull.textContent = "QGIS图源配置中心";
-    if (titleShort) titleShort.textContent = "地图配置";
+    if (titleShort) titleShort.textContent = "QGIS图源";
     if (brandIcon) brandIcon.textContent = "QG";
     if (brandBadge) {
       const raw = (state.stats && state.stats.check_time) || "2026.9.21";
@@ -924,6 +924,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initToolbarCollapse();
   initMobileLayoutToggle();
   initMobileDropdowns();
+  initDesktopDropdowns();
   initDraggableCartBtn();
   initCustomTooltip();
 
@@ -949,6 +950,20 @@ function closeAllMobileDropdowns() {
   });
 }
 
+// --- Desktop Theme-Matched Custom Dropdowns (Filter Popover & Sort Dropdown) ---
+function closeAllDesktopDropdowns() {
+  if (typeof window.hideGlobalCustomTooltip === "function") {
+    window.hideGlobalCustomTooltip();
+  }
+  document.querySelectorAll("#desktop-mod-filter, #desktop-mod-sort").forEach(wrap => {
+    wrap.classList.remove("open");
+    const trigger = wrap.querySelector(".compact-filter-trigger, .compact-sort-trigger");
+    if (trigger) trigger.setAttribute("aria-expanded", "false");
+    const menu = wrap.querySelector(".desktop-custom-dropdown");
+    if (menu) menu.style.display = "none";
+  });
+}
+
 function syncMobileSortDropdown() {
   const sortLabels = {
     "heat": "综合",
@@ -965,6 +980,190 @@ function syncMobileSortDropdown() {
     if (it.dataset.value === state.currentSort) it.classList.add("active");
     else it.classList.remove("active");
   });
+  syncDesktopSortUI();
+}
+
+function syncDesktopSortUI() {
+  const sortLabels = {
+    "heat": "综合推荐",
+    "likes": "点赞最多",
+    "downloads": "导出最多",
+    "name": "名称排序"
+  };
+  const desktopSortLabel = document.getElementById("desktop-sort-label");
+  if (desktopSortLabel) {
+    desktopSortLabel.textContent = sortLabels[state.currentSort] || "综合推荐";
+  }
+  const sortItems = document.querySelectorAll("#desktop-sort-dropdown .desktop-sort-item");
+  sortItems.forEach(it => {
+    if (it.dataset.value === state.currentSort) it.classList.add("active");
+    else it.classList.remove("active");
+  });
+}
+
+function syncDesktopFilterUI() {
+  const isDirect = !!state.filterDirectOnly;
+  const isBoundary = !!state.filterBoundaryOnly;
+  const isDrift = !!state.filterDriftOnly;
+  const isXyz = !!state.filterXyzOnly;
+
+  // Sync checkboxes inside desktop dropdown
+  const itemDirect = document.querySelector('#desktop-filter-dropdown .desktop-filter-item[data-filter="direct"]');
+  const itemBoundary = document.querySelector('#desktop-filter-dropdown .desktop-filter-item[data-filter="boundary"], #desktop-filter-dropdown .desktop-filter-item[data-filter="no-boundary"]');
+  const itemDrift = document.querySelector('#desktop-filter-dropdown .desktop-filter-item[data-filter="drift"], #desktop-filter-dropdown .desktop-filter-item[data-filter="no-drift"]');
+  const itemXyz = document.querySelector('#desktop-filter-dropdown .desktop-filter-item[data-filter="xyz"]');
+
+  if (itemDirect) {
+    itemDirect.classList.toggle("checked", isDirect);
+    itemDirect.setAttribute("aria-checked", isDirect ? "true" : "false");
+  }
+  if (itemBoundary) {
+    itemBoundary.classList.toggle("checked", isBoundary);
+    itemBoundary.setAttribute("aria-checked", isBoundary ? "true" : "false");
+  }
+  if (itemDrift) {
+    itemDrift.classList.toggle("checked", isDrift);
+    itemDrift.setAttribute("aria-checked", isDrift ? "true" : "false");
+  }
+  if (itemXyz) {
+    itemXyz.classList.toggle("checked", isXyz);
+    itemXyz.setAttribute("aria-checked", isXyz ? "true" : "false");
+  }
+
+  // Sync hidden inputs if present
+  const chkDirect = document.getElementById("chk-direct");
+  const chkBoundary = document.getElementById("chk-boundary");
+  const chkDrift = document.getElementById("chk-drift");
+  const chkXyz = document.getElementById("chk-xyz");
+  if (chkDirect && chkDirect.checked !== isDirect) chkDirect.checked = isDirect;
+  if (chkBoundary && chkBoundary.checked !== isBoundary) chkBoundary.checked = isBoundary;
+  if (chkDrift && chkDrift.checked !== isDrift) chkDrift.checked = isDrift;
+  if (chkXyz && chkXyz.checked !== isXyz) chkXyz.checked = isXyz;
+
+  let activeCount = 0;
+  if (isDirect) activeCount++;
+  if (isBoundary) activeCount++;
+  if (isDrift) activeCount++;
+  if (isXyz) activeCount++;
+  if (state.filterVpnOnly) activeCount++;
+
+  const trigger = document.getElementById("desktop-filter-trigger");
+  if (trigger) {
+    trigger.classList.toggle("has-active-filter", activeCount > 0);
+  }
+
+  const resetBtn = document.getElementById("desktop-filter-reset-btn");
+  if (resetBtn) {
+    resetBtn.style.opacity = activeCount > 0 ? "1" : "0.35";
+    resetBtn.style.pointerEvents = activeCount > 0 ? "auto" : "none";
+  }
+}
+
+function initDesktopDropdowns() {
+  const filterWrap = document.getElementById("desktop-mod-filter");
+  const filterTrigger = document.getElementById("desktop-filter-trigger");
+  const filterDropdown = document.getElementById("desktop-filter-dropdown");
+
+  if (filterWrap && filterTrigger && filterDropdown) {
+    filterTrigger.addEventListener("click", e => {
+      e.stopPropagation();
+      if (typeof window.hideGlobalCustomTooltip === "function") {
+        window.hideGlobalCustomTooltip();
+      }
+      const isOpen = filterWrap.classList.contains("open");
+      closeAllDesktopDropdowns();
+      closeAllMobileDropdowns();
+      if (!isOpen) {
+        filterWrap.classList.add("open");
+        filterTrigger.setAttribute("aria-expanded", "true");
+        filterDropdown.style.display = "flex";
+      }
+    });
+
+    const filterItems = filterDropdown.querySelectorAll(".desktop-filter-item");
+    filterItems.forEach(item => {
+      item.addEventListener("click", e => {
+        e.stopPropagation();
+        if (typeof window.hideGlobalCustomTooltip === "function") {
+          window.hideGlobalCustomTooltip();
+        }
+        const filterKey = item.dataset.filter;
+        if (filterKey === "direct") {
+          state.filterDirectOnly = !state.filterDirectOnly;
+          if (state.filterDirectOnly) state.filterVpnOnly = false;
+          showToast(state.filterDirectOnly ? "已勾选：国内直连" : "已取消：国内直连");
+        } else if (filterKey === "boundary" || filterKey === "no-boundary") {
+          state.filterBoundaryOnly = !state.filterBoundaryOnly;
+          showToast(state.filterBoundaryOnly ? "已勾选：边界警示" : "已取消：边界警示");
+        } else if (filterKey === "drift" || filterKey === "no-drift") {
+          state.filterDriftOnly = !state.filterDriftOnly;
+          showToast(state.filterDriftOnly ? "已勾选：GCJ-02偏移" : "已取消：GCJ-02偏移");
+        } else if (filterKey === "xyz") {
+          state.filterXyzOnly = !state.filterXyzOnly;
+          showToast(state.filterXyzOnly ? "已勾选：仅XYZ瓦片" : "已取消：仅XYZ瓦片");
+        }
+        syncMobileFilterDropdown();
+        renderLayers();
+      });
+    });
+
+    const resetBtn = document.getElementById("desktop-filter-reset-btn");
+    if (resetBtn) {
+      resetBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        state.filterDirectOnly = false;
+        state.filterVpnOnly = false;
+        state.filterNoBoundary = false;
+        state.filterBoundaryOnly = false;
+        state.filterNoDrift = false;
+        state.filterDriftOnly = false;
+        state.filterXyzOnly = false;
+        showToast("已清空所有筛选");
+        syncMobileFilterDropdown();
+        renderLayers();
+      });
+    }
+  }
+
+  const sortWrap = document.getElementById("desktop-mod-sort");
+  const sortTrigger = document.getElementById("desktop-sort-trigger");
+  const sortDropdown = document.getElementById("desktop-sort-dropdown");
+
+  if (sortWrap && sortTrigger && sortDropdown) {
+    sortTrigger.addEventListener("click", e => {
+      e.stopPropagation();
+      if (typeof window.hideGlobalCustomTooltip === "function") {
+        window.hideGlobalCustomTooltip();
+      }
+      const isOpen = sortWrap.classList.contains("open");
+      closeAllDesktopDropdowns();
+      closeAllMobileDropdowns();
+      if (!isOpen) {
+        sortWrap.classList.add("open");
+        sortTrigger.setAttribute("aria-expanded", "true");
+        sortDropdown.style.display = "flex";
+      }
+    });
+
+    const sortItems = sortDropdown.querySelectorAll(".desktop-sort-item");
+    sortItems.forEach(item => {
+      item.addEventListener("click", e => {
+        e.stopPropagation();
+        const val = item.dataset.value;
+        state.currentSort = val;
+        const sortSelect = document.getElementById("sort-select");
+        if (sortSelect) sortSelect.value = val;
+        const mobileSortSelect = document.getElementById("mobile-sort-select");
+        if (mobileSortSelect) mobileSortSelect.value = val;
+        syncMobileSortDropdown();
+        renderLayers();
+        closeAllDesktopDropdowns();
+      });
+    });
+  }
+
+  syncDesktopFilterUI();
+  syncDesktopSortUI();
 }
 
 function initMobileDropdowns() {
@@ -976,6 +1175,7 @@ function initMobileDropdowns() {
       e.stopPropagation();
       const isOpen = card.classList.contains("open");
       closeAllMobileDropdowns();
+      closeAllDesktopDropdowns();
       if (!isOpen) {
         card.classList.add("open");
         const menu = card.querySelector(".mobile-custom-dropdown");
@@ -994,14 +1194,12 @@ function initMobileDropdowns() {
         state.filterDirectOnly = !state.filterDirectOnly;
         if (state.filterDirectOnly) state.filterVpnOnly = false;
         showToast(state.filterDirectOnly ? "已勾选：国内直连" : "已取消：国内直连");
-      } else if (filterKey === "no-boundary") {
-        state.filterNoBoundary = !state.filterNoBoundary;
-        if (state.filterNoBoundary) state.filterBoundaryOnly = false;
-        showToast(state.filterNoBoundary ? "已勾选：无边界争议" : "已取消：无边界争议");
-      } else if (filterKey === "no-drift") {
-        state.filterNoDrift = !state.filterNoDrift;
-        if (state.filterNoDrift) state.filterDriftOnly = false;
-        showToast(state.filterNoDrift ? "已勾选：无坐标偏移" : "已取消：无坐标偏移");
+      } else if (filterKey === "boundary" || filterKey === "no-boundary") {
+        state.filterBoundaryOnly = !state.filterBoundaryOnly;
+        showToast(state.filterBoundaryOnly ? "已勾选：边界警示" : "已取消：边界警示");
+      } else if (filterKey === "drift" || filterKey === "no-drift") {
+        state.filterDriftOnly = !state.filterDriftOnly;
+        showToast(state.filterDriftOnly ? "已勾选：GCJ-02偏移" : "已取消：GCJ-02偏移");
       } else if (filterKey === "xyz") {
         state.filterXyzOnly = !state.filterXyzOnly;
         showToast(state.filterXyzOnly ? "已勾选：仅XYZ瓦片" : "已取消：仅XYZ瓦片");
@@ -1046,20 +1244,25 @@ function initMobileDropdowns() {
     });
   });
 
-  // Click outside to close
+  // Click outside to close (desktop & mobile)
   document.addEventListener("click", e => {
     if (!e.target.closest(".mobile-mod-card.has-dropdown")) {
       closeAllMobileDropdowns();
+    }
+    if (!e.target.closest("#desktop-mod-filter") && !e.target.closest("#desktop-mod-sort")) {
+      closeAllDesktopDropdowns();
     }
   });
 
   window.addEventListener("scroll", () => {
     closeAllMobileDropdowns();
+    closeAllDesktopDropdowns();
   }, { passive: true });
 
   window.addEventListener("keydown", e => {
     if (e.key === "Escape") {
       closeAllMobileDropdowns();
+      closeAllDesktopDropdowns();
     }
   });
 
@@ -1182,12 +1385,35 @@ function applyToolbarCollapsed(toolbar, btn, collapsed) {
 function initStickyHeader() {
   const header = document.querySelector('.site-header');
   const toolbar = document.getElementById('sticky-toolbar');
+  const main = document.querySelector('.main-layout');
+  const grid = document.querySelector('.layers-grid');
 
   function updateHeaderHeight() {
     if (header) {
       const h = header.offsetHeight;
       if (h > 0) {
         document.documentElement.style.setProperty('--header-height', `${h}px`);
+
+        // 移动端：以实测 header 高度直接写 inline margin/top，并把 main-layout
+        // 与 layers-grid 的 padding-top 归零，使间距完全由这里的 10px 上下对称
+        // 接管。inline !important 优先级最高，无论 CSS 处于哪个历史变体
+        // （padding-top 方案 / margin 方案 / 实验补丁），吸附位与文档流位置
+        // 都严格对称（上 gap = 下 gap）
+        if (window.innerWidth <= 768 && toolbar) {
+          const gap = 10; // px，移动端上下对称间距
+          toolbar.style.setProperty('margin-top', `${gap}px`, 'important');
+          toolbar.style.setProperty('margin-bottom', `${gap}px`, 'important');
+          toolbar.style.setProperty('top', `${h + gap}px`, 'important');
+          if (main) main.style.setProperty('padding-top', '0px', 'important');
+          if (grid) grid.style.setProperty('padding-top', '0px', 'important');
+        } else if (toolbar) {
+          // 窗口拖回桌面宽度后清除移动端 inline 样式残留，交还桌面 CSS 控制
+          toolbar.style.removeProperty('margin-top');
+          toolbar.style.removeProperty('margin-bottom');
+          toolbar.style.removeProperty('top');
+          if (main) main.style.removeProperty('padding-top');
+          if (grid) grid.style.removeProperty('padding-top');
+        }
       }
     }
   }
@@ -1202,6 +1428,9 @@ function initStickyHeader() {
   }
 
   updateHeaderHeight();
+  if (window.ResizeObserver && header) {
+    new ResizeObserver(updateHeaderHeight).observe(header);
+  }
   window.addEventListener('resize', updateHeaderHeight);
   window.addEventListener('scroll', handleScroll, { passive: true });
 }
@@ -1263,15 +1492,21 @@ function checkUrlScroll() {
 }
 
 // --- Theme Management ---
+let isThemeTransitioning = false;
+
 function initTheme() {
-  applyTheme(state.theme);
+  applyTheme(state.theme, { immediate: true });
 }
 
-function applyTheme(theme) {
-  // 方案 A：临时消除所有 transition 时序差，实现 GitHub/Vercel 级全站同帧利落瞬切
-  const disableTransitions = document.createElement('style');
-  disableTransitions.textContent = '*,*::before,*::after{-webkit-transition:none!important;-moz-transition:none!important;-o-transition:none!important;-ms-transition:none!important;transition:none!important}';
-  document.head.appendChild(disableTransitions);
+function applyTheme(theme, options = {}) {
+  const isImmediate = options.immediate;
+
+  let disableTransitions = null;
+  if (isImmediate) {
+    disableTransitions = document.createElement('style');
+    disableTransitions.textContent = '*,*::before,*::after{-webkit-transition:none!important;-moz-transition:none!important;-o-transition:none!important;-ms-transition:none!important;transition:none!important}';
+    document.head.appendChild(disableTransitions);
+  }
 
   state.theme = theme;
   document.documentElement.setAttribute("data-theme", theme);
@@ -1308,22 +1543,137 @@ function applyTheme(theme) {
     }
   }
 
-  // 强制触发一次重排，确保当前帧即刻呈现新主题
-  if (document.body) {
-    (() => window.getComputedStyle(document.body).opacity)();
-  }
-
-  // 待新主题渲染完毕后恢复正常鼠标 hover 交互微动效
-  requestAnimationFrame(() => {
+  if (isImmediate && disableTransitions) {
+    // 强制触发一次重排，确保当前帧即刻呈现新主题
+    if (document.body) {
+      (() => window.getComputedStyle(document.body).opacity)();
+    }
+    // 待新主题渲染完毕后恢复正常鼠标 hover 交互微动效
     requestAnimationFrame(() => {
-      disableTransitions.remove();
+      requestAnimationFrame(() => {
+        disableTransitions.remove();
+      });
     });
-  });
+  }
 }
 
-function toggleTheme() {
+function toggleTheme(event) {
+  if (isThemeTransitioning) return;
+  isThemeTransitioning = true;
+
   const newTheme = state.theme === "light" ? "dark" : "light";
-  applyTheme(newTheme);
+
+  // 1. 获取点击震中：始终精准锁定按钮物理几何中心
+  let originX = window.innerWidth / 2;
+  let originY = window.innerHeight / 2;
+  const btn = document.getElementById("theme-toggle-btn") || (event && (event.currentTarget || (event.target && event.target.closest("#theme-toggle-btn"))));
+  if (btn) {
+    const rect = btn.getBoundingClientRect();
+    originX = rect.left + rect.width / 2;
+    originY = rect.top + rect.height / 2;
+  } else if (event && typeof event.clientX === "number" && typeof event.clientY === "number" && (event.clientX !== 0 || event.clientY !== 0)) {
+    originX = event.clientX;
+    originY = event.clientY;
+  }
+
+  const baseRadius = Math.hypot(
+    Math.max(originX, window.innerWidth - originX),
+    Math.max(originY, window.innerHeight - originY)
+  );
+  // 终点往外超量扩散 35%：确保波纹以极高冲刺速度撞出左下角，把任何减速段完全移到屏幕视口之外
+  const endRadius = Math.round(baseRadius * 1.35);
+
+  const duration = 414; // 提速 10% (从 460ms -> 414ms)
+  // 后加速线条：平稳起步 -> 持续推力后加速 -> 呼啸穿透左下角直奔屏幕外
+  const easing = "cubic-bezier(0.42, 0.0, 0.75, 1.0)";
+
+  // 2. 准备顶层波纹层（优先使用 popover 置于 View Transition 之上的顶级渲染层）
+  let pop = document.getElementById("theme-wave-popover");
+  if (!pop && typeof document.createElement === "function") {
+    pop = document.createElement("div");
+    pop.id = "theme-wave-popover";
+    if (typeof pop.showPopover === "function") {
+      pop.setAttribute("popover", "manual");
+    }
+    pop.className = "theme-wave-popover-container";
+    document.body.appendChild(pop);
+  }
+
+  const waveLayer = pop || document.getElementById("themeWaveLayer");
+  if (waveLayer && typeof waveLayer.showPopover === "function") {
+    try { waveLayer.showPopover(); } catch (e) {}
+  }
+  if (waveLayer) {
+    waveLayer.innerHTML = "";
+  }
+
+  const ring = document.createElement("div");
+  ring.className = `theme-wave-ring ${newTheme === "light" ? "theme-wave-ring-light" : "theme-wave-ring-dark"}`;
+  ring.style.left = `${originX}px`;
+  ring.style.top = `${originY}px`;
+  if (waveLayer) {
+    waveLayer.appendChild(ring);
+  }
+
+  const cleanup = () => {
+    if (waveLayer) {
+      waveLayer.innerHTML = "";
+      if (typeof waveLayer.hidePopover === "function") {
+        try { waveLayer.hidePopover(); } catch (e) {}
+      }
+    }
+    isThemeTransitioning = false;
+  };
+
+  // 3. 驱动原生 View Transition 配合波纹同频推进，彻底告别“整页先变色”
+  if (document.startViewTransition && document.documentElement.animate) {
+    const transition = document.startViewTransition(() => {
+      applyTheme(newTheme, { isWave: true });
+    });
+
+    transition.ready.then(() => {
+      // 核心：Web Animations API 像素级驱动 ::view-transition-new(root) 裁切扩展
+      document.documentElement.animate({
+        clipPath: [
+          `circle(0px at ${originX}px ${originY}px)`,
+          `circle(${endRadius}px at ${originX}px ${originY}px)`
+        ]
+      }, {
+        duration: duration,
+        easing: easing,
+        pseudoElement: "::view-transition-new(root)"
+      });
+
+      // 同步驱动顶层折射光环波纹
+      ring.animate([
+        { width: "0px", height: "0px", opacity: 0 },
+        { opacity: 0.95, offset: 0.1 },
+        { opacity: 0.65, offset: 0.5 },
+        { opacity: 0, offset: 0.88 },
+        { width: `${endRadius * 2}px`, height: `${endRadius * 2}px`, opacity: 0 }
+      ], {
+        duration: duration,
+        easing: easing
+      });
+    });
+
+    transition.finished.finally(cleanup);
+  } else {
+    // 降级模式（旧版浏览器）
+    ring.animate([
+      { width: "0px", height: "0px", opacity: 0 },
+      { opacity: 0.95, offset: 0.1 },
+      { opacity: 0.65, offset: 0.5 },
+      { opacity: 0, offset: 0.88 },
+      { width: `${endRadius * 2}px`, height: `${endRadius * 2}px`, opacity: 0 }
+    ], {
+      duration: duration,
+      easing: easing
+    });
+    applyTheme(newTheme, { isWave: true });
+    setTimeout(cleanup, duration);
+  }
+
   showToast(`已切换至${newTheme === "light" ? "浅色" : "深色"}主题`);
 }
 
@@ -1726,6 +2076,7 @@ function handleDirectClick(e) {
   const chk = document.getElementById("chk-direct");
   if (chk) chk.checked = state.filterDirectOnly;
   showToast(state.filterDirectOnly ? "已筛选：国内直连" : "已取消直连筛选");
+  syncMobileFilterDropdown();
   renderLayers();
 }
 
@@ -1739,6 +2090,7 @@ function handleVpnClick(e) {
     if (chk) chk.checked = false;
   }
   showToast(state.filterVpnOnly ? "已筛选：需代理" : "已取消需代理筛选");
+  syncMobileFilterDropdown();
   renderLayers();
 }
 
@@ -1752,6 +2104,7 @@ function handleBoundaryClick(e) {
     if (chk) chk.checked = false;
   }
   showToast(state.filterBoundaryOnly ? "已筛选：边界警示" : "已取消边界警示筛选");
+  syncMobileFilterDropdown();
   renderLayers();
 }
 
@@ -1765,7 +2118,19 @@ function handleDriftClick(e) {
     if (chk) chk.checked = false;
   }
   showToast(state.filterDriftOnly ? "已筛选：GCJ-02偏移" : "已取消GCJ-02偏移筛选");
+  syncMobileFilterDropdown();
   renderLayers();
+}
+
+// 标签 6：瓦片格式徽章点击（快速联动仅XYZ瓦片筛选）
+function handleFormatClick(e, format) {
+  if (e) e.stopPropagation();
+  if (format && (format.includes("XYZ") || format.includes("xyz"))) {
+    state.filterXyzOnly = !state.filterXyzOnly;
+    showToast(state.filterXyzOnly ? "已筛选：仅XYZ瓦片" : "已取消XYZ瓦片筛选");
+    syncMobileFilterDropdown();
+    renderLayers();
+  }
 }
 
 // 卡片空白处不再绑定分类筛选逻辑，防止用户点击或选择文本时误触发分类切换
@@ -1786,28 +2151,18 @@ function applyMobileFilterSelect(val) {
   if (val === "direct") {
     state.filterDirectOnly = true;
     showToast("已筛选：国内直连");
-  } else if (val === "no-boundary") {
-    state.filterNoBoundary = true;
-    showToast("已筛选：无边界争议");
-  } else if (val === "no-drift") {
-    state.filterNoDrift = true;
-    showToast("已筛选：无坐标偏移");
+  } else if (val === "boundary" || val === "boundary-risk") {
+    state.filterBoundaryOnly = true;
+    showToast("已筛选：边界警示");
+  } else if (val === "drift") {
+    state.filterDriftOnly = true;
+    showToast("已筛选：GCJ-02偏移");
   } else if (val === "xyz") {
     state.filterXyzOnly = true;
     showToast("已筛选：仅XYZ瓦片");
-  } else if (val === "compliant") {
-    state.filterDirectOnly = true;
-    state.filterNoBoundary = true;
-    showToast("已筛选：合规直连(无边界+直连)");
   } else if (val === "vpn") {
     state.filterVpnOnly = true;
     showToast("已筛选：需代理/VPN");
-  } else if (val === "boundary-risk") {
-    state.filterBoundaryOnly = true;
-    showToast("已筛选：存在边界争议");
-  } else if (val === "drift") {
-    state.filterDriftOnly = true;
-    showToast("已筛选：火星坐标偏移");
   } else {
     showToast("已重置特性筛选：全部底图");
   }
@@ -1818,8 +2173,8 @@ function applyMobileFilterSelect(val) {
   const chkDrift = document.getElementById("chk-drift");
   const chkXyz = document.getElementById("chk-xyz");
   if (chkDirect) chkDirect.checked = state.filterDirectOnly;
-  if (chkBoundary) chkBoundary.checked = state.filterNoBoundary;
-  if (chkDrift) chkDrift.checked = state.filterNoDrift;
+  if (chkBoundary) chkBoundary.checked = state.filterBoundaryOnly;
+  if (chkDrift) chkDrift.checked = state.filterDriftOnly;
   if (chkXyz) chkXyz.checked = state.filterXyzOnly;
 
   syncMobileFilterDropdown();
@@ -1832,20 +2187,32 @@ function syncMobileFilterDropdown() {
   const resetBtn = document.getElementById("mobile-filter-reset-btn");
 
   const isDirect = !!state.filterDirectOnly;
-  const isNoBoundary = !!state.filterNoBoundary;
-  const isNoDrift = !!state.filterNoDrift;
+  const isBoundary = !!state.filterBoundaryOnly;
+  const isDrift = !!state.filterDriftOnly;
   const isXyz = !!state.filterXyzOnly;
 
   // Sync checkboxes inside the dropdown
   const itemDirect = document.querySelector('#mobile-filter-dropdown .mobile-filter-item[data-filter="direct"]');
-  const itemBoundary = document.querySelector('#mobile-filter-dropdown .mobile-filter-item[data-filter="no-boundary"]');
-  const itemDrift = document.querySelector('#mobile-filter-dropdown .mobile-filter-item[data-filter="no-drift"]');
+  const itemBoundary = document.querySelector('#mobile-filter-dropdown .mobile-filter-item[data-filter="boundary"], #mobile-filter-dropdown .mobile-filter-item[data-filter="no-boundary"]');
+  const itemDrift = document.querySelector('#mobile-filter-dropdown .mobile-filter-item[data-filter="drift"], #mobile-filter-dropdown .mobile-filter-item[data-filter="no-drift"]');
   const itemXyz = document.querySelector('#mobile-filter-dropdown .mobile-filter-item[data-filter="xyz"]');
 
-  if (itemDirect) itemDirect.classList.toggle("checked", isDirect);
-  if (itemBoundary) itemBoundary.classList.toggle("checked", isNoBoundary);
-  if (itemDrift) itemDrift.classList.toggle("checked", isNoDrift);
-  if (itemXyz) itemXyz.classList.toggle("checked", isXyz);
+  if (itemDirect) {
+    itemDirect.classList.toggle("checked", isDirect);
+    itemDirect.setAttribute("aria-checked", isDirect ? "true" : "false");
+  }
+  if (itemBoundary) {
+    itemBoundary.classList.toggle("checked", isBoundary);
+    itemBoundary.setAttribute("aria-checked", isBoundary ? "true" : "false");
+  }
+  if (itemDrift) {
+    itemDrift.classList.toggle("checked", isDrift);
+    itemDrift.setAttribute("aria-checked", isDrift ? "true" : "false");
+  }
+  if (itemXyz) {
+    itemXyz.classList.toggle("checked", isXyz);
+    itemXyz.setAttribute("aria-checked", isXyz ? "true" : "false");
+  }
 
   // Sync desktop checkboxes
   const chkDirect = document.getElementById("chk-direct");
@@ -1853,24 +2220,23 @@ function syncMobileFilterDropdown() {
   const chkDrift = document.getElementById("chk-drift");
   const chkXyz = document.getElementById("chk-xyz");
   if (chkDirect && chkDirect.checked !== isDirect) chkDirect.checked = isDirect;
-  if (chkBoundary && chkBoundary.checked !== isNoBoundary) chkBoundary.checked = isNoBoundary;
-  if (chkDrift && chkDrift.checked !== isNoDrift) chkDrift.checked = isNoDrift;
+  if (chkBoundary && chkBoundary.checked !== isBoundary) chkBoundary.checked = isBoundary;
+  if (chkDrift && chkDrift.checked !== isDrift) chkDrift.checked = isDrift;
   if (chkXyz && chkXyz.checked !== isXyz) chkXyz.checked = isXyz;
 
   // Calculate selected labels
   const selected = [];
   if (isDirect) selected.push("直连");
-  if (isNoBoundary) selected.push("无争议");
-  if (isNoDrift) selected.push("无偏移");
+  if (isBoundary) selected.push("警示");
+  if (isDrift) selected.push("偏移");
   if (isXyz) selected.push("XYZ");
+  if (state.filterVpnOnly) selected.push("代理");
 
   if (filterLabel) {
     if (selected.length === 0) {
       filterLabel.textContent = "无";
     } else if (selected.length === 1) {
       filterLabel.textContent = selected[0];
-    } else if (isDirect && isNoBoundary && selected.length === 2) {
-      filterLabel.textContent = "合规(2)";
     } else {
       filterLabel.textContent = `已选(${selected.length})`;
     }
@@ -1888,13 +2254,15 @@ function syncMobileFilterDropdown() {
   // Sync hidden native select value
   const sel = document.getElementById("mobile-filter-select");
   if (sel) {
-    if (isDirect && isNoBoundary) sel.value = "compliant";
+    if (isDirect && isBoundary) sel.value = "boundary";
     else if (isDirect) sel.value = "direct";
-    else if (isNoBoundary) sel.value = "no-boundary";
-    else if (isNoDrift) sel.value = "no-drift";
+    else if (isBoundary) sel.value = "boundary";
+    else if (isDrift) sel.value = "drift";
     else if (isXyz) sel.value = "xyz";
     else sel.value = "all";
   }
+
+  syncDesktopFilterUI();
 }
 
 // --- Rendering ---
@@ -1974,6 +2342,7 @@ function renderLayers() {
   
   document.getElementById("filtered-count").textContent = `${filtered.length} 款底图`;
   updateAddAllBtn(filtered);
+  syncMobileFilterDropdown();
 
   if (state.viewMode === "grid") {
     container.className = "layers-grid";
@@ -1992,7 +2361,7 @@ function renderLayers() {
              data-id="${escapeHtml(layer.id)}">
           <div class="card-thumb-wrap" onclick="openPreviewModal('${escapeAttrJs(layer.id)}')" title="点击预览底图">
             ${thumb}
-            <span class="card-format-badge">${escapeHtml(layer.interpretation ? `${layer.format} (DEM)` : layer.format)}</span>
+            <span class="card-format-badge" onclick="handleFormatClick(event, '${escapeAttrJs(layer.format)}')" title="点击可筛选此类格式底图" style="cursor: pointer;">${escapeHtml(layer.interpretation ? `${layer.format} (DEM)` : layer.format)}</span>
             <div class="card-thumb-overlay">
               <span class="card-thumb-title">${escapeHtml(layer.name)}</span>
             </div>
@@ -2079,7 +2448,7 @@ function renderLayers() {
                     ${ICONS.copy} ${escapeHtml(l.url || '-')}
                   </div>
                 </td>
-                <td><span class="card-format-badge table-format-badge">${escapeHtml(l.interpretation ? `${l.format} (DEM)` : l.format)}</span></td>
+                <td><span class="card-format-badge table-format-badge" onclick="handleFormatClick(event, '${escapeAttrJs(l.format)}')" title="点击可筛选此类格式底图" style="cursor: pointer;">${escapeHtml(l.interpretation ? `${l.format} (DEM)` : l.format)}</span></td>
                 <td>
                   ${l.categories.map(c => `
                     <span class="tag tag-cat ${state.activeCategory === c ? 'active' : ''}"
@@ -5193,8 +5562,8 @@ function initEventListeners() {
   const chkBoundary = document.getElementById("chk-boundary");
   if (chkBoundary) {
     chkBoundary.addEventListener("change", e => {
-      state.filterNoBoundary = e.target.checked;
-      if (state.filterNoBoundary) state.filterBoundaryOnly = false;
+      state.filterBoundaryOnly = e.target.checked;
+      if (state.filterBoundaryOnly) state.filterNoBoundary = false;
       syncMobileFilterDropdown();
       renderLayers();
     });
@@ -5203,8 +5572,8 @@ function initEventListeners() {
   const chkDrift = document.getElementById("chk-drift");
   if (chkDrift) {
     chkDrift.addEventListener("change", e => {
-      state.filterNoDrift = e.target.checked;
-      if (state.filterNoDrift) state.filterDriftOnly = false;
+      state.filterDriftOnly = e.target.checked;
+      if (state.filterDriftOnly) state.filterNoDrift = false;
       syncMobileFilterDropdown();
       renderLayers();
     });
@@ -6048,6 +6417,7 @@ function initCustomTooltip() {
     }
     activeTarget = null;
   }
+  window.hideGlobalCustomTooltip = hideTooltip;
 
   // 计算并更新跟随鼠标模式下的坐标
   function updateFollowPosition(clientX, clientY) {
@@ -6157,6 +6527,17 @@ function initCustomTooltip() {
   document.addEventListener("mouseover", (e) => {
     const target = e.target.closest("[data-tooltip], [title]");
     if (!target) return;
+
+    // 如果处于已展开的下拉菜单中、或者页面正有下拉弹层处于展开状态，坚决不弹任何 tooltip
+    if (
+      target.closest(".has-dropdown.open") ||
+      target.closest(".desktop-custom-dropdown") ||
+      target.closest(".mobile-custom-dropdown") ||
+      document.querySelector(".has-dropdown.open")
+    ) {
+      hideTooltip();
+      return;
+    }
 
     lastMouseX = e.clientX;
     lastMouseY = e.clientY;

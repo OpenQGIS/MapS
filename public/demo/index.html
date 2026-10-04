@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="./demo.css">
 </head>
 <body>
+  <!-- 液态玻璃波纹动效与卡片波前联动容器 -->
+  <div id="themeWaveLayer" aria-hidden="true"></div>
 
   <!-- 顶部导览栏 -->
   <header class="demo-header">
@@ -335,16 +337,166 @@ setTimeout(() =&gt; animator.<span class="code-highlight">morphTo</span>(<span c
       });
 
       // 2. 状态栏顶部按钮组绑定
-      // 主题切换
+      // 主题切换（波前同频联动系统 Wavefront-Staggered Material Shift）
       const themeBtn = document.getElementById('global-theme-btn');
       const themePath = document.getElementById('path-global-theme');
       const themeLabel = document.getElementById('global-theme-label');
       const themeAnim = Mraph.attach(themePath, { initial: 'moon', preset: 'snappy' });
+      let demoThemeTimer = null;
+      let demoWaveCards = [];
+
+      function triggerWaveThemeTransition(e, nextTheme) {
+        if (demoThemeTimer) {
+          clearTimeout(demoThemeTimer);
+          demoWaveCards.forEach(c => {
+            c.classList.remove('wave-sync-card', 'wave-shimmer');
+            c.style.transitionDelay = '';
+            c.style.removeProperty('--shimmer-delay');
+          });
+          demoWaveCards = [];
+        }
+
+        let originX = window.innerWidth / 2;
+        let originY = window.innerHeight / 2;
+        if (themeBtn) {
+          const rect = themeBtn.getBoundingClientRect();
+          originX = rect.left + rect.width / 2;
+          originY = rect.top + rect.height / 2;
+        } else if (e && typeof e.clientX === 'number' && typeof e.clientY === 'number' && (e.clientX !== 0 || e.clientY !== 0)) {
+          originX = e.clientX;
+          originY = e.clientY;
+        }
+
+        const baseRadius = Math.hypot(
+          Math.max(originX, window.innerWidth - originX),
+          Math.max(originY, window.innerHeight - originY)
+        );
+        // 终点往外超量扩散 35%：确保波纹以极高冲刺速度撞出左下角，把任何减速段完全移到屏幕视口之外
+        const endRadius = Math.round(baseRadius * 1.35);
+
+        const duration = 414; // 提速 10% (从 460ms -> 414ms)
+        // 后加速线条：平稳起步 -> 持续推力后加速 -> 呼啸穿透左下角直奔屏幕外
+        const easing = "cubic-bezier(0.42, 0.0, 0.75, 1.0)";
+
+        let pop = document.getElementById("theme-wave-popover");
+        if (!pop && typeof document.createElement === "function") {
+          pop = document.createElement("div");
+          pop.id = "theme-wave-popover";
+          if (typeof pop.showPopover === "function") {
+            pop.setAttribute("popover", "manual");
+          }
+          pop.className = "theme-wave-popover-container";
+          document.body.appendChild(pop);
+        }
+
+        const waveLayer = pop || document.getElementById("themeWaveLayer");
+        if (waveLayer && typeof waveLayer.showPopover === "function") {
+          try { waveLayer.showPopover(); } catch (err) {}
+        }
+        if (waveLayer) {
+          waveLayer.innerHTML = "";
+        }
+
+        const ring = document.createElement("div");
+        ring.className = `theme-wave-ring ${nextTheme === "light" ? "theme-wave-ring-light" : "theme-wave-ring-dark"}`;
+        ring.style.left = `${originX}px`;
+        ring.style.top = `${originY}px`;
+        if (waveLayer) {
+          waveLayer.appendChild(ring);
+        }
+
+        const cards = Array.from(document.querySelectorAll('.demo-card, .layer-card-replica'));
+        const visibleCards = [];
+        const vh = window.innerHeight;
+        const vw = window.innerWidth;
+
+        cards.forEach(c => {
+          const rect = c.getBoundingClientRect();
+          if (rect.bottom >= -50 && rect.top <= vh + 50 && rect.right >= -50 && rect.left <= vw + 50 && rect.width > 0 && rect.height > 0) {
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const dist = Math.hypot(cx - originX, cy - originY);
+            visibleCards.push({ card: c, dist });
+          }
+        });
+
+        demoWaveCards = visibleCards.map(item => item.card);
+        visibleCards.forEach(({ card, dist }) => {
+          const ratio = Math.min(1, Math.max(0, dist / endRadius));
+          const delayMs = Math.round(ratio * 216);
+          card.style.transitionDelay = `${delayMs}ms`;
+          card.style.setProperty('--shimmer-delay', `${delayMs}ms`);
+          card.classList.add('wave-sync-card', 'wave-shimmer');
+        });
+
+        const cleanup = () => {
+          if (waveLayer) {
+            waveLayer.innerHTML = "";
+            if (typeof waveLayer.hidePopover === "function") {
+              try { waveLayer.hidePopover(); } catch (err) {}
+            }
+          }
+          demoWaveCards.forEach(c => {
+            c.classList.remove('wave-sync-card', 'wave-shimmer');
+            c.style.transitionDelay = '';
+            c.style.removeProperty('--shimmer-delay');
+          });
+          demoWaveCards = [];
+          demoThemeTimer = null;
+        };
+
+        if (document.startViewTransition && document.documentElement.animate) {
+          const transition = document.startViewTransition(() => {
+            document.documentElement.setAttribute('data-theme', nextTheme);
+          });
+
+          transition.ready.then(() => {
+            document.documentElement.animate({
+              clipPath: [
+                `circle(0px at ${originX}px ${originY}px)`,
+                `circle(${endRadius}px at ${originX}px ${originY}px)`
+              ]
+            }, {
+              duration: duration,
+              easing: easing,
+              pseudoElement: "::view-transition-new(root)"
+            });
+
+            ring.animate([
+              { width: "0px", height: "0px", opacity: 0 },
+              { opacity: 0.95, offset: 0.1 },
+              { opacity: 0.65, offset: 0.5 },
+              { opacity: 0, offset: 0.88 },
+              { width: `${endRadius * 2}px`, height: `${endRadius * 2}px`, opacity: 0 }
+            ], {
+              duration: duration,
+              easing: easing
+            });
+          });
+
+          transition.finished.finally(cleanup);
+        } else {
+          ring.animate([
+            { width: "0px", height: "0px", opacity: 0 },
+            { opacity: 0.95, offset: 0.1 },
+            { opacity: 0.65, offset: 0.5 },
+            { opacity: 0, offset: 0.88 },
+            { width: `${endRadius * 2}px`, height: `${endRadius * 2}px`, opacity: 0 }
+          ], {
+            duration: duration,
+            easing: easing
+          });
+          document.documentElement.setAttribute('data-theme', nextTheme);
+          demoThemeTimer = setTimeout(cleanup, duration);
+        }
+      }
+
       themeBtn.addEventListener('click', (e) => {
         if (rippleEnabled) Mraph.triggerRipple(e, themeBtn);
-        const next = themeAnim.toggle('sun', 'moon', (st) => {
+        themeAnim.toggle('sun', 'moon', (st) => {
+          const nextTheme = st === 'sun' ? 'light' : 'dark';
           themeLabel.textContent = st === 'sun' ? '浅色模式' : '深色模式';
-          document.documentElement.setAttribute('data-theme', st === 'sun' ? 'light' : 'dark');
+          triggerWaveThemeTransition(e, nextTheme);
         });
       });
 

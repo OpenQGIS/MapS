@@ -14,9 +14,11 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <!-- MapLibre GL CSS for Vector Tiles Preview (MVT) -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css'"/>
-  <link rel="stylesheet" href="./style.css?v=9.21">
+  <link rel="stylesheet" href="./style.css?v=9.41">
 </head>
 <body>
+  <!-- 液态玻璃波纹动效与卡片波前联动容器 -->
+  <div id="themeWaveLayer" aria-hidden="true"></div>
 
   <!-- 顶部状态栏 -->
   <header class="site-header">
@@ -26,7 +28,7 @@
         <div>
           <div class="brand-title">
             <span class="brand-title-full">QGIS图源配置中心</span>
-            <span class="brand-title-short">地图配置</span>
+            <span class="brand-title-short">QGIS图源</span>
             <span class="brand-badge" id="banner-check-time" title="图源核验基准日期: 2026.9.21">2026.9.21</span>
           </div>
         </div>
@@ -57,7 +59,7 @@
       <div class="header-actions">
         <button class="theme-toggle-btn" id="theme-toggle-btn" title="切换浅色/深色主题">
           <span id="theme-icon" class="svg-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7"/></svg>
           </span>
           <span id="theme-text">浅色</span>
         </button>
@@ -142,22 +144,26 @@
           <div class="mobile-custom-dropdown mobile-filter-multiselect" id="mobile-filter-dropdown" style="display: none;">
             <div class="mobile-filter-header">
               <span class="filter-header-title">特性多选</span>
-              <button type="button" class="filter-reset-btn" id="mobile-filter-reset-btn">重置</button>
+              <button type="button" class="filter-reset-btn" id="mobile-filter-reset-btn" aria-label="重置筛选" title="重置筛选">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 19L14 19C16.7614 19 19 16.7614 19 14C19 11.2386 16.7614 9 14 9L5.3753 9M10.2739 4.7809L5 9L10.3753 13.3002"/>
+                </svg>
+              </button>
             </div>
             <div class="mobile-filter-item" data-filter="direct">
               <span class="filter-checkbox"></span>
               <span class="filter-item-name">国内直连</span>
               <span class="filter-item-badge tag-direct">直连</span>
             </div>
-            <div class="mobile-filter-item" data-filter="no-boundary">
+            <div class="mobile-filter-item" data-filter="boundary">
               <span class="filter-checkbox"></span>
-              <span class="filter-item-name">无边界争议</span>
-              <span class="filter-item-badge tag-boundary-safe">合规</span>
+              <span class="filter-item-name">边界警示</span>
+              <span class="filter-item-badge tag-boundary">警示</span>
             </div>
-            <div class="mobile-filter-item" data-filter="no-drift">
+            <div class="mobile-filter-item" data-filter="drift">
               <span class="filter-checkbox"></span>
-              <span class="filter-item-name">无坐标偏移</span>
-              <span class="filter-item-badge tag-drift-safe">WGS84</span>
+              <span class="filter-item-name">GCJ-02偏移</span>
+              <span class="filter-item-badge tag-drift">偏移</span>
             </div>
             <div class="mobile-filter-item" data-filter="xyz">
               <span class="filter-checkbox"></span>
@@ -168,9 +174,8 @@
           <select id="mobile-filter-select" class="mobile-mod-native-select" aria-hidden="true" tabindex="-1">
             <option value="all">无</option>
             <option value="direct">直连</option>
-            <option value="compliant">合规</option>
-            <option value="no-boundary">无争议</option>
-            <option value="no-drift">无偏移</option>
+            <option value="boundary">边界警示</option>
+            <option value="drift">GCJ-02</option>
             <option value="xyz">仅XYZ</option>
           </select>
         </div>
@@ -224,29 +229,111 @@
           <input type="text" id="search-input" class="search-input compact-search-input" placeholder="搜索底图..." autocomplete="off">
         </div>
 
-        <!-- 快捷过滤开关组（紧凑单行型） -->
-        <div class="toggle-group compact-toggle-group">
-          <label class="checkbox-label" title="仅展示无需代理可直接加载的国内直连底图">
-            <input type="checkbox" id="chk-direct">
-            <span>直连</span>
-          </label>
-          <label class="checkbox-label" title="过滤掉存在境外画法国界线问题的底图">
-            <input type="checkbox" id="chk-boundary">
-            <span>无边界</span>
-          </label>
-          <label class="checkbox-label" title="过滤掉火星坐标系(GCJ-02)偏移底图">
-            <input type="checkbox" id="chk-drift">
-            <span>无偏移</span>
-          </label>
-          <label class="checkbox-label" title="仅查看标准 XYZ Tiles 瓦片">
-            <input type="checkbox" id="chk-xyz">
-            <span>仅XYZ</span>
-          </label>
+        <!-- 桌面端特性筛选 Popover（方案 C 落地 - 胶囊包裹） -->
+        <div class="desktop-filter-wrap has-dropdown" id="desktop-mod-filter">
+          <button type="button" class="compact-filter-trigger" id="desktop-filter-trigger" aria-expanded="false" aria-haspopup="true">
+            <span class="trigger-icon-wrap">
+              <svg class="trigger-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+              </svg>
+              <span class="filter-status-dot" id="filter-status-dot" aria-hidden="true"></span>
+            </span>
+            <span class="trigger-label">特性</span>
+            <span class="trigger-arrow">▾</span>
+          </button>
+          
+          <div class="desktop-custom-dropdown desktop-filter-dropdown" id="desktop-filter-dropdown" style="display: none;">
+            <div class="desktop-filter-header">
+              <span class="filter-header-title">特性筛选</span>
+              <button type="button" class="filter-reset-btn" id="desktop-filter-reset-btn" aria-label="重置筛选" title="重置筛选">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 19L14 19C16.7614 19 19 16.7614 19 14C19 11.2386 16.7614 9 14 9L5.3753 9M10.2739 4.7809L5 9L10.3753 13.3002"/>
+                </svg>
+              </button>
+            </div>
+            <div class="desktop-filter-list">
+              <div class="desktop-filter-item" data-filter="direct">
+                <div class="filter-pill-left">
+                  <span class="filter-pill-check">✓</span>
+                  <span class="filter-item-name">国内直连</span>
+                </div>
+                <span class="filter-item-badge tag-direct">直连</span>
+              </div>
+              <div class="desktop-filter-item" data-filter="boundary">
+                <div class="filter-pill-left">
+                  <span class="filter-pill-check">✓</span>
+                  <span class="filter-item-name">边界警示</span>
+                </div>
+                <span class="filter-item-badge tag-boundary">警示</span>
+              </div>
+              <div class="desktop-filter-item" data-filter="drift">
+                <div class="filter-pill-left">
+                  <span class="filter-pill-check">✓</span>
+                  <span class="filter-item-name">GCJ-02偏移</span>
+                </div>
+                <span class="filter-item-badge tag-drift">偏移</span>
+              </div>
+              <div class="desktop-filter-item" data-filter="xyz">
+                <div class="filter-pill-left">
+                  <span class="filter-pill-check">✓</span>
+                  <span class="filter-item-name">仅XYZ瓦片</span>
+                </div>
+                <span class="filter-item-badge tag-format">XYZ</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 保持隐藏的 checkbox 供现有脚本与 DOM 兼容 -->
+          <input type="checkbox" id="chk-direct" style="display: none;" aria-hidden="true" tabindex="-1">
+          <input type="checkbox" id="chk-boundary" style="display: none;" aria-hidden="true" tabindex="-1">
+          <input type="checkbox" id="chk-drift" style="display: none;" aria-hidden="true" tabindex="-1">
+          <input type="checkbox" id="chk-xyz" style="display: none;" aria-hidden="true" tabindex="-1">
         </div>
 
-        <!-- 排序下拉与计数 -->
-        <div class="toolbar-sort-wrap compact-sort-wrap">
-          <select id="sort-select" class="sort-select compact-sort-select" title="列表排序方式">
+        <!-- 排序下拉与计数（自定义毛玻璃下拉，取代 Windows 原生系统下拉） -->
+        <div class="toolbar-sort-wrap compact-sort-wrap has-dropdown" id="desktop-mod-sort">
+          <button type="button" class="compact-sort-trigger" id="desktop-sort-trigger" aria-expanded="false" aria-haspopup="true">
+            <span id="desktop-sort-label">综合推荐</span>
+            <span class="trigger-arrow">▾</span>
+          </button>
+          
+          <div class="desktop-custom-dropdown desktop-sort-dropdown" id="desktop-sort-dropdown" style="display: none;">
+            <div class="desktop-sort-item active" data-value="heat">
+              <span class="sort-item-text">综合推荐</span>
+              <span class="sort-item-check">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="round">
+                  <path d="M4.7311 11.7118L9.6667 17L19.2689 6.7118"/>
+                </svg>
+              </span>
+            </div>
+            <div class="desktop-sort-item" data-value="likes">
+              <span class="sort-item-text">点赞最多</span>
+              <span class="sort-item-check">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="round">
+                  <path d="M4.7311 11.7118L9.6667 17L19.2689 6.7118"/>
+                </svg>
+              </span>
+            </div>
+            <div class="desktop-sort-item" data-value="downloads">
+              <span class="sort-item-text">导出最多</span>
+              <span class="sort-item-check">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="round">
+                  <path d="M4.7311 11.7118L9.6667 17L19.2689 6.7118"/>
+                </svg>
+              </span>
+            </div>
+            <div class="desktop-sort-item" data-value="name">
+              <span class="sort-item-text">名称排序</span>
+              <span class="sort-item-check">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="round">
+                  <path d="M4.7311 11.7118L9.6667 17L19.2689 6.7118"/>
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <!-- 保持原有原生 select 隐藏，以兼容所有脚本读取与表单联动 -->
+          <select id="sort-select" style="display: none;" aria-hidden="true" tabindex="-1">
             <option value="heat">综合推荐</option>
             <option value="likes">点赞最多</option>
             <option value="downloads">导出最多</option>
@@ -255,8 +342,11 @@
           <span id="filtered-count" class="filtered-count-badge">-</span>
         </div>
 
+        <!-- 视图微分割线（区分数据检索群与视图操作群） -->
+        <div class="toolbar-divider" aria-hidden="true"></div>
+
         <!-- 视图切换：单按钮极坐标变形切换 (Grid ⟷ Table) -->
-        <button id="view-mode-toggle-btn" class="view-icon-btn view-mode-single-btn active" title="当前为卡片视图，点击切换为数据表格" aria-label="切换卡片/表格视图">
+        <button id="view-mode-toggle-btn" class="compact-view-trigger view-mode-single-btn" title="当前为卡片视图，点击切换为数据表格" aria-label="切换卡片/表格视图">
           <svg class="mraph-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path id="path-view-mode" d="M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z"></path>
           </svg>
@@ -638,6 +728,34 @@
   <script src="./lottie.min.js"></script>
   <!-- Mraph 矢量极坐标变形与交互增强引擎 -->
   <script src="./mraph.js"></script>
-  <script src="./app.js?v=11.37"></script>
+  <script src="./app.js?v=11.46"></script>
+  <script>
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const header = document.querySelector('.site-header');
+        const toolbar = document.querySelector('.toolbar-section');
+        const main = document.querySelector('.main-layout');
+        const card = document.querySelector('.layer-card');
+        const hRect = header ? header.getBoundingClientRect() : {};
+        const tRect = toolbar ? toolbar.getBoundingClientRect() : {};
+        const mRect = main ? main.getBoundingClientRect() : {};
+        const cRect = card ? card.getBoundingClientRect() : {};
+        const mStyle = main ? window.getComputedStyle(main) : {};
+        const tStyle = toolbar ? window.getComputedStyle(toolbar) : {};
+        const info = {
+          w: window.innerWidth,
+          h_bottom: hRect.bottom,
+          t_top: tRect.top,
+          t_bottom: tRect.bottom,
+          c_top: cRect.top,
+          m_pt: mStyle.paddingTop,
+          t_mt: tStyle.marginTop,
+          t_mb: tStyle.marginBottom,
+          t_top_prop: tStyle.top
+        };
+        fetch(`/debug-log?info=${encodeURIComponent(JSON.stringify(info))}`).catch(()=>{});
+      }, 1200);
+    });
+  </script>
 </body>
 </html>

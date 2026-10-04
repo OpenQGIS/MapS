@@ -618,3 +618,123 @@ body {
     align-items: flex-start;
   }
 }
+
+/* ---------- 7. 原生 View Transition 与液态玻璃折射透镜光环 ---------- */
+
+/* 原生 View Transition 伪元素规则：新旧图层无缝叠放 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* 顶层波纹容器：放置于浏览器 Top Layer（高于 View Transition 伪元素），避免被裁剪或覆盖 */
+[popover].theme-wave-popover-container,
+.theme-wave-popover-container,
+#themeWaveLayer {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
+  z-index: 99999;
+}
+
+[popover].theme-wave-popover-container::backdrop {
+  background: transparent !important;
+}
+
+/* 光环基本外观（锐利同频微光环 - 与 View Transition 裁剪边缘物理锁死） */
+.theme-wave-ring {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  opacity: 0;
+  /* 高光峰值精确对齐 100% 裁切刀刃边界，内侧微弱透光，外侧干脆利落 */
+  background: radial-gradient(circle,
+    transparent calc(100% - 32px),
+    rgba(56, 189, 248, 0.08) calc(100% - 22px),
+    rgba(56, 189, 248, 0.32) calc(100% - 10px),
+    rgba(255, 255, 255, 0.75) calc(100% - 2px),
+    transparent 100%
+  );
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.35), inset 0 0 12px rgba(255, 255, 255, 0.25);
+  will-change: width, height, opacity;
+}
+
+.theme-wave-ring.theme-wave-ring-light,
+[data-theme="light"] .theme-wave-ring {
+  background: radial-gradient(circle,
+    transparent calc(100% - 32px),
+    rgba(37, 99, 235, 0.08) calc(100% - 22px),
+    rgba(37, 99, 235, 0.30) calc(100% - 10px),
+    rgba(37, 99, 235, 0.70) calc(100% - 2px),
+    transparent 100%
+  );
+  border-color: rgba(37, 99, 235, 0.7);
+  box-shadow: 0 0 16px rgba(37, 99, 235, 0.30), inset 0 0 10px rgba(37, 99, 235, 0.2);
+}
+
+/* 卡片波前同频联动材质蜕变与微光漫反射 */
+.demo-card.wave-sync-card,
+.layer-card-replica.wave-sync-card {
+  position: relative !important;
+  transition: background-color 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+              border-color 0.24s ease,
+              box-shadow 0.24s ease,
+              color 0.22s ease !important;
+}
+
+.demo-card.wave-shimmer::before,
+.layer-card-replica.wave-shimmer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(56, 189, 248, 0.14) 50%, transparent 100%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+  animation: cardShimmerFade 0.30s ease var(--shimmer-delay, 0ms) forwards;
+}
+
+[data-theme="light"] .demo-card.wave-shimmer::before,
+[data-theme="light"] .layer-card-replica.wave-shimmer::before {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(56, 189, 248, 0.10) 50%, transparent 100%);
+}
+
+@keyframes cardShimmerFade {
+  0% {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+  40% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
