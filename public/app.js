@@ -4021,13 +4021,10 @@ const VectorPreviewFSM = {
   updatePill(stage, text) {
     const statusPill = document.getElementById("preview-map-status");
     if (!statusPill) return;
-    if (stage === 'ok') {
-      statusPill.className = "map-status-pill ok";
-      statusPill.innerHTML = `<span class="status-dot ok"></span>${escapeHtml(text)}`;
-    } else {
-      statusPill.className = "map-status-pill warn";
-      statusPill.innerHTML = `<span class="status-dot warn"></span>${escapeHtml(text)}`;
-    }
+    const isOk = (stage === 'ok');
+    statusPill.className = `map-status-pill ${isOk ? 'ok' : 'warn'}`;
+    statusPill.innerHTML = `<span class="status-dot ${isOk ? 'ok' : 'warn'}"></span>`;
+    statusPill.title = text || (isOk ? '底图已连接' : '连接中...');
   },
 
   onStyleResolved(token, desc) {
@@ -4821,7 +4818,8 @@ function attachTileNetworkListeners(tileLayer, resolved) {
         hideVpnFallbackOverlay();
         if (statusPill) {
           statusPill.className = "map-status-pill ok";
-          statusPill.innerHTML = `<span class="status-dot ok"></span>MVT 矢量底图已连接${isVpnLayer ? '（代理已连通）' : ''}`;
+          statusPill.innerHTML = `<span class="status-dot ok"></span>`;
+          statusPill.title = `MVT 矢量底图已连接${isVpnLayer ? '（代理已连通）' : ''}`;
         }
       };
 
@@ -4873,7 +4871,8 @@ function attachTileNetworkListeners(tileLayer, resolved) {
         const successText = isVpnLayer
           ? "境外底图已连接"
           : (resolved.statusText || "在线底图已连接");
-        statusPill.innerHTML = `<span class="status-dot ok"></span>${escapeHtml(successText)}`;
+        statusPill.innerHTML = `<span class="status-dot ok"></span>`;
+        statusPill.title = successText;
       }
     }
   };
@@ -4926,7 +4925,8 @@ function showVpnFallbackOverlay(layer, opts = {}) {
   const statusPill = document.getElementById("preview-map-status");
   if (statusPill) {
     statusPill.className = "map-status-pill warn";
-    statusPill.innerHTML = `<span class="status-dot warn"></span>${escapeHtml(opts.badge || '境外图源响应超时')}`;
+    statusPill.innerHTML = `<span class="status-dot warn"></span>`;
+    statusPill.title = opts.badge || '境外图源响应超时';
   }
 
   // 铺垫一层低透明度基础参考底图，避免大面积灰黑网格与空白感
@@ -5195,7 +5195,14 @@ function openPreviewModal(layerId) {
     titleEl.innerHTML = `<span class="preview-title-name">${escapeHtml(layer.name)}</span>`;
   }
   const formatEl = document.getElementById("preview-meta-format");
-  if (formatEl) formatEl.textContent = layer.format || "-";
+  if (formatEl) {
+    let fmt = (layer.format || "-").trim();
+    if (fmt.toLowerCase().includes("xyz")) fmt = "XYZ";
+    else if (fmt.toUpperCase().startsWith("VEC")) fmt = "VEC";
+    else if (fmt.toUpperCase().includes("WMS")) fmt = "WMS";
+    formatEl.textContent = fmt;
+    formatEl.title = `接入协议: ${layer.format || fmt}`;
+  }
   const urlEl = document.getElementById("preview-meta-url");
   if (urlEl) {
     urlEl.textContent = layer.url || "无URL";
@@ -5287,6 +5294,9 @@ function updatePreviewCartButton(layerId) {
   const addFull = isAncientAesthetic ? '收入行囊' : '加入配置单';
   const addedFull = isAncientAesthetic ? '已在行囊' : '已在配置单';
   const cancelFull = isAncientAesthetic ? '取出' : '取消';
+  const addShort = isAncientAesthetic ? '入囊' : '加入';
+  const addedShort = isAncientAesthetic ? '在囊' : '已选';
+  const cancelShort = isAncientAesthetic ? '取出' : '取消';
 
   btn.innerHTML = `
     <span class="btn-morph-icon">
@@ -5295,9 +5305,9 @@ function updatePreviewCartButton(layerId) {
     </span>
     <span class="btn-text-roller">
       <span class="btn-text-inner">
-        <span class="text-slot"><span class="btn-text-full">${addFull}</span></span>
-        <span class="text-slot"><span class="btn-text-full">${addedFull}</span></span>
-        <span class="text-slot"><span class="btn-text-full">${cancelFull}</span></span>
+        <span class="text-slot"><span class="btn-text-full">${addFull}</span><span class="btn-text-short">${addShort}</span></span>
+        <span class="text-slot"><span class="btn-text-full">${addedFull}</span><span class="btn-text-short">${addedShort}</span></span>
+        <span class="text-slot"><span class="btn-text-full">${cancelFull}</span><span class="btn-text-short">${cancelShort}</span></span>
       </span>
     </span>
   `;
@@ -5336,7 +5346,8 @@ function switchPreviewSublayer(sublayerId) {
       const statusPill = document.getElementById("preview-map-status");
       if (statusPill) {
         statusPill.className = "map-status-pill ok";
-        statusPill.innerHTML = `<span class="status-dot ok"></span>${escapeHtml(sublayerId)}`;
+        statusPill.innerHTML = `<span class="status-dot ok"></span>`;
+        statusPill.title = `已切换子图层: ${sublayerId}`;
       }
     } else {
       // WMTS 或新图层重建
@@ -5376,9 +5387,16 @@ function initOrUpdatePreviewMap(layer, sublayerId = null) {
 
   // 初始状态提示：如果是境外源，先给一个连接中状态，不盲目弹窗
   const statusPill = document.getElementById("preview-map-status");
-  if (statusPill && layer.needs_vpn) {
-    statusPill.className = "map-status-pill warn";
-    statusPill.innerHTML = `<span class="status-dot warn"></span>🟡 境外底图连接中...`;
+  if (statusPill) {
+    if (layer.needs_vpn) {
+      statusPill.className = "map-status-pill warn";
+      statusPill.innerHTML = `<span class="status-dot warn"></span>`;
+      statusPill.title = "境外底图连接中...";
+    } else {
+      statusPill.className = "map-status-pill ok";
+      statusPill.innerHTML = `<span class="status-dot ok"></span>`;
+      statusPill.title = "在线底图已就绪";
+    }
   }
 
   // 9秒宽限超时保护：仅针对 Leaflet 栅格切片流程
@@ -5386,7 +5404,7 @@ function initOrUpdatePreviewMap(layer, sublayerId = null) {
   const isVectorTile = (layer.format === 'VEC' || layer.format === 'VEC-A');
   if (layer.needs_vpn && !isVectorTile) {
     vpnTimeoutTimer = setTimeout(() => {
-      const isStillPending = statusPill && statusPill.textContent.includes("连接中");
+      const isStillPending = statusPill && statusPill.title && statusPill.title.includes("连接中");
       if (isStillPending && !vpnDismissedForCurrentSession) {
         showVpnFallbackOverlay(layer);
       }
@@ -5522,7 +5540,8 @@ function switchDemRenderMode(mode) {
     const statusPill = document.getElementById("preview-map-status");
     if (statusPill) {
       statusPill.className = `map-status-pill ${resolved.status}`;
-      statusPill.innerHTML = `<span class="status-dot ${resolved.status}"></span>${escapeHtml(resolved.statusText)}`;
+      statusPill.innerHTML = `<span class="status-dot ${resolved.status}"></span>`;
+      statusPill.title = resolved.statusText || "底图已就绪";
     }
   }
 }
@@ -6602,11 +6621,16 @@ function initTableHoverPopover() {
   });
 }
 
-// --- Draggable Floating Cart Button ---
+// --- Draggable Floating Cart Button (仅在移动端/触控窄屏生效，桌面端固定在右下角不拖拽) ---
 function initDraggableCartBtn() {
   const container = document.getElementById("floating-cart-container");
   const btn = document.getElementById("floating-cart-btn");
   if (!container || !btn) return;
+
+  // 桌面端（宽屏或非触屏）直接禁用拖拽，重置并固定于右下角默认位置
+  const isMobileDragSupported = () => {
+    return window.innerWidth <= 768 || window.matchMedia("(pointer: coarse)").matches;
+  };
 
   let isDragging = false;
   let hasMoved = false;
@@ -6619,9 +6643,9 @@ function initDraggableCartBtn() {
   // 安全边界计算
   const getBounds = () => {
     const rect = container.getBoundingClientRect();
-    const margin = 10;
-    const topOffset = 64; // 避开顶部导航栏
-    const bottomSafe = window.innerWidth <= 768 ? 84 : 28; // 避开底部安全区与提示条
+    const margin = 12;
+    const topOffset = 60; // 避开顶部导航栏
+    const bottomSafe = 80; // 避开底部安全区
 
     return {
       minX: margin,
@@ -6633,13 +6657,14 @@ function initDraggableCartBtn() {
     };
   };
 
-  // 确保每次打开页面始终默认出现在右下角，清除历史残留的记忆位置，不记录悬浮窗口位置
-  try {
-    localStorage.removeItem("qgis_cart_btn_pos");
-  } catch (e) {}
-
-  // 视口尺寸变化时调整，防越界
+  // 视口尺寸变化时调整，桌面端自动恢复默认固定
   window.addEventListener("resize", () => {
+    if (!isMobileDragSupported()) {
+      container.style.left = "";
+      container.style.top = "";
+      container.classList.remove("snapped-left", "snapped-right", "snapped-edge");
+      return;
+    }
     if (container.style.left && container.style.top) {
       const bounds = getBounds();
       const currentLeft = parseFloat(container.style.left) || 0;
@@ -6656,10 +6681,10 @@ function initDraggableCartBtn() {
     }
   }, { passive: true });
 
-  // Pointer 事件处理（兼容移动端触控与桌面端测试）
+  // Pointer 事件处理（仅在移动端/触屏设备监听拖拽）
   btn.addEventListener("pointerdown", (e) => {
-    // 仅响应主按键（触控或鼠标左键）
-    if (e.button !== 0 && e.pointerType === "mouse") return;
+    if (!isMobileDragSupported()) return; // 桌面端不响应拖拽
+    if (e.pointerType === "mouse") return; // 鼠标操作不启动拖拽
 
     isDragging = true;
     hasMoved = false;
@@ -6671,12 +6696,10 @@ function initDraggableCartBtn() {
     initialLeft = rect.left;
     initialTop = rect.top;
 
-    // 捕获指针，防止移出元素断触
     try {
       btn.setPointerCapture(e.pointerId);
     } catch (err) {}
 
-    // 取消吸附过渡动画，立即跟手
     container.style.transition = "none";
   });
 
@@ -6738,8 +6761,8 @@ function initDraggableCartBtn() {
 
       container.classList.toggle("snapped-left", isLeft);
       container.classList.toggle("snapped-right", !isLeft);
+      container.classList.add("snapped-edge"); // 靠边悬停状态 (收起文本，仅留图标)
 
-      // 不记录悬浮窗口位置：当次拖拽吸附仅作临时避让，不持久化，重新加载或下次打开页面始终重置在右下角
       setTimeout(() => {
         container.style.transition = "";
       }, 320);

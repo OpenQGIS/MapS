@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <!-- MapLibre GL CSS for Vector Tiles Preview (MVT) -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css'"/>
-  <link rel="stylesheet" href="./style.css?v=9.41">
+  <link rel="stylesheet" href="./style.css?v=9.42">
 </head>
 <body>
   <!-- 液态玻璃波纹动效与卡片波前联动容器 -->
@@ -389,9 +389,12 @@
   <!-- 购物车抽屉 (Cart Drawer) -->
   <div class="cart-drawer-backdrop" id="cart-backdrop"></div>
   <aside class="cart-drawer" id="cart-drawer">
+    <div class="drawer-drag-handle" aria-hidden="true"></div>
     <div class="drawer-header">
       <div class="drawer-title">已选底图配置单</div>
-      <button class="close-btn" id="close-cart-btn">✕</button>
+      <button class="close-btn" id="close-cart-btn" aria-label="关闭已选配置单" title="关闭">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
 
     <!-- 预设快速勾选 -->
@@ -484,13 +487,13 @@
       </div>
 
       <div class="preview-modal-body">
-        <!-- 交互式地图主视口工具栏 -->
+        <!-- 交互式地图主视口工具栏 (极简状态符号 + 协议代码) -->
         <div class="preview-map-toolbar">
-          <div class="preview-map-toolbar-left" style="display: flex; align-items: center; gap: 0.5rem;">
-            <span id="preview-map-status" class="map-status-pill">
-              <span class="status-dot"></span>在线底图调用中
+          <div class="preview-map-toolbar-left" style="display: flex; align-items: center; gap: 0.45rem;">
+            <span id="preview-map-status" class="map-status-pill" title="在线底图状态">
+              <span class="status-dot"></span>
             </span>
-            <span style="color: var(--text-dim);">接入协议:</span> <strong id="preview-meta-format" style="color: var(--text-main); font-family:var(--font-mono);">-</strong>
+            <strong id="preview-meta-format" class="preview-meta-format-badge" style="color: var(--text-main); font-family:var(--font-mono);">-</strong>
             <div id="preview-token-wrap" style="display: none; align-items: center; gap: 0.35rem; margin-left: 0.4rem;">
               <span style="color: var(--accent-amber); font-size: 0.75rem; font-weight: 500;">Token:</span>
               <input type="text" id="preview-token-input" placeholder="输入个人 Token 实时出图" style="font-size: 0.72rem; padding: 2px 6px; background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 2px; width: 170px;" />
@@ -524,7 +527,7 @@
                     <circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/>
                   </svg>
                 </span>
-                中国视野
+                <span class="btn-map-control-text">中国视野</span>
               </button>
               <button type="button" class="btn-map-control" id="btn-reset-world-view" onclick="resetToWorldView()" title="切换至全球视野">
                 <span class="svg-icon">
@@ -532,7 +535,7 @@
                     <circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/>
                   </svg>
                 </span>
-                全球视野
+                <span class="btn-map-control-text">全球视野</span>
               </button>
               <button type="button" class="btn-map-control" id="btn-fullscreen-preview" onclick="togglePreviewFullscreen()" title="全屏查看地图（更大视野，Esc 或再点一次退出）">
                 <span class="svg-icon">
@@ -540,7 +543,7 @@
                     <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
                   </svg>
                 </span>
-                <span id="fullscreen-btn-text">全屏</span>
+                <span class="btn-map-control-text" id="fullscreen-btn-text">全屏</span>
               </button>
             </div>
           </div>
@@ -637,9 +640,9 @@
             </span>
             <span class="btn-text-roller">
               <span class="btn-text-inner">
-                <span class="text-slot"><span class="btn-text-full">加入配置单</span></span>
-                <span class="text-slot"><span class="btn-text-full">已在配置单</span></span>
-                <span class="text-slot"><span class="btn-text-full">取消</span></span>
+                <span class="text-slot"><span class="btn-text-full">加入配置单</span><span class="btn-text-short">加入</span></span>
+                <span class="text-slot"><span class="btn-text-full">已在配置单</span><span class="btn-text-short">已选</span></span>
+                <span class="text-slot"><span class="btn-text-full">取消</span><span class="btn-text-short">取消</span></span>
               </span>
             </span>
           </button>
@@ -740,7 +743,7 @@
   <script src="./lottie.min.js"></script>
   <!-- Mraph 矢量极坐标变形与交互增强引擎 -->
   <script src="./mraph.js"></script>
-  <script src="./app.js?v=11.46"></script>
+  <script src="./app.js?v=11.47"></script>
   <script>
     window.addEventListener('load', () => {
       setTimeout(() => {

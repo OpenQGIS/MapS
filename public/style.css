@@ -141,6 +141,72 @@ html[data-theme="dark"], body[data-theme="dark"] {
   --radius-lg: 0px;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --font-mono: "JetBrains Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
+
+  /* ==========================================================================
+     Design Tokens: Unified Button & Dimension System (两轴正交系统)
+     ========================================================================== */
+  --btn-h-sm: 28px;
+  --btn-h-md: 32px;
+  --btn-h-lg: 40px;
+
+  --btn-px-sm: 0.55rem;
+  --btn-px-md: 0.75rem;
+  --btn-px-lg: 1.15rem;
+
+  --btn-font-sm: 0.75rem;
+  --btn-font-md: 0.82rem;
+  --btn-font-lg: 0.90rem;
+
+  --btn-radius-sm: 6px;
+  --btn-radius-md: 8px;
+  --btn-radius-lg: 12px;
+  --btn-radius-pill: 9999px;
+
+  --btn-transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 按钮通用基类与尺寸轴正交类 */
+.btn-base {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: inherit;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  vertical-align: middle;
+  border: 1px solid transparent;
+  transition: var(--btn-transition);
+  position: relative;
+}
+
+/* 尺寸规格类 (强制高度锁定与等高基准) */
+.btn-sm { height: var(--btn-h-sm) !important; padding: 0 var(--btn-px-sm) !important; font-size: var(--btn-font-sm) !important; border-radius: var(--btn-radius-sm) !important; }
+.btn-md { height: var(--btn-h-md) !important; padding: 0 var(--btn-px-md) !important; font-size: var(--btn-font-md) !important; border-radius: var(--btn-radius-md) !important; }
+.btn-lg { height: var(--btn-h-lg) !important; padding: 0 var(--btn-px-lg) !important; font-size: var(--btn-font-lg) !important; border-radius: var(--btn-radius-lg) !important; }
+
+/* 工业级 Icon-Only 绝对 1:1 正方形法则 */
+.btn-icon.btn-sm { width: var(--btn-h-sm) !important; padding: 0 !important; }
+.btn-icon.btn-md { width: var(--btn-h-md) !important; padding: 0 !important; }
+.btn-icon.btn-lg { width: var(--btn-h-lg) !important; padding: 0 !important; }
+
+/* 移动端 44px 隐形触控热区扩展 (人机工学分离) */
+@media (pointer: coarse) {
+  .btn-base::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+    height: 100%;
+  }
 }
 
 html {
@@ -313,9 +379,10 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   color: var(--text-main);
-  padding: 0.42rem 0.65rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
+  height: var(--btn-h-md, 32px) !important;
+  box-sizing: border-box !important;
+  border-radius: var(--btn-radius-md, 8px);
+  font-size: var(--btn-font-md, 0.82rem);
   cursor: pointer;
   display: inline-flex !important;
   flex-direction: row !important;
@@ -323,8 +390,19 @@ body {
   justify-content: center !important;
   gap: 0.35rem;
   white-space: nowrap !important;
-  transition: all 0.15s ease;
+  transition: var(--btn-transition, all 0.15s ease);
   position: relative; /* 允许角标在右上角绝对悬浮定位 */
+}
+
+/* 纯图标按钮执行绝对 1:1 正方形法则 (32px × 32px) */
+.theme-toggle-btn, .view-toggle-btn {
+  width: var(--btn-h-md, 32px) !important;
+  height: var(--btn-h-md, 32px) !important;
+  padding: 0 !important;
+}
+
+.cart-toggle-btn {
+  padding: 0 var(--btn-px-md, 0.75rem) !important;
 }
 
 .theme-toggle-btn:hover, .cart-toggle-btn:hover, .view-toggle-btn:hover {
@@ -380,7 +458,7 @@ html[data-theme="dark"] .cart-badge {
   flex: 1;
 }
 
-/* Floating Cart Dock & Draggable Enhancements */
+/* Floating Cart Dock & Draggable Enhancements (曜石黑极简控制坞体系) */
 .floating-cart-container {
   position: fixed;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
@@ -393,50 +471,75 @@ html[data-theme="dark"] .cart-badge {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
+  gap: 6px;
 }
 
-/* 全选当前结果辅助按钮（圆角矩形 + 90% 不透明度 + 毛玻璃效果 + 高对比度清晰文字） */
+/* 全选当前结果辅助按钮（曜石质感次级胶囊） */
 .floating-addall-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 0.38rem 0.75rem;
-  background: rgba(22, 28, 42, 0.92);
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px;
+  height: 30px;
+  line-height: 1 !important;
+  padding: 0 0.75rem;
+  background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  border-radius: 10px;
+  border-radius: var(--btn-radius-pill, 9999px);
   white-space: nowrap;
   opacity: 1;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+  transition: all 0.18s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.floating-addall-btn .addall-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 14px;
+  height: 14px;
+  line-height: 1 !important;
+  flex-shrink: 0;
+}
+
+.floating-addall-btn .addall-icon svg {
+  display: block !important;
+  width: 13px;
+  height: 13px;
+  margin: 0 !important;
+  transform: translateY(-0.5px); /* 字体基线与中文字体光学对齐补偿 */
+}
+
+.floating-addall-btn .addall-label {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1 !important;
 }
 
 html[data-theme="light"] .floating-addall-btn {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  color: #0f172a;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  color: #1e293b;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .floating-addall-btn:hover {
-  background: rgba(30, 38, 56, 0.96);
-  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(255, 255, 255, 0.22);
   color: #ffffff;
-  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.28);
+  transform: translateY(-1px);
 }
 
 html[data-theme="light"] .floating-addall-btn:hover {
-  background: #f8fafc;
-  border-color: rgba(0, 0, 0, 0.22);
-  color: #000000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.09);
+  background: #f1f5f9;
+  border-color: rgba(15, 23, 42, 0.22);
+  color: #0f172a;
 }
 
 /* 有筛选条件时：温和微边框，坚决不加任何绿色扩散发光阴影，确保阴影深浅自然弱于主购物车按钮 */
@@ -540,46 +643,80 @@ body.cart-open .floating-cart-container,
   transform: translateY(20px) scale(0.9) !important;
 }
 
-/* 浮动购物车主按钮（明显的圆角矩形 + 90% 不透明度 + 毛玻璃磨砂效果） */
+/* 浮动购物车主按钮（曜石黑极简反色胶囊 Obsidian Deck - 保持精致圆角矩形 12px） */
 #floating-cart-btn {
   touch-action: none;
   cursor: grab;
   will-change: transform, left, top;
-  padding: 0.65rem 1.05rem;
-  border-radius: 12px !important;
-  background: rgba(19, 23, 34, 0.90) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-  border: 1px solid var(--accent-lime-border) !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
+  height: var(--btn-h-lg, 40px) !important;
+  box-sizing: border-box !important;
+  padding: 0 var(--btn-px-lg, 1.15rem) !important;
+  border-radius: 12px !important; /* 恒定保持现代精致圆角矩形 */
+  background: #0f172a !important; /* 曜石深墨黑 (反色高级质感) */
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, opacity 0.2s ease;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 0.45rem !important;
+  gap: 0.5rem !important;
+  position: relative !important;
+  overflow: visible !important; /* 严禁裁剪右上角突出的数字角标 */
 }
 
+/* 浅色模式下：保持曜石黑主胶囊，形成最鲜明的顶层悬浮 HUD 反色视觉权重 */
 html[data-theme="light"] #floating-cart-btn {
-  background: rgba(255, 255, 255, 0.90) !important;
-  border-color: rgba(22, 163, 74, 0.35) !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.4) !important;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.28), 0 3px 8px rgba(15, 23, 42, 0.15) !important;
+}
+
+/* 深色模式下：曜石微光钛金质感 */
+html[data-theme="dark"] #floating-cart-btn {
+  background: #182032 !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5) !important;
+}
+
+#floating-cart-btn .floating-cart-icon svg,
+#floating-cart-btn .svg-icon svg {
+  stroke: #ffffff !important;
+  stroke-width: 2.2 !important;
 }
 
 #floating-cart-btn .floating-cart-text {
   display: inline !important;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--text-main);
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  color: #ffffff !important;
   letter-spacing: 0.02em;
+}
+
+/* 曜石黑胶囊上的红/绿高对比徽标：独立绝对悬浮，绝不被遮挡 */
+#floating-cart-btn .cart-badge {
+  border-color: #0f172a !important;
+  z-index: 20 !important;
+  overflow: visible !important;
+}
+html[data-theme="dark"] #floating-cart-btn .cart-badge {
+  border-color: #182032 !important;
+}
+
+#floating-cart-btn:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.38) !important;
 }
 
 #floating-cart-btn:active {
   cursor: grabbing;
+  transform: scale(0.98);
 }
 
 .floating-cart-container.dragging #floating-cart-btn {
   transform: scale(1.06);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45), 0 0 0 2px var(--accent-lime) !important;
-  opacity: 0.95;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(255, 255, 255, 0.4) !important;
+  opacity: 0.98;
   cursor: grabbing;
 }
 
@@ -588,33 +725,42 @@ html[data-theme="light"] #floating-cart-btn {
   opacity: 0.4;
 }
 
-/* 边缘吸附时保持圆角矩形优雅外观，避免变成直角硬块 */
-.floating-cart-container.snapped-left #floating-cart-btn {
-  border-top-left-radius: 4px !important;
-  border-bottom-left-radius: 4px !important;
-  border-top-right-radius: 12px !important;
-  border-bottom-right-radius: 12px !important;
+/* 移动端边缘悬停极简模式（靠边停靠时自动隐藏文字，仅显示纯图标与数字） */
+.floating-cart-container.snapped-edge #floating-cart-btn {
+  padding: 0 !important;
+  width: 40px !important;
+  height: 40px !important;
+  justify-content: center !important;
+  border-radius: 12px !important;
 }
 
+.floating-cart-container.snapped-edge #floating-cart-btn .floating-cart-text {
+  display: none !important;
+}
+
+.floating-cart-container.snapped-edge .floating-addall-btn {
+  padding: 0 !important;
+  width: 32px !important;
+  height: 30px !important;
+  margin: 0 auto;
+  justify-content: center !important;
+  border-radius: 8px !important;
+}
+
+.floating-cart-container.snapped-edge .floating-addall-btn .addall-label,
+.floating-cart-container.snapped-edge .floating-addall-btn .addall-count {
+  display: none !important;
+}
+
+/* 边缘吸附时：始终维持优美的全对称圆角矩形(12px/10px)，绝不破坏圆角 */
+.floating-cart-container.snapped-left #floating-cart-btn,
 .floating-cart-container.snapped-right #floating-cart-btn {
-  border-top-right-radius: 4px !important;
-  border-bottom-right-radius: 4px !important;
-  border-top-left-radius: 12px !important;
-  border-bottom-left-radius: 12px !important;
+  border-radius: 12px !important;
 }
 
-.floating-cart-container.snapped-left .floating-addall-btn {
-  border-top-left-radius: 4px;
-  border-bottom-left-radius: 4px;
-  border-top-right-radius: 10px;
-  border-bottom-right-radius: 10px;
-}
-
+.floating-cart-container.snapped-left .floating-addall-btn,
 .floating-cart-container.snapped-right .floating-addall-btn {
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
-  border-top-left-radius: 10px;
-  border-bottom-left-radius: 10px;
+  border-radius: 8px !important;
 }
 
 /* Bottom Floating Notice Dock */
@@ -755,8 +901,8 @@ html[data-theme="light"] #floating-cart-btn {
   }
 }
 
-/* 平板 / iPad 模式 (768px ~ 1024px) */
-@media (min-width: 768px) and (max-width: 1024px) {
+/* 平板 / iPad 模式 (768px ~ 1024px 且 高度 >= 600px，彻底排除横屏扁平手机) */
+@media (min-width: 768px) and (max-width: 1024px) and (min-height: 600px) {
   .header-container {
     gap: 0.75rem;
   }
@@ -781,6 +927,27 @@ html[data-theme="light"] #floating-cart-btn {
   .bottom-floating-banner.banner-expand-full .bottom-banner-desc {
     white-space: normal !important;
     text-overflow: clip !important;
+  }
+}
+
+/* 手机横屏模式专用优化 (高度 <= 500px，优先压扁并释放地图视野) */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root, html, body {
+    --header-height: 38px !important;
+    --mobile-toolbar-gap: 0.25rem !important;
+  }
+  .site-header {
+    padding: 0.2rem 0.75rem !important;
+  }
+  .stats-bar {
+    display: none !important; /* 横屏手机严禁展示统计条占用纵向空间 */
+  }
+  .brand-badge {
+    display: none !important;
+  }
+  .main-layout {
+    padding-top: 0.25rem !important;
+    padding-bottom: 3.5rem !important;
   }
 }
 
@@ -1385,41 +1552,70 @@ html[data-theme="light"] #floating-cart-btn {
     gap: 0.35rem !important;
     justify-content: center;
   }
+  /* 移动端合规提示框升级为屏幕居中通知卡片 (Center Floating Modal / 避免遮挡底部操作条) */
   .bottom-floating-banner {
-    position: fixed;
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    left: 12px;
-    right: 12px;
-    width: calc(100% - 24px);
-    max-width: none;
-    border-radius: 6px;
-    z-index: 1000;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(239, 68, 68, 0.18);
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    width: min(340px, calc(100vw - 36px)) !important;
+    max-width: calc(100vw - 36px) !important;
+    border-radius: 14px !important;
+    z-index: 1000 !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(239, 68, 68, 0.25) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    animation: bannerPopCenter 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
+
+  @keyframes bannerPopCenter {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -46%) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
   .bottom-banner-content {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.55rem;
-    padding: 0.75rem 0.95rem;
+    gap: 0.75rem;
+    padding: 1rem 1.15rem;
   }
   .bottom-banner-left {
     width: 100%;
     align-items: flex-start;
+    gap: 0.5rem;
   }
   .bottom-banner-icon {
-    margin-top: 2px;
+    margin-top: 3px;
+    flex-shrink: 0;
   }
   .bottom-banner-desc {
     white-space: normal !important;
-    word-break: break-all;
-    line-height: 1.45;
-    font-size: 0.75rem;
+    word-break: break-word;
+    line-height: 1.5;
+    font-size: 0.82rem;
+    color: var(--text-main);
   }
   .bottom-banner-right {
     width: 100%;
+    display: flex;
+    align-items: center;
     justify-content: space-between;
     border-top: 1px solid var(--border-subtle);
-    padding-top: 0.45rem;
+    padding-top: 0.65rem;
+    margin-top: 0.25rem;
+  }
+  .bottom-banner-close {
+    padding: 3px 8px !important;
+    border-radius: 6px !important;
+    background: var(--bg-input) !important;
+    font-size: 0.75rem !important;
   }
 
   /* ============================================================
@@ -1578,19 +1774,19 @@ html[data-theme="light"] #floating-cart-btn {
   }
 
   /* 双列 T3 加车按钮 */
-  body[data-mobile-cols="2"] .add-cart-btn {
+  body[data-mobile-cols="2"] .layer-card .add-cart-btn {
     padding: 0.2rem 0.45rem !important;
     font-size: 0.68rem !important;
-    height: 25px !important;
+    height: 26px !important;
     white-space: nowrap !important;
     flex-shrink: 0 !important;
   }
 
-  body[data-mobile-cols="2"] .add-cart-btn .btn-text-full {
+  body[data-mobile-cols="2"] .layer-card .add-cart-btn .btn-text-full {
     display: none !important;
   }
 
-  body[data-mobile-cols="2"] .add-cart-btn .btn-text-short {
+  body[data-mobile-cols="2"] .layer-card .add-cart-btn .btn-text-short {
     display: inline !important;
     font-weight: 600;
   }
@@ -2852,12 +3048,15 @@ html[data-theme="light"] .desktop-sort-item.active {
   background: transparent;
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
-  padding: 0.22rem 0.55rem;
-  border-radius: 0px;
-  font-size: 0.78rem;
+  height: var(--btn-h-sm, 28px) !important;
+  box-sizing: border-box !important;
+  padding: 0 var(--btn-px-sm, 0.55rem) !important;
+  border-radius: var(--btn-radius-sm, 6px);
+  font-size: var(--btn-font-sm, 0.78rem);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
   transition: color 0.15s, border-color 0.15s, background-color 0.15s;
   user-select: none;
@@ -2939,14 +3138,17 @@ html[data-theme="light"] .desktop-sort-item.active {
   background: var(--accent-lime);
   color: var(--accent-lime-fg);
   border: 1px solid var(--accent-lime-hover);
-  padding: 0.26rem 0.68rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  height: var(--btn-h-sm, 28px) !important;
+  box-sizing: border-box !important;
+  padding: 0 var(--btn-px-sm, 0.68rem) !important;
+  border-radius: var(--btn-radius-sm, 6px);
+  font-size: var(--btn-font-sm, 0.8rem);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.22s ease, border-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease, transform 0.15s ease;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
   user-select: none;
   overflow: hidden;
@@ -2973,21 +3175,24 @@ html[data-theme="light"] .desktop-sort-item.active {
 
 .btn-morph-icon .morph-line {
   position: absolute;
+  top: 50%;
+  left: 50%;
   background-color: currentColor;
-  border-radius: 2px;
+  border-radius: 1px;
+  transform-origin: center center;
   transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* 未选状态（+）：水平横线与垂直竖线交叉 */
+/* 未选状态（+）：水平横线与垂直竖线严格以 50% 50% 几何居中交叉 */
 .add-cart-btn:not(.added) .btn-morph-icon .line-h {
   width: 10px;
   height: 2px;
-  transform: rotate(0deg);
+  transform: translate(-50%, -50%) rotate(0deg);
 }
 .add-cart-btn:not(.added) .btn-morph-icon .line-v {
   width: 2px;
   height: 10px;
-  transform: rotate(0deg);
+  transform: translate(-50%, -50%) rotate(0deg);
 }
 
 /* 已选状态（.added）：明确的高辨识度成功选入态（浅绿微透背景 + 细边框） */
@@ -3002,16 +3207,16 @@ html[data-theme="dark"] .add-cart-btn.added {
   color: var(--accent-lime, #80cc28);
 }
 
-/* 已选状态下线条 Morph 弯折为对勾（✓） */
+/* 已选状态下线条 Morph 弯折为对勾（✓）——光学与几何精密居中 */
 .add-cart-btn.added .btn-morph-icon .line-h {
-  width: 9px;
+  width: 8px;
   height: 2px;
-  transform: translate(2px, 1.5px) rotate(-45deg);
+  transform: translate(calc(-50% + 1px), calc(-50% + 0px)) rotate(-45deg);
 }
 .add-cart-btn.added .btn-morph-icon .line-v {
-  width: 5px;
+  width: 4px;
   height: 2px;
-  transform: translate(-2.5px, 3px) rotate(45deg);
+  transform: translate(calc(-50% - 2.4px), calc(-50% + 1.4px)) rotate(45deg);
 }
 
 /* 已选状态下鼠标 Hover：顺滑旋转并重构成叉号（✕ 取消） */
@@ -3028,12 +3233,12 @@ html[data-theme="dark"] .add-cart-btn.added {
   .add-cart-btn.added:hover .btn-morph-icon .line-h {
     width: 9px;
     height: 2px;
-    transform: translate(0, 0) rotate(45deg);
+    transform: translate(-50%, -50%) rotate(45deg);
   }
   .add-cart-btn.added:hover .btn-morph-icon .line-v {
     width: 9px;
     height: 2px;
-    transform: translate(0, 0) rotate(-45deg);
+    transform: translate(-50%, -50%) rotate(-45deg);
   }
 }
 
@@ -3339,6 +3544,10 @@ html[data-theme="light"] .cart-drawer {
 
 .cart-drawer.open {
   transform: translateX(0);
+}
+
+.drawer-drag-handle {
+  display: none;
 }
 
 .drawer-header {
@@ -3847,9 +4056,122 @@ html[data-theme="dark"] #leaflet-map::before,
     margin-top: 0 !important;
     margin-bottom: var(--mobile-toolbar-gap, 0.5rem) !important;
   }
+  
+  /* 移动端购物车抽屉升级为现代底部半屏卡片 (Bottom Sheet / 70~75% 屏幕高度) */
   .cart-drawer {
-    width: 100vw;
-    border-radius: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: auto !important;
+    max-height: 75vh !important;
+    max-height: 75dvh !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    border-radius: 18px 18px 0 0 !important;
+    border-left: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35) !important;
+    transform: translateY(100%) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  html[data-theme="light"] .cart-drawer {
+    border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 -10px 35px rgba(0, 0, 0, 0.15) !important;
+  }
+  .cart-drawer.open {
+    transform: translateY(0) !important;
+  }
+
+  /* 顶部拖拽指示把手 (Drag Pill Handle) */
+  .drawer-drag-handle {
+    display: block !important;
+    width: 38px;
+    height: 4.5px;
+    border-radius: 9999px;
+    background: rgba(150, 150, 150, 0.4);
+    margin: 8px auto 0 auto;
+    flex-shrink: 0;
+  }
+
+  .drawer-header {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  /* 移动端/窄屏预览弹窗工具栏极致精简：单行通透，彻底根除重叠 */
+  .preview-map-toolbar {
+    padding: 0.35rem 0.6rem !important;
+    gap: 0.4rem !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    overflow-x: hidden !important;
+  }
+  .preview-map-toolbar-left {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 0.4rem !important;
+    flex-shrink: 0 !important;
+  }
+  /* 隐藏所有冗余文字说明 */
+  .preview-meta-label,
+  .status-pill-text {
+    display: none !important;
+  }
+  /* 状态指示升级为 24x24px 极简微状态方块，绝无文字 */
+  .map-status-pill {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    border-radius: 4px !important;
+    line-height: 1 !important;
+  }
+  .map-status-pill .status-dot {
+    width: 9px !important;
+    height: 9px !important;
+    margin: 0 !important;
+  }
+  #preview-meta-format {
+    font-size: 0.72rem !important;
+    padding: 3px 6px !important;
+    background: var(--bg-input) !important;
+    border-radius: 4px !important;
+    border: 1px solid var(--border-subtle) !important;
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    text-transform: uppercase !important;
+  }
+  .preview-map-toolbar-actions {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-end !important;
+    gap: 0.35rem !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+  .preview-map-controls-group {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 0.35rem !important;
+    margin-left: auto !important;
+  }
+  /* 移动端控制按钮收缩为标准 28x28px 纯正方形图标，文字全部隐藏 */
+  .btn-map-control {
+    width: var(--btn-h-sm, 28px) !important;
+    height: var(--btn-h-sm, 28px) !important;
+    min-width: 28px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+  .btn-map-control .btn-map-control-text {
+    display: none !important;
   }
 }
 
@@ -3917,40 +4239,86 @@ html[data-theme="dark"] #leaflet-map::before,
   justify-content: flex-end;
 }
 
+/* 极简底图状态方块指示标 (无冗余文字，纯色块符号化展示) */
 .map-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  padding: 2px 7px;
-  border-radius: 0px;
-  background: rgba(16, 185, 129, 0.12);
-  color: var(--accent-green);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  font-weight: 500;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  padding: 0 !important;
+  border-radius: 4px !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  flex-shrink: 0 !important;
+  cursor: help;
+  position: relative;
+}
+
+.map-status-pill .status-dot {
+  width: 9px !important;
+  height: 9px !important;
+  margin: 0 !important;
+  border-radius: 2px !important; /* 优雅微圆角方块 */
+  background: var(--accent-green) !important;
+  display: block !important;
 }
 
 .map-status-pill.warn {
-  background: rgba(245, 158, 11, 0.12);
-  color: var(--accent-amber);
-  border-color: rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+.map-status-pill.warn .status-dot,
+.status-dot.warn {
+  background: var(--accent-amber) !important;
 }
 
 .map-status-pill.error {
-  background: rgba(239, 68, 68, 0.12);
-  color: var(--accent-red);
-  border-color: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+.map-status-pill.error .status-dot,
+.status-dot.error {
+  background: var(--accent-red) !important;
+}
+
+/* 协议精简徽章 (xyz / vec / wms / wmts 等短码胶囊) */
+.preview-meta-format-badge {
+  font-family: var(--font-mono) !important;
+  font-size: 0.72rem !important;
+  text-transform: uppercase !important;
+  padding: 2px 6px !important;
+  background: var(--bg-input) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: 4px !important;
+  line-height: 1.2 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  letter-spacing: 0.04em !important;
+  flex-shrink: 0 !important;
 }
 
 .btn-map-control {
   background: var(--bg-input);
   border: 1px solid var(--border-subtle);
   color: var(--text-main);
-  padding: 0.25rem 0.6rem;
-  border-radius: 0px;
-  font-size: 0.75rem;
+  height: var(--btn-h-sm, 28px) !important;
+  box-sizing: border-box !important;
+  padding: 0 var(--btn-px-sm, 0.55rem) !important;
+  border-radius: var(--btn-radius-sm, 6px);
+  font-size: var(--btn-font-sm, 0.75rem);
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.35rem;
+  transition: var(--btn-transition, all 0.15s);
+  white-space: nowrap !important;
 }
 
 .btn-map-control:hover {
@@ -5041,16 +5409,20 @@ html[data-theme="light"] .wms-dock-select {
     top: calc(var(--header-height, 46px) + var(--mobile-toolbar-gap, 0.45rem)) !important;
   }
 
-  /* 预览弹窗内部工具栏与 Token 弹性排布 */
+  /* 预览弹窗内部工具栏与 Token 弹性排布 (高数据墨水比，单行通透排布) */
   .preview-map-toolbar {
-    padding: 0.35rem 0.5rem !important;
-    gap: 0.35rem !important;
+    padding: 0.35rem 0.6rem !important;
+    gap: 0.4rem !important;
+    flex-wrap: nowrap !important;
   }
   .preview-map-toolbar > div {
     display: flex !important;
-    flex-wrap: wrap !important;
-    width: 100% !important;
+    flex-wrap: nowrap !important;
+    width: auto !important;
     gap: 0.35rem !important;
+  }
+  .preview-meta-label {
+    display: none !important; /* 隐藏 '接入协议:' 冗余废话标签 */
   }
   #preview-token-wrap {
     width: 100% !important;
@@ -5061,14 +5433,22 @@ html[data-theme="light"] .wms-dock-select {
     width: 100% !important;
     flex: 1 1 auto !important;
   }
+  /* 移动端控制按钮收缩为纯图标正方形，释放地图视野 */
   .btn-map-control {
-    padding: 2px 5px !important;
-    font-size: 0.68rem !important;
+    width: var(--btn-h-sm, 28px) !important;
+    height: var(--btn-h-sm, 28px) !important;
+    padding: 0 !important;
+    justify-content: center !important;
+  }
+  .btn-map-control .btn-map-control-text {
+    display: none !important;
   }
   .preview-map-controls-group {
-    width: 100% !important;
+    width: auto !important;
     justify-content: flex-end !important;
     margin-left: auto !important;
+    flex-wrap: nowrap !important;
+    gap: 0.35rem !important;
   }
 
   /* URL 与长代码行强制折行，防止横向撑破卡片或弹窗 */
@@ -5578,6 +5958,43 @@ html[data-theme="light"] .wms-dock-select {
   border-radius: 6px !important;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* 移动端与窄屏下：将地图悬浮加车按钮设为精致紧凑的正方形悬浮操作钮（32x32px FAB），
+   彻底移除多余内边距与文字滚轴，确保「+」与「✓」在绿色按钮正中央绝对几何居中 */
+@media (max-width: 768px) {
+  #preview-add-cart-btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+  }
+  #preview-add-cart-btn .btn-text-roller {
+    display: none !important;
+  }
+  #preview-add-cart-btn .btn-morph-icon {
+    margin: 0 auto !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+/* 桌面端：适度内边距与标准高度，显示完整滚轴文案 */
+@media (min-width: 769px) {
+  #preview-add-cart-btn {
+    height: var(--btn-h-md, 32px) !important;
+    padding: 0 12px !important;
+    gap: 6px !important;
+  }
 }
 
 
