@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>购物车徽标设计方案对比 Demo</title>
+  <style>
+    :root {
+      --bg-page: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      
+      /* 品牌色 */
+      --brand-lime: #80cc28;
+      --brand-lime-hover: #72b822;
+      --brand-lime-subtle: rgba(128, 204, 40, 0.14);
+      --brand-lime-border: rgba(128, 204, 40, 0.35);
+      --brand-lime-text: #4d8512;
+
+      /* 经典红 */
+      --accent-red: #ef4444;
+      --accent-red-subtle: #fee2e2;
+      --accent-red-text: #b91c1c;
+
+      /* 极简中性 */
+      --neutral-badge-bg: #f1f5f9;
+      --neutral-badge-text: #475569;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    body {
+      background: var(--bg-page);
+      color: var(--text-main);
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+      max-width: 650px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .comparison-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+      max-width: 760px;
+    }
+
+    .option-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      transition: all 0.2s ease;
+    }
+
+    .option-card:hover {
+      box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+      border-color: #cbd5e1;
+    }
+
+    .option-info {
+      flex: 1;
+    }
+
+    .option-badge-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .tag-current { background: #fee2e2; color: #b91c1c; }
+    .tag-recommend { background: #dcfce7; color: #15803d; }
+    .tag-alt { background: #e0f2fe; color: #0369a1; }
+
+    .option-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .option-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .preview-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 200px;
+      padding: 16px 24px;
+      background: #f8fafc;
+      border-radius: 10px;
+      border: 1px dashed #cbd5e1;
+    }
+
+    /* 基础按钮样式 (还原网站原型结构) */
+    .base-btn {
+      position: relative;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #1e293b;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      transition: all 0.15s ease;
+    }
+
+    .base-btn:hover {
+      border-color: #94a3b8;
+      background: #f8fafc;
+    }
+
+    .cart-svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    /* ========================================================
+       0. 当前线上样式 (对照组：生硬纯直角满高实底方块)
+       ======================================================== */
+    .badge-current {
+      background: var(--brand-lime);
+      color: #0c1a02;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 0px; /* 纯直角 */
+      font-family: monospace;
+      margin-left: 2px;
+    }
+
+    /* ========================================================
+       方案 1A：精致全圆角内嵌胶囊 (推荐：轻量透气微底色)
+       ======================================================== */
+    .badge-pill-subtle {
+      background: var(--brand-lime-subtle);
+      border: 1px solid var(--brand-lime-border);
+      color: var(--brand-lime-text);
+      font-size: 11px;
+      font-weight: 700;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 6px;
+      border-radius: 9999px; /* 全圆角胶囊 */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-variant-numeric: tabular-nums;
+      margin-left: 2px;
+    }
+
+    /* ========================================================
+       方案 1B：高辨识度实底药丸胶囊 (微缩精致版)
+       ======================================================== */
+    .badge-pill-solid {
+      background: var(--brand-lime);
+      color: #081202;
+      font-size: 11px;
+      font-weight: 700;
+      min-width: 19px;
+      height: 19px;
+      padding: 0 6px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ========================================================
+       方案 2：经典右上角悬浮小角标 (Floating Badge，iOS/电商品质)
+       ======================================================== */
+    .btn-floating-wrapper {
+      position: relative;
+    }
+    .badge-floating-red {
+      position: absolute;
+      top: -7px;
+      right: -8px;
+      background: var(--accent-red);
+      color: #ffffff;
+      font-size: 10.5px;
+      font-weight: 700;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #ffffff; /* 白边隔离带 */
+      box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .badge-floating-green {
+      position: absolute;
+      top: -7px;
+      right: -8px;
+      background: var(--brand-lime);
+      color: #081202;
+      font-size: 10.5px;
+      font-weight: 700;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 5px rgba(128, 204, 40, 0.4);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ========================================================
+       方案 3：极简括弧计数 / 灰阶徽标 (GitHub / 极简工业风)
+       ======================================================== */
+    .badge-counter-minimal {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .badge-neutral-pill {
+      background: var(--neutral-badge-bg);
+      color: var(--neutral-badge-text);
+      font-size: 11px;
+      font-weight: 700;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 6px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-variant-numeric: tabular-nums;
+      border: 1px solid #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>购物车角标数字（Badge）设计优化提案</h1>
+    <p>当前纯直角绿色方块对比度突兀且无倒角，以下为您提供业内最主流的规范化设计方案对比：</p>
+  </div>
+
+  <div class="comparison-container">
+
+    <!-- 0. 现有样式对照 -->
+    <div class="option-card" style="opacity: 0.85; background: #fffafb;">
+      <div class="option-info">
+        <span class="option-badge-tag tag-current">当前线上状态 (问题对照)</span>
+        <div class="option-title">直角硬方块（border-radius: 0）</div>
+        <div class="option-desc">草绿底色充满高度，直角生硬贴在文字右侧，缺乏呼吸感与内边距，视觉像膏药。</div>
+      </div>
+      <div class="preview-box">
+        <button class="base-btn">
+          <svg class="cart-svg" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          <span>购物车</span>
+          <span class="badge-current">5</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 方案 1A: 柔和微底色胶囊药丸 (推荐) -->
+    <div class="option-card">
+      <div class="option-info">
+        <span class="option-badge-tag tag-recommend">方案 1A (强烈推荐)</span>
+        <div class="option-title">柔和微底色全圆角胶囊 (Subtle Pill)</div>
+        <div class="option-desc">采用 14% 低饱和透气绿底 + 细边框，圆润饱满且完全融入按钮内部，精致耐看，不喧宾夺主。</div>
+      </div>
+      <div class="preview-box">
+        <button class="base-btn">
+          <svg class="cart-svg" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          <span>购物车</span>
+          <span class="badge-pill-subtle">5</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 方案 1B: 实底药丸胶囊 -->
+    <div class="option-card">
+      <div class="option-info">
+        <span class="option-badge-tag tag-alt">方案 1B</span>
+        <div class="option-title">精致实心绿底药丸 (Solid Pill)</div>
+        <div class="option-desc">保留品牌绿的高辨识度，但重构为全圆角药丸胶囊，高度定为 19px 居中微悬浮，解决生硬直角问题。</div>
+      </div>
+      <div class="preview-box">
+        <button class="base-btn">
+          <svg class="cart-svg" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          <span>购物车</span>
+          <span class="badge-pill-solid">5</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 方案 2: 右上角悬浮小角标 -->
+    <div class="option-card">
+      <div class="option-info">
+        <span class="option-badge-tag tag-alt">方案 2 (移动端/电商首选)</span>
+        <div class="option-title">右上角悬浮小徽标 (Floating Corner Badge)</div>
+        <div class="option-desc">经典电商与 iOS 风格：文字不再横向被挤压，角标悬浮在按钮右上角（带 2px 白边外描边隔离）。</div>
+      </div>
+      <div class="preview-box" style="gap: 16px;">
+        <!-- 红色角标 -->
+        <button class="base-btn btn-floating-wrapper" title="红底经典">
+          <svg class="cart-svg" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          <span>购物车</span>
+          <span class="badge-floating-red">5</span>
+        </button>
+        <!-- 品牌绿角标 -->
+        <button class="base-btn btn-floating-wrapper" title="品牌绿">
+          <svg class="cart-svg" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          <span>购物车</span>
+          <span class="badge-floating-green">5</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 方案 3: 极简灰阶 / 括弧计数 -->
+    <div class="option-card">
+      <div class="option-info">
+        <span class="option-badge-tag tag-alt">方案 3</span>
+        <div class="option-title">中性灰微胶囊 / 极简括号计数 (Minimalist)</div>
+        <div class="option-desc">彻底去掉鲜艳颜色，以高雅克制的中性灰底或括弧呈现，符合专业 GIS/技术型工具界面的冷静质感。</div>
+      </div>
+      <div class="preview-box" style="gap: 16px;">
+        <!-- 灰阶胶囊 -->
+        <button class="base-btn">
+          <svg class="cart-svg" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          <span>购物车</span>
+          <span class="badge-neutral-pill">5</span>
+        </button>
+        <!-- 括弧纯文字 -->
+        <button class="base-btn">
+          <svg class="cart-svg" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          <span>购物车</span>
+          <span class="badge-counter-minimal">(5)</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
